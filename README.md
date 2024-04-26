@@ -46,3 +46,10 @@ ___________________________________________________________
         3.3.1 ADD SQL Command
         
 4. Type in Terminal -> python -m flask run
+
+
+
+
+
+
+test
