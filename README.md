@@ -32,3 +32,17 @@ Pre-Project Phase
 • Think about coder sharing
 • Setup Github
 • Create plan for the first sprint
+
+
+
+___________________________________________________________
+1. Install Visual Studio Code (Internet)
+2. Install Python 3.10.9-> Do ist with Anaconda (Internet)
+    2.1 Install Flask in Python (Command Line: pip install flask or in anaconda navigate and search for it there)
+3. Install MariaDB (Internet)
+    3.1 Install MariaDB in Python (Command Line: pip install Mariadb or in anaconda navigate and search for it there)
+    3.2 Open CMD and write mariadb -u root -p
+    3.3 login and add Data
+        3.3.1 ADD SQL Command
+        
+4. Type in Terminal -> python -m flask run
