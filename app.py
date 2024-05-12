@@ -23,3 +23,9 @@ def get_data():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
+
+#@app.route("/login")
+#def home():
+ #   return render_template('HTML/loginpage.html')
+    #so immer auf die html pages linken
