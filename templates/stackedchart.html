@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Visualisation - DV</title>
+    <link rel="stylesheet" href="/static/CSS/all.css">
+    <link rel="stylesheet" href="/static/CSS/chart_types.css">
+    <style>
+       
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo-area">
+                <span class="logo-circle"></span>
+                <span class="logo-text">Data Visualisation - DV</span>
+            </div>
+            <button class="menu-button">☰</button>
+        </header>
+        <div class="side-menu" id="sideMenu">
+            <button class="close-button">X</button>
+            <h1>What would you like to See?</h1>
+            <a href="/charts">Chart Overview</a>
+            <a href="#">Edit/Clear Data</a>
+            <a href="#">Forecast</a>
+            <a href="#">My Profile</a>
+            <a href="/login">Sign In</a>
+            <a href="/landingpage">Log Out</a>
+        </div>
+        <main>
+            <h1>Stacked Area Chart</h1>
+            <section class="data-selection">
+                <h2>Please Choose your Data</h2>
+                <form>
+                    <label for="orders">Orders</label>
+                    <select id="orders" name="orders">
+                        <option>None</option>
+                    </select>
+
+                    <label for="customers">Customers</label>
+                    <select id="customers" name="customers">
+                        <option>None</option>
+                    </select>
+
+                    <label for="orderItems">Order Items</label>
+                    <select id="orderItems" name="orderItems">
+                        <option>None</option>
+                    </select>
+
+                    <label for="products">Products</label>
+                    <select id="products" name="products">
+                        <option>None</option>
+                    </select>
+
+                    <label for="stores">Stores</label>
+                    <select id="stores" name="stores">
+                        <option>None</option>
+                    </select>
+
+                    <button type="submit">Submit</button>
+                </form>
+            </section>
+        </main>
+    </div>
+    <script src="/static/JS/sidemenu.js"></script>
+</body>
+</html>

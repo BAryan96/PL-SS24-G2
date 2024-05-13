@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Visualisation - DV</title>
+    <link rel="stylesheet" href="/static/CSS/landingpage.css">
+    <link rel="stylesheet" href="/static/CSS/all.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo-area">
+                <span class="logo-circle"></span>
+                <span class="logo-text">Data Visualisation - DV</span>
+            </div>
+            <div class="auth-buttons">
+                <button class="header-btn sign-in" onclick="window.location.href='/login'">Sign In</button>
+                <button class="header-btn sign-up">Sign Up</button>
+                <button class="menu-button">☰</button>
+            </div>
+        </header>
+        <div class="side-menu" id="sideMenu">
+            <button class="close-button">X</button>
+            <h1>What would you like to See?</h1>
+            <a href="/charts">Chart Overview</a>
+            <a href="#">Edit/Clear Data</a>
+            <a href="#">Forecast</a>
+            <a href="#">My Profile</a>
+            <a href="/login">Sign In</a>
+            <a href="/landingpage">Log Out</a>
+        </div>
+        <main>
+            <div class="content-section">
+                <div class="intro">
+                    <h1>Transforming Data into Stunning Insights for Business Success</h1>
+                    <p>Uncover the power of data with our visually captivating insights tailored for effective business management. Elevate decision-making, streamline operations, and drive success with our innovative approach to data visualization.</p>
+                    <button class="main-button">See Trailer</button>
+                </div>
+                <div class="login-section">
+                    <button onclick="window.location.href='/login';" class="login-btn">Login with Credentials</button>
+                    <div class="divider"></div>
+                    <button class="login-btn">Sign Up with Email</button>
+                </div>
+            </div>
+        </main>
+        <footer>
+            <button class="footer-button">Learn More</button>
+        </footer>
+    </div>
+    <script src="/static/JS/sidemenu.js"></script>
+
+</body>
+</html>

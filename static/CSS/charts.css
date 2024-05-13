@@ -1,0 +1,58 @@
+.chart-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    padding: 20px;
+}
+.chart {
+    margin: 10px;
+    flex-basis: calc(33% - 20px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    transition: transform 0.2s;
+}
+.chart:hover {
+    transform: scale(1.05);
+}
+.chart img {
+    width: 100%;
+    display: block;
+}
+.chart h3 {
+    text-align: center;
+    padding: 15px;
+}
+
+@media (max-width: 768px) {
+    .chart {
+        flex-basis: calc(50% - 20px);
+    }
+}
+@media (max-width: 480px) {
+    .chart {
+        flex-basis: 100%;
+    }
+}
+
+
+.heading {
+    text-align: center;
+    margin-top: 20px; /* Abstand von der oberen Seite */
+    margin-bottom: 20px; /* Abstand zum Inhalt darunter */
+}
+
+.heading h1 {
+    font-size: 28px; /* Größe der Überschrift */
+    color: #000; /* Farbe der Überschrift */
+}
+.heading p {
+    font-size: 18px; /* Größe des Textes */
+    color: #666; /* Farbe des Textes */
+}
+.heading {
+    text-align: center;
+    margin-top: 20px;
+    margin-bottom: 20px;
+    z-index: 1000;
+    position: relative;
+}
+

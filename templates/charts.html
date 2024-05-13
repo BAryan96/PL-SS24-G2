@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Visualisation - DV</title>
+    <link rel="stylesheet" href="/static/CSS/all.css">
+    <link rel="stylesheet" href="/static/CSS/charts.css">
+    <style>
+       
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo-area">
+                <span class="logo-circle"></span>
+                <span class="logo-text">Data Visualisation - DV</span>
+            </div>
+            <button class="menu-button">☰</button>
+        </header>
+        <div class="side-menu" id="sideMenu">
+            <button class="close-button">X</button>
+            <h1>What would you like to See?</h1>
+            <a href="/charts">Chart Overview</a>
+            <a href="#">Edit/Clear Data</a>
+            <a href="#">Forecast</a>
+            <a href="#">My Profile</a>
+            <a href="/login">Sign In</a>
+            <a href="/landingpage">Log Out</a>
+        </div>
+        <div class="heading">
+            <h1>Chart Types Overview</h1>
+            <p>Please select which chart type you would like to see.</p>
+        </div>
+        <div class="chart-container">
+            <a href="/stackedchart" class="chart">
+                <img src= "/static/images/stacked_area_chart.png">
+                <h3>Stacked Area Chart</h3>
+            </a>
+            <a href="#" class="chart">
+                <img src="/static/images/scale_area_chart.png">
+                <h3>Scale Area Chart</h3>
+            </a>
+            <a href="#" class="chart">
+                <img src="/static/images/basic_scatter_chart.png">
+                <h3>Basic Scatter Chart</h3>
+            </a>
+            <a href="#" class="chart">
+                <img src="/static/images/donut_chart.png">
+                <h3>Donut Chart</h3>
+            </a>
+            <a href="#" class="chart">
+                <img src="/static/images/morphing_map.png">
+                <h3>Morphing between Map and Bar</h3>
+            </a>
+            <a href="#" class="chart">
+                <img src="/static/images/bar_chart.png">
+                <h3>Bar Chart</h3>
+            </a>
+            <a href="#" class="chart">
+                <img src="/static/images/heatmap.png">
+                <h3>Heatmap</h3>
+            </a>
+        </div>
+    </div>
+    <script src="/static/JS/sidemenu.js"></script>
+</body>
+</html>
