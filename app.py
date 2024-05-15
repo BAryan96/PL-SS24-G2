@@ -54,6 +54,11 @@ def charts():
 def stackedchart():
     return render_template('stackedchart.html')
 
+@app.route("/scalechart")
+def scalechart():
+    return render_template('scalechart.html')
+
+
 # Route zum Abrufen der Daten
 @app.route('/get_data', methods=['POST'])
 def get_data():
@@ -84,6 +89,8 @@ def get_data():
     connection.close()
 
     return jsonify(result)
+
+
 
 if __name__ == "__main__":
     app.run(debug=True)
