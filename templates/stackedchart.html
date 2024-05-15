@@ -5,10 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Data Visualisation - DV</title>
     <link rel="stylesheet" href="/static/CSS/all.css">
-    <link rel="stylesheet" href="/static/CSS/chart_types.css">
-    <style>
-       
-    </style>
+    <link rel="stylesheet" href="/static/CSS/stacked_chart_type.css">
 </head>
 <body>
     <div class="container">
@@ -29,11 +26,10 @@
             <a href="/login">Sign In</a>
             <a href="/">Log Out</a>
         </div>
-        <main>
-            <h1>Stacked Area Chart</h1>
+        <main class="main">
             <section class="data-selection">
                 <h2>Please Choose your Data</h2>
-                <form>
+                <form id="dataForm">
                     <label for="orders">Orders</label>
                     <select id="orders" name="orders">
                         <option>None</option>
@@ -43,7 +39,6 @@
                         <option>Order Date</option>
                         <option>Number of Items</option>
                         <option>Total</option>
-
                     </select>
 
                     <label for="customers">Customers</label>
@@ -76,13 +71,84 @@
                     <label for="stores">Stores</label>
                     <select id="stores" name="stores">
                         <option>None</option>
+                        <option>StoreID</option>
+                        <option>Zipcode</option>
+                        <option>StateShort</option>
+                        <option>Latitude</option>
+                        <option>Longitude</option>
                     </select>
 
                     <button type="submit">Submit</button>
                 </form>
             </section>
+            <section id="chart"></section>
         </main>
     </div>
     <script src="/static/JS/sidemenu.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+    <script>
+        document.getElementById('dataForm').addEventListener('submit', function (event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const data = {
+                orders: formData.get('orders'),
+                customers: formData.get('customers'),
+                orderItems: formData.get('orderItems'),
+                products: formData.get('products'),
+                stores: formData.get('stores')
+            };
+
+            fetch('/get_data', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                const chartDom = document.getElementById('chart');
+                const myChart = echarts.init(chartDom);
+
+                // Filter out the selected fields that are not 'None'
+                const selectedFields = Object.entries(data)
+                    .filter(([key, value]) => value !== 'None')
+                    .map(([key, value]) => value);
+
+                const option = {
+                    title: {
+                        text: 'Stacked Area Chart'
+                    },
+                    tooltip: {
+                        trigger: 'axis'
+                    },
+                    legend: {
+                        data: selectedFields
+                    },
+                    toolbox: {
+                        feature: {
+                            saveAsImage: {}
+                        }
+                    },
+                    xAxis: {
+                        type: 'category',
+                        boundaryGap: false,
+                        data: result.map((_, index) => index)
+                    },
+                    yAxis: {
+                        type: 'value'
+                    },
+                    series: selectedFields.map(field => ({
+                        name: field,
+                        type: 'line',
+                        stack: 'Total',
+                        areaStyle: {},
+                        data: result.map(row => row[selectedFields.indexOf(field)])
+                    }))
+                };
+                option && myChart.setOption(option);
+            });
+        });
+    </script>
 </body>
 </html>

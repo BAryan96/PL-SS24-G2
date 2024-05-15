@@ -13,9 +13,14 @@ body, html {
 .main {
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: flex-start;
     min-height: calc(100vh - 100px);
     background-color: #f4f4f4;
+    padding: 20px;
+}
+
+.data-selection {
+    flex: 1;
 }
 
 .data-selection form {
@@ -38,4 +43,15 @@ button {
     color: white;
     border: none;
     cursor: pointer;
+}
+
+#chart {
+    flex: 2;
+    width: 600px;
+    height: 400px;
+    margin-left: 20px;
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
 }

@@ -22,20 +22,30 @@
 
 #if __name__ == "__main__":
 #    app.run(debug=True)
-from flask import Flask, render_template
+
+from flask import Flask, render_template, request, jsonify
+import mariadb
 
 app = Flask(__name__)
+
+# Konfiguriere die Verbindung zur Datenbank
+def get_db_connection():
+    return mariadb.connect(
+        user="root",
+        password="Justina2606",
+        host="localhost",
+        port=3306,
+        database="pizzag2"
+    )
 
 @app.route("/")
 def landingpage():
     return render_template('landingpage.html')
 
-# Route für die Anmeldeseite
 @app.route("/login")
 def login():
     return render_template('login.html')
 
-# Neue Route für die Charts-Seite
 @app.route("/charts")
 def charts():
     return render_template('charts.html')
@@ -43,6 +53,37 @@ def charts():
 @app.route("/stackedchart")
 def stackedchart():
     return render_template('stackedchart.html')
+
+# Route zum Abrufen der Daten
+@app.route('/get_data', methods=['POST'])
+def get_data():
+    data = request.json
+    query_parts = []
+
+    # Baue die Abfrage basierend auf den ausgewählten Feldern
+    if data['orders'] != 'None':
+        query_parts.append(f"SELECT {data['orders']} FROM Orders")
+    if data['customers'] != 'None':
+        query_parts.append(f"SELECT {data['customers']} FROM Customers")
+    if data['orderItems'] != 'None':
+        query_parts.append(f"SELECT {data['orderItems']} FROM Orderitems")
+    if data['products'] != 'None':
+        query_parts.append(f"SELECT {data['products']} FROM Products")
+    if data['stores'] != 'None':
+        query_parts.append(f"SELECT {data['stores']} FROM Stores")
+
+    # Verknüpfe die Abfragen mit UNION ALL (oder einer anderen geeigneten Methode)
+    query = " UNION ALL ".join(query_parts)
+
+    # Führe die Abfrage aus und sammle die Daten
+    connection = get_db_connection()
+    cursor = connection.cursor()
+    cursor.execute(query)
+    result = cursor.fetchall()
+    cursor.close()
+    connection.close()
+
+    return jsonify(result)
 
 if __name__ == "__main__":
     app.run(debug=True)
