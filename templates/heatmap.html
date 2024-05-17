@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Visualisation - DV</title>
+    <link rel="stylesheet" href="/static/CSS/all.css">
+    <link rel="stylesheet" href="/static/CSS/stacked_chart_type.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        /* styles.css */
+        body, html {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .main {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: calc(100vh - 100px);
+            background-color: #f4f4f4;
+            padding: 20px;
+        }
+
+        .data-selection {
+            flex: 1;
+        }
+
+        .data-selection form {
+            display: flex;
+            flex-direction: column;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            width: 450px;
+        }
+
+        .data-selection label, .data-selection select {
+            margin-bottom: 10px;
+        }
+
+        button {
+            padding: 10px;
+            background-color: coral;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        #chart {
+            flex: 2;
+            width: 600px;
+            height: 600px; /* Adjust height for heatmap */
+            margin-left: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        #loading {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            text-align: center;
+            padding-top: 20%;
+        }
+
+        #loading .spinner {
+            margin: 0 auto 20px auto;
+            border: 8px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 8px solid white;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        #loading p {
+            font-size: 1.2em;
+            margin-top: 10px;
+        }
+
+        #loading #progress {
+            font-size: 1em;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo-area">
+                <span class="logo-circle"></span>
+                <span class="logo-text">Data Visualisation - DV</span>
+            </div>
+            <button class="menu-button">☰</button>
+        </header>
+        <div class="side-menu" id="sideMenu">
+            <button class="close-button">X</button>
+            <h1>What would you like to See?</h1>
+            <a href="/charts">Chart Overview</a>
+            <a href="#">Edit/Clear Data</a>
+            <a href="#">Forecast</a>
+            <a href="#">My Profile</a>
+            <a href="/login">Sign In</a>
+            <a href="/">Log Out</a>
+        </div>
+        <main class="main">
+            <section class="data-selection">
+                <h2>Please Choose your Data</h2>
+                <form id="dataForm">
+                    <label for="orders">Orders</label>
+                    <select id="orders" name="orders">
+                        <option>None</option>
+                        <option>OrderID</option>
+                        <option>CustomerID</option>
+                        <option>StoreID</option>
+                        <option>Order Date</option>
+                        <option>Number of Items</option>
+                        <option>Total</option>
+                    </select>
+
+                    <label for="customers">Customers</label>
+                    <select id="customers" name="customers">
+                        <option>None</option>
+                        <option>CustomerID</option>
+                        <option>Latitude</option>
+                        <option>Longitude</option>
+                    </select>
+
+                    <label for="orderItems">Order Items</label>
+                    <select id="orderItems" name="orderItems">
+                        <option>None</option>
+                        <option>SKU</option>
+                        <option>OrderID</option>
+                    </select>
+
+                    <label for="products">Products</label>
+                    <select id="products" name="products">
+                        <option>None</option>
+                        <option>SKU</option>
+                        <option>Name</option>
+                        <option>Price</option>
+                        <option>Category</option>
+                        <option>Size</option>
+                        <option>Ingredients</option>
+                        <option>Launch</option>
+                    </select>
+
+                    <label for="stores">Stores</label>
+                    <select id="stores" name="stores">
+                        <option>None</option>
+                        <option>StoreID</option>
+                        <option>Zipcode</option>
+                        <option>StateShort</option>
+                        <option>Latitude</option>
+                        <option>Longitude</option>
+                    </select>
+
+                    <button type="submit">Submit</button>
+                </form>
+            </section>
+            <section id="chart"></section>
+        </main>
+        <div id="loading">
+            <div class="spinner"></div>
+            <p>Please hold on: Your Data is being extracted from the Database.</p>
+            <p id="progress">Loading: 0%</p>
+        </div>
+    </div>
+    <script src="/static/JS/sidemenu.js"></script>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+    <script>
+document.getElementById('dataForm').addEventListener('submit', function (event) {
+    event.preventDefault();
+    document.getElementById('loading').style.display = 'block';
+
+    const formData = new FormData(event.target);
+    const data = {
+        orders: formData.get('orders'),
+        customers: formData.get('customers'),
+        orderItems: formData.get('orderItems'),
+        products: formData.get('products'),
+        stores: formData.get('stores')
+    };
+
+    fetch('/get_heatmap_data', { // Adjust the endpoint for heatmap data
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        document.getElementById('loading').style.display = 'none';
+
+        console.log('Heatmap data received:', result);
+
+        // Initialize the map
+        const map = L.map('chart').setView([37.550339, 104.114129], 5);
+
+        // Set up the OSM layer
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 18,
+        }).addTo(map);
+
+        // Check if result is not empty and has expected structure
+        if (result && Array.isArray(result) && result.length > 0 && result[0].latitude && result[0].longitude && result[0].value) {
+            // Prepare the heatmap data
+            const heatmapData = result.map(item => [item.latitude, item.longitude, item.value]); // Adjust according to your data structure
+
+            // Add the heatmap layer
+            L.heatLayer(heatmapData, {
+                radius: 20,
+                blur: 15,
+                maxZoom: 17,
+            }).addTo(map);
+        } else {
+            console.error('Invalid heatmap data format or no data available');
+        }
+    })
+    .catch(error => {
+        document.getElementById('loading').style.display = 'none';
+        console.error('Error loading data:', error);
+    });
+});
+    </script>
+</body>
+</html>
