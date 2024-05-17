@@ -4,7 +4,7 @@ import sys
 def connect_to_database():
     try:
         conn = mariadb.connect(
-            user="micho",
+            user="root",
             password="123",
             host="127.0.0.1",
             port=3306,
