@@ -32,7 +32,7 @@ app = Flask(__name__)
 def get_db_connection():
     return mariadb.connect(
         user="root",
-        password="Justina2606",
+        password="123",
         host="localhost",
         port=3306,
         database="pizzag2"
