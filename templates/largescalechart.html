@@ -191,131 +191,114 @@
     <script src="/static/JS/sidemenu.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
     <script>
-document.getElementById('dataForm').addEventListener('submit', function (event) {
-    event.preventDefault();
-    document.getElementById('loading').style.display = 'block';
-
-    const formData = new FormData(event.target);
-    const data = {
-        orders: formData.get('orders'),
-        customers: formData.get('customers'),
-        orderItems: formData.get('orderItems'),
-        products: formData.get('products'),
-        stores: formData.get('stores')
-    };
-
-    fetch('/get_data', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
-    })
-    .then(response => {
-        const reader = response.body.getReader();
-        const contentLength = response.headers.get('Content-Length');
-        let receivedLength = 0;
-
-        return new Response(
-            new ReadableStream({
-                start(controller) {
-                    function push() {
-                        reader.read().then(({ done, value }) => {
-                            if (done) {
-                                controller.close();
-                                return;
-                            }
-                            receivedLength += value.length;
-                            const progress = Math.floor((receivedLength / contentLength) * 100);
-                            document.getElementById('progress').textContent = `Loading: ${progress}%`;
-                            controller.enqueue(value);
-                            push();
-                        });
-                    }
-                    push();
-                }
-            })
-        );
-    })
-    .then(response => response.json())
-    .then(result => {
-        document.getElementById('loading').style.display = 'none';
-        const chartDom = document.getElementById('chart');
-        const myChart = echarts.init(chartDom);
-
-        const selectedFields = Object.entries(data)
-            .filter(([key, value]) => value !== 'None')
-            .map(([key, value]) => value);
-
-        const dates = result.map(item => item.date);
-        const seriesData = selectedFields.map(field => ({
-            name: field,
-            type: 'line',
-            stack: 'Total',
-            areaStyle: {},
-            emphasis: {
-                focus: 'series'
-            },
-            data: result.map(item => item[field])
-        }));
-
-        const option = {
-            title: {
-                text: 'Large Area Chart'
-            },
-            tooltip: {
-                trigger: 'axis',
-                axisPointer: {
-                    type: 'cross',
-                    label: {
-                        backgroundColor: '#6a7985'
-                    }
-                }
-            },
-            legend: {
-                data: selectedFields
-            },
-            toolbox: {
-                feature: {
-                    saveAsImage: {}
-                }
-            },
-            grid: {
-                left: '3%',
-                right: '4%',
-                bottom: '10%',
-                containLabel: true
-            },
-            xAxis: {
-                type: 'category',
-                boundaryGap: false,
-                data: dates
-            },
-            yAxis: {
-                type: 'value'
-            },
-            dataZoom: [
-                {
-                    type: 'inside',
-                    start: 0,
-                    end: 10
+        document.getElementById('dataForm').addEventListener('submit', function (event) {
+            event.preventDefault();
+            document.getElementById('loading').style.display = 'block';
+        
+            const formData = new FormData(event.target);
+            const data = {
+                orders: formData.get('orders'),
+                customers: formData.get('customers'),
+                orderItems: formData.get('orderItems'),
+                products: formData.get('products'),
+                stores: formData.get('stores')
+            };
+        
+            fetch('/get_data', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
                 },
-                {
-                    start: 0,
-                    end: 10,
-                    bottom: '10%' // Adjust the position of the slider
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                console.log("Fetched data:", result);  // Debugging
+                document.getElementById('loading').style.display = 'none';
+                const chartDom = document.getElementById('chart');
+                const myChart = echarts.init(chartDom);
+        
+                if (result.error) {
+                    console.error("Error from server:", result.error);  // Debugging
+                    return;
                 }
-            ],
-            series: seriesData
-        };
-
-        option && myChart.setOption(option);
-    })
-    .catch(error => {
-        document.getElementById('loading').style.display = 'none';
-        console.error('Error loading data:', error);
-    });
-});
-    </script>
+        
+                const selectedFields = Object.entries(data)
+                    .filter(([key, value]) => value !== 'None')
+                    .map(([key, value]) => value);
+        
+                const dates = result.map(item => item.date);
+                const seriesData = selectedFields.map(field => ({
+                    name: field,
+                    type: 'line',
+                    stack: 'Total',
+                    areaStyle: {},
+                    emphasis: {
+                        focus: 'series'
+                    },
+                    data: result.map(item => item.value)
+                }));
+        
+                console.log("Series data:", seriesData);  // Debugging
+        
+                const option = {
+                    title: {
+                        text: 'Large Area Chart'
+                    },
+                    tooltip: {
+                        trigger: 'axis',
+                        axisPointer: {
+                            type: 'cross',
+                            label: {
+                                backgroundColor: '#6a7985'
+                            }
+                        }
+                    },
+                    legend: {
+                        data: selectedFields
+                    },
+                    toolbox: {
+                        feature: {
+                            saveAsImage: {}
+                        }
+                    },
+                    grid: {
+                        left: '3%',
+                        right: '4%',
+                        bottom: '10%',
+                        containLabel: true
+                    },
+                    xAxis: {
+                        type: 'category',
+                        boundaryGap: false,
+                        data: dates
+                    },
+                    yAxis: {
+                        type: 'value'
+                    },
+                    dataZoom: [
+                        {
+                            type: 'inside',
+                            start: 0,
+                            end: 10
+                        },
+                        {
+                            start: 0,
+                            end: 10,
+                            bottom: '10%' // Adjust the position of the slider
+                        }
+                    ],
+                    series: seriesData
+                };
+        
+                option && myChart.setOption(option);
+            })
+            .catch(error => {
+                document.getElementById('loading').style.display = 'none';
+                console.error('Error loading data:', error);
+            });
+        });
+        </script>
+        
 </body>
 </html>

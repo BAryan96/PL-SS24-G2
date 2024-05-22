@@ -53,37 +53,48 @@ def basicbarchart():
 def heatmap():
     return render_template('heatmap.html')
 
-# Route zum Abrufen der Daten
 @app.route('/get_data', methods=['POST'])
 def get_data():
     data = request.json
-    query_parts = []
+    orders = data.get('orders')
+    customers = data.get('customers')
+    orderItems = data.get('orderItems')
+    products = data.get('products')
+    stores = data.get('stores')
 
-    # Baue die Abfrage basierend auf den ausgewählten Feldern
-    if data['orders'] != 'None':
-        query_parts.append(f"SELECT {data['orders']} FROM Orders")
-    if data['customers'] != 'None':
-        query_parts.append(f"SELECT {data['customers']} FROM Customers")
-    if data['orderItems'] != 'None':
-        query_parts.append(f"SELECT {data['orderItems']} FROM Orderitems")
-    if data['products'] != 'None':
-        query_parts.append(f"SELECT {data['products']} FROM Products")
-    if data['stores'] != 'None':
-        query_parts.append(f"SELECT {data['stores']} FROM Stores")
+    queries = []
+    
+    if orders != 'None':
+        queries.append(f"SELECT `{orders}` AS value, 'orders' AS source FROM Orders")
+    if customers != 'None':
+        queries.append(f"SELECT `{customers}` AS value, 'customers' AS source FROM Customers")
+    if orderItems != 'None':
+        queries.append(f"SELECT `{orderItems}` AS value, 'orderItems' AS source FROM OrderItems")
+    if products != 'None':
+        queries.append(f"SELECT `{products}` AS value, 'products' AS source FROM Products")
+    if stores != 'None':
+        queries.append(f"SELECT `{stores}` AS value, 'stores' AS source FROM Stores")
+    
+    if not queries:
+        return jsonify([])
 
-    # Verknüpfe die Abfragen mit UNION ALL (oder einer anderen geeigneten Methode)
-    query = " UNION ALL ".join(query_parts)
+    query = " UNION ALL ".join(queries)
 
-    # Führe die Abfrage aus und sammle die Daten
-    connection = get_db_connection()
-    cursor = connection.cursor()
-    cursor.execute(query)
-    result = cursor.fetchall()
-    cursor.close()
-    connection.close()
+    conn = get_db_connection()
+    cursor = conn.cursor()
 
-    return jsonify(result)
+    try:
+        cursor.execute(query)
+        result = cursor.fetchall()
+    except mariadb.ProgrammingError as e:
+        print(f"Error: {e}")
+        return jsonify({'error': str(e)}), 400
+    finally:
+        cursor.close()
+        conn.close()
 
+    response = [{'value': row[0], 'source': row[1]} for row in result]
+    return jsonify(response)
 
 if __name__ == "__main__":
     app.run(debug=True)
