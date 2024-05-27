@@ -17,7 +17,7 @@
         .chart {
             position: relative;
             margin: 10px;
-            width: calc(50% - 20px); /* Adjusted width */
+            width: calc(45% - 20px); /* Adjusted width */
             height: 400px; /* Fixed height */
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             transition: transform 0.2s;
@@ -139,6 +139,10 @@
             padding: 10px;
             z-index: 1000;
         }
+        .color-picker-container {
+            margin-top: 20px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -242,6 +246,10 @@
                 </form>
             </section>
             <section id="chartContainer" class="chart-container"></section>
+            <div class="color-picker-container">
+                <label for="globalColorPicker">Change Color of Selected Chart</label>
+                <input type="color" id="globalColorPicker" class="color-picker">
+            </div>
         </main>
         <div id="loading">
             <div class="spinner"></div>
@@ -256,6 +264,7 @@
         let chartCount = 0;
         const maxCharts = 16;
         let charts = [];
+        let selectedChart = null;
 
         $(document).ready(function() {
             $.get("/tables", function(data) {
@@ -268,6 +277,15 @@
                     addChart('bar');
                 } else {
                     alert('Maximum number of charts reached.');
+                }
+            });
+
+            $('#globalColorPicker').on('input', function() {
+                if (selectedChart) {
+                    const color = $(this).val();
+                    const option = selectedChart.getOption();
+                    option.series[0].data.forEach(data => data.itemStyle = { color: color });
+                    selectedChart.setOption(option);
                 }
             });
         });
@@ -290,8 +308,13 @@
                 chartContainer.removeChild(chartDiv);
                 chartCount--;
                 charts = charts.filter(chart => chart !== chartInstance);
+                if (selectedChart === chartInstance) selectedChart = null;
             };
             chartDiv.appendChild(closeButton);
+
+            chartDiv.addEventListener('click', () => {
+                selectedChart = chartInstance;
+            });
 
             const xAxisSelect = document.getElementById('xAxis');
             const yAxisSelect = document.getElementById('yAxis');
@@ -320,11 +343,6 @@
                                     }]
                                 };
                                 chartInstance.setOption(option);
-                                chartInstance.on('contextmenu', function(params) {
-                                    if (params.componentType === 'series') {
-                                        showColorPicker(params.event.event, chartInstance, params.dataIndex);
-                                    }
-                                });
                             } else {
                                 console.error("Data loading error: ", dataX, dataY);
                             }
@@ -337,38 +355,6 @@
             yAxisSelect.addEventListener('change', updateChart);
 
             updateChart();
-        }
-
-        function showColorPicker(event, chartInstance, dataIndex) {
-            const optionsMenu = document.createElement('div');
-            optionsMenu.className = 'options-menu';
-
-            const colorPicker = document.createElement('input');
-            colorPicker.type = 'color';
-            colorPicker.className = 'color-picker';
-            colorPicker.addEventListener('input', function () {
-                const option = chartInstance.getOption();
-                option.series[0].data[dataIndex].itemStyle = { color: colorPicker.value };
-                chartInstance.setOption(option);
-            });
-
-            colorPicker.addEventListener('change', function () {
-                document.body.removeChild(optionsMenu);
-            });
-
-            optionsMenu.appendChild(colorPicker);
-            document.body.appendChild(optionsMenu);
-            optionsMenu.style.position = 'absolute';
-            optionsMenu.style.left = `${event.pageX}px`;
-            optionsMenu.style.top = `${event.pageY}px`;
-            optionsMenu.style.zIndex = 1000;
-
-            document.addEventListener('click', function removeOptionsMenu(event) {
-                if (!optionsMenu.contains(event.target)) {
-                    document.body.removeChild(optionsMenu);
-                    document.removeEventListener('click', removeOptionsMenu);
-                }
-            }, { once: true });
         }
     </script>
 </body>
