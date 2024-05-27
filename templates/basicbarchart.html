@@ -9,15 +9,29 @@
     <link rel="stylesheet" href="/static/CSS/barchart.css">
     <style>
         .chart-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 100;
+            background: #fff;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .chart-container {
             display: flex;
             flex-wrap: wrap;
             justify-content: space-around;
             padding: 20px;
         }
         .chart {
-            position: relative;
             margin: 10px;
-            flex-basis: calc(50% - 20px);
+            flex-basis: calc(50% - 20px); /* Adjusted to make charts bigger */
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
             transition: transform 0.2s;
         }
@@ -32,43 +46,47 @@
             text-align: center;
             padding: 15px;
         }
-        .close-btn {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            z-index: 100;
-            background: #fff;
-            border: 1px solid #ccc;
-            border-radius: 3px;
-            cursor: pointer;
-        }
+
         @media (max-width: 768px) {
             .chart {
-                flex-basis: calc(100% - 20px);
+                flex-basis: calc(100% - 20px); /* Adjusted for smaller screens */
             }
+        }
+
+        .heading {
+            text-align: center;
+            margin-top: 20px; /* Abstand von der oberen Seite */
+            margin-bottom: 20px; /* Abstand zum Inhalt darunter */
+        }
+
+        .heading h1 {
+            font-size: 28px; /* Größe der Überschrift */
+            color: #000; /* Farbe der Überschrift */
+        }
+        .heading p {
+            font-size: 18px; /* Größe des Textes */
+            color: #666; /* Farbe des Textes */
         }
         .heading {
             text-align: center;
-            margin: 20px 0;
+            margin-top: 20px;
+            margin-bottom: 20px;
+            z-index: 1000;
+            position: relative;
         }
-        .heading h1 {
-            font-size: 28px;
-            color: #000;
-        }
-        .heading p {
-            font-size: 18px;
-            color: #666;
-        }
+
         body, html {
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
+
         .container {
             display: flex;
             flex-direction: column;
         }
+
         .main {
             display: flex;
             justify-content: center;
@@ -77,9 +95,11 @@
             background-color: #f4f4f4;
             padding: 20px;
         }
+
         .data-selection {
             flex: 1;
         }
+
         .data-selection form {
             display: flex;
             flex-direction: column;
@@ -89,9 +109,11 @@
             box-shadow: 0 4px 8px rgba(0,0,0,0.2);
             width: 450px;
         }
+
         .data-selection label, .data-selection select {
             margin-bottom: 10px;
         }
+
         button {
             padding: 10px;
             background-color: coral;
@@ -99,6 +121,7 @@
             border: none;
             cursor: pointer;
         }
+
         #chart {
             flex: 2;
             width: 600px;
@@ -109,6 +132,7 @@
             border-radius: 10px;
             box-shadow: 0 4px 8px rgba(0,0,0,0.2);
         }
+
         #loading {
             display: none;
             position: fixed;
@@ -122,6 +146,7 @@
             text-align: center;
             padding-top: 20%;
         }
+
         #loading .spinner {
             margin: 0 auto 20px auto;
             border: 8px solid rgba(255, 255, 255, 0.3);
@@ -131,18 +156,22 @@
             height: 60px;
             animation: spin 1s linear infinite;
         }
+
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
         #loading p {
             font-size: 1.2em;
             margin-top: 10px;
         }
+
         #loading #progress {
             font-size: 1em;
             margin-top: 5px;
         }
+
         .options-menu {
             background: white;
             border: 1px solid #ccc;
@@ -151,6 +180,7 @@
             padding: 10px;
             z-index: 1000;
         }
+
         .color-picker {
             margin: 10px 0;
         }
@@ -181,11 +211,77 @@
                 <form id="dataForm">
                     <label for="xAxis">X-Axis</label>
                     <select id="xAxis" name="xAxis">
-                        <!-- Options omitted for brevity -->
+                        <option value="None">None</option>
+                        <optgroup label="Orders">
+                            <option value="orders.OrderID">OrderID</option>
+                            <option value="orders.CustomerID">CustomerID</option>
+                            <option value="orders.StoreID">StoreID</option>
+                            <option value="orders.OrderDate">Order Date</option>
+                            <option value="orders.nItems">Number of Items</option>
+                            <option value="orders.total">Total</option>
+                        </optgroup>
+                        <optgroup label="Customers">
+                            <option value="customers.CustomerID">CustomerID</option>
+                            <option value="customers.Latitude">Latitude</option>
+                            <option value="customers.Longitude">Longitude</option>
+                        </optgroup>
+                        <optgroup label="Order Items">
+                            <option value="orderItems.SKU">SKU</option>
+                            <option value="orderItems.OrderID">OrderID</option>
+                        </optgroup>
+                        <optgroup label="Products">
+                            <option value="products.SKU">SKU</option>
+                            <option value="products.Name">Name</option>
+                            <option value="products.Price">Price</option>
+                            <option value="products.Category">Category</option>
+                            <option value="products.Size">Size</option>
+                            <option value="products.Ingredients">Ingredients</option>
+                            <option value="products.Launch">Launch</option>
+                        </optgroup>
+                        <optgroup label="Stores">
+                            <option value="stores.StoreID">StoreID</option>
+                            <option value="stores.Zipcode">Zipcode</option>
+                            <option value="stores.StateShort">StateShort</option>
+                            <option value="stores.Latitude">Latitude</option>
+                            <option value="stores.Longitude">Longitude</option>
+                        </optgroup>
                     </select>
                     <label for="yAxis">Y-Axis</label>
                     <select id="yAxis" name="yAxis">
-                        <!-- Options omitted for brevity -->
+                        <option value="None">None</option>
+                        <optgroup label="Orders">
+                            <option value="orders.OrderID">OrderID</option>
+                            <option value="orders.CustomerID">CustomerID</option>
+                            <option value="orders.StoreID">StoreID</option>
+                            <option value="orders.OrderDate">Order Date</option>
+                            <option value="orders.nItems">Number of Items</option>
+                            <option value="orders.total">Total</option>
+                        </optgroup>
+                        <optgroup label="Customers">
+                            <option value="customers.CustomerID">CustomerID</option>
+                            <option value="customers.Latitude">Latitude</option>
+                            <option value="customers.Longitude">Longitude</option>
+                        </optgroup>
+                        <optgroup label="Order Items">
+                            <option value="orderItems.SKU">SKU</option>
+                            <option value="orderItems.OrderID">OrderID</option>
+                        </optgroup>
+                        <optgroup label="Products">
+                            <option value="products.SKU">SKU</option>
+                            <option value="products.Name">Name</option>
+                            <option value="products.Price">Price</option>
+                            <option value="products.Category">Category</option>
+                            <option value="products.Size">Size</option>
+                            <option value="products.Ingredients">Ingredients</option>
+                            <option value="products.Launch">Launch</option>
+                        </optgroup>
+                        <optgroup label="Stores">
+                            <option value="stores.StoreID">StoreID</option>
+                            <option value="stores.Zipcode">Zipcode</option>
+                            <option value="stores.StateShort">StateShort</option>
+                            <option value="stores.Latitude">Latitude</option>
+                            <option value="stores.Longitude">Longitude</option>
+                        </optgroup>
                     </select>
                     <button type="submit">Submit</button>
                 </form>
@@ -205,14 +301,10 @@
         let chartCount = 0;
         const maxCharts = 16;
         let charts = [];
-
         $(document).ready(function() {
             $.get("/tables", function(data) {
                 window.availableTables = data.tables;
-            }).fail(function() {
-                alert("Error loading table data");
             });
-
             $('#dataForm').on('submit', function(event) {
                 event.preventDefault();
                 if (chartCount < maxCharts) {
@@ -221,128 +313,107 @@
                     alert('Maximum number of charts reached.');
                 }
             });
-
-            $('.menu-button').on('click', function() {
-                $('#sideMenu').toggle();
-            });
-
-            $('.close-button').on('click', function() {
-                $('#sideMenu').hide();
-            });
         });
-
-        function showLoading() {
-            $('#loading').show();
-        }
-
-        function hideLoading() {
-            $('#loading').hide();
-        }
-
         function addChart(chartType) {
-            const chartContainer = $('#chartContainer');
+            const chartContainer = document.getElementById('chartContainer');
 
-            const chartDiv = $('<div class="chart"></div>').css({ width: '800px', height: '600px' });
-            chartContainer.append(chartDiv);
+            const chartDiv = document.createElement('div');
+            chartDiv.className = 'chart';
+            chartDiv.style.width = '600px';
+            chartDiv.style.height = '400px';
+            chartDiv.style.position = 'absolute';
+            chartDiv.style.top = '100px';
+            chartDiv.style.left = '100px';
+            chartDiv.style.width = '800px';  // Increased width
+            chartDiv.style.height = '600px';  // Increased height
+            chartContainer.appendChild(chartDiv);
             chartCount++;
 
-            const chartInstance = echarts.init(chartDiv[0]);
+            const chartInstance = echarts.init(chartDiv);
             charts.push(chartInstance);
-
-            const closeButton = $('<button class="close-btn">X</button>');
-            closeButton.on('click', function() {
-                chartDiv.remove();
+            const closeButton = document.createElement('button');
+            closeButton.className = 'close-btn';
+            closeButton.innerText = 'X';
+            closeButton.onclick = () => {
+                chartContainer.removeChild(chartDiv);
                 chartCount--;
                 charts = charts.filter(chart => chart !== chartInstance);
-            });
-            chartDiv.append(closeButton);
-
-            updateChartFromSelection(chartInstance, chartType);
-        }
-
-        function updateChart(chartInstance, chartType, xAxisData, yAxisData) {
-            const option = {
-                xAxis: {
-                    type: 'category',
-                    data: xAxisData,
-                },
-                yAxis: {
-                    type: 'value'
-                },
-                series: [{
-                    data: yAxisData.map((y, index) => ({ value: y, itemStyle: { color: '#5470c6' } })),
-                    type: chartType
-                }]
             };
-            chartInstance.setOption(option);
-            chartInstance.on('contextmenu', function(params) {
-                if (params.componentType === 'series') {
-                    showColorPicker(params.event.event, chartInstance, params.dataIndex);
-                }
-            });
-        }
-
-        function updateChartFromSelection(chartInstance, chartType) {
-            const xAxisSelect = $('#xAxis');
-            const yAxisSelect = $('#yAxis');
-
-            function update() {
-                const xAxisType = xAxisSelect.val();
-                const yAxisType = yAxisSelect.val();
-
+            chartDiv.appendChild(closeButton);
+            const xAxisSelect = document.getElementById('xAxis');
+            const yAxisSelect = document.getElementById('yAxis');
+            function updateChart() {
+                const xAxisType = xAxisSelect.value;
+                const yAxisType = yAxisSelect.value;
                 if (xAxisType && yAxisType) {
-                    showLoading();
                     $.post("/getdata", { table: xAxisType.split('.')[0], column: xAxisType.split('.')[1] }, function(dataX) {
-                        console.log("X-Axis Data:", dataX);
+                        console.log("X-Axis Data:", dataX); // Debugging info
                         $.post("/getdata", { table: yAxisType.split('.')[0], column: yAxisType.split('.')[1] }, function(dataY) {
-                            console.log("Y-Axis Data:", dataY);
+                            console.log("Y-Axis Data:", dataY); // Debugging info
                             if (dataX.data && dataY.data) {
-                                updateChart(chartInstance, chartType, dataX.data, dataY.data);
+                                const option = {
+                                    xAxis: {
+                                        type: 'category',
+                                        data: dataX.data,
+                                    },
+                                    yAxis: {
+                                        type: 'value'
+                                    },
+                                    series: [{
+                                        data: dataY.data.map((y, index) => y),
+                                        data: dataY.data.map((y, index) => ({ value: y, itemStyle: { color: '#5470c6' } })),
+                                        type: chartType // Set the chart type to 'bar'
+                                    }]
+                                };
+                                chartInstance.setOption(option);
+                                chartInstance.on('contextmenu', function(params) {
+                                    if (params.componentType === 'series') {
+                                        showColorPicker(params.event.event, chartInstance, params.dataIndex);
+                                    }
+                                });
                             } else {
                                 console.error("Data loading error: ", dataX, dataY);
                             }
-                            hideLoading();
-                        }).fail(function() {
-                            alert("Error loading Y-Axis data");
-                            hideLoading();
                         });
-                    }).fail(function() {
-                        alert("Error loading X-Axis data");
-                        hideLoading();
                     });
                 }
             }
+            xAxisSelect.addEventListener('change', updateChart);
+            yAxisSelect.addEventListener('change', updateChart);
 
-            xAxisSelect.on('change', update);
-            yAxisSelect.on('change', update);
-
-            update(); // Initial chart update
+            updateChart(); // Initial chart update
         }
 
         function showColorPicker(event, chartInstance, dataIndex) {
-            const optionsMenu = $('<div class="options-menu"></div>');
+            const optionsMenu = document.createElement('div');
+            optionsMenu.className = 'options-menu';
 
-            const colorPicker = $('<input type="color" class="color-picker">');
-            colorPicker.on('input', function () {
+            const colorPicker = document.createElement('input');
+            colorPicker.type = 'color';
+            colorPicker.className = 'color-picker';
+            colorPicker.addEventListener('input', function () {
                 const option = chartInstance.getOption();
-                option.series[0].data[dataIndex].itemStyle = { color: colorPicker.val() };
+                option.series[0].data[dataIndex].itemStyle = { color: colorPicker.value };
                 chartInstance.setOption(option);
             });
 
-            colorPicker.on('change', function () {
-                optionsMenu.remove();
+            colorPicker.addEventListener('change', function () {
+                document.body.removeChild(optionsMenu);
             });
 
-            optionsMenu.append(colorPicker);
-            $('body').append(optionsMenu);
-            optionsMenu.css({ position: 'absolute', left: `${event.pageX}px`, top: `${event.pageY}px`, zIndex: 1000 });
+            optionsMenu.appendChild(colorPicker);
+            document.body.appendChild(optionsMenu);
+            optionsMenu.style.position = 'absolute';
+            optionsMenu.style.left = `${event.pageX}px`;
+            optionsMenu.style.top = `${event.pageY}px`;
+            optionsMenu.style.zIndex = 1000; // Ensure it's in the foreground
 
-            $(document).on('click', function removeOptionsMenu(e) {
-                if (!optionsMenu.is(e.target) && optionsMenu.has(e.target).length === 0) {
-                    optionsMenu.remove();
-                    $(document).off('click', removeOptionsMenu);
+            document.addEventListener('click', function removeOptionsMenu(event) {
+                if (!optionsMenu.contains(event.target)) {
+                    document.body.removeChild(optionsMenu);
+                    document.removeEventListener('click', removeOptionsMenu);
                 }
-            });
+            }, { once: true });
         }
     </script>
 </body>
