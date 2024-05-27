@@ -6,6 +6,10 @@
     <title>Data Visualisation - DV</title>
     <link rel="stylesheet" href="/static/CSS/all.css">
     <link rel="stylesheet" href="/static/CSS/charts.css">
+    <link rel="stylesheet" href="/static/CSS/barchart.css">
+    <style>
+
+    </style>
 </head>
 <body>
     <div class="container">
@@ -109,7 +113,7 @@
                     <button type="submit">Submit</button>
                 </form>
             </section>
-            <section id="chart"></section>
+            <section id="chartContainer" class="chart-container"></section>
         </main>
         <div id="loading">
             <div class="spinner"></div>
@@ -118,89 +122,95 @@
         </div>
     </div>
     <script src="/static/JS/sidemenu.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.3.3/echarts.min.js"></script>
+
     <script>
-        document.getElementById('dataForm').addEventListener('submit', function (event) {
-            event.preventDefault();
-            document.getElementById('loading').style.display = 'block';
-        
-            const formData = new FormData(event.target);
-            const data = {
-                xAxis: formData.get('xAxis'),
-                yAxis: formData.get('yAxis')
-            };
+        let chartCount = 0;
+        const maxCharts = 16;
+        let charts = [];
 
-            console.log('Sending data to server:', data);
-        
-            fetch('/get_data', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(data)
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok ' + response.statusText);
+        $(document).ready(function() {
+            $.get("/tables", function(data) {
+                window.availableTables = data.tables;
+            });
+
+            $('#dataForm').on('submit', function(event) {
+                event.preventDefault();
+                if (chartCount < maxCharts) {
+                    addChart('bar');
+                } else {
+                    alert('Maximum number of charts reached.');
                 }
-                return response.json();
-            })
-            .then(result => {
-                document.getElementById('loading').style.display = 'none';
-                if (result.error) {
-                    console.error(result.error);
-                    alert(result.error);
-                    return;
-                }
-
-                const chartDom = document.getElementById('chart');
-                const myChart = echarts.init(chartDom);
-        
-                const xAxisData = [];
-                const yAxisData = [];
-                
-                result.forEach(item => {
-                    xAxisData.push(item.xValue);
-                    yAxisData.push(item.yValue);
-                });
-
-                console.log('xAxisData:', xAxisData);
-                console.log('yAxisData:', yAxisData);
-        
-                const option = {
-                    title: {
-                        text: 'Dynamic Bar Chart'
-                    },
-                    tooltip: {
-                        trigger: 'axis',
-                        axisPointer: {
-                            type: 'shadow'
-                        }
-                    },
-                    xAxis: {
-                        type: 'category',
-                        data: xAxisData
-                    },
-                    yAxis: {
-                        type: 'value',
-                        min: 0,
-                        max: Math.max(...yAxisData)
-                    },
-                    series: [{
-                        name: 'Data',
-                        type: 'bar',
-                        data: yAxisData
-                    }]
-                };
-        
-                option && myChart.setOption(option);
-            })
-            .catch(error => {
-                document.getElementById('loading').style.display = 'none';
-                console.error('Error loading data:', error);
-                alert('Error loading data: ' + error.message);
             });
         });
+
+        function addChart(chartType) {
+            const chartContainer = document.getElementById('chartContainer');
+            
+            const chartDiv = document.createElement('div');
+            chartDiv.className = 'chart';
+            chartDiv.style.width = '600px';
+            chartDiv.style.height = '400px';
+            chartDiv.style.position = 'absolute';
+            chartDiv.style.top = '100px';
+            chartDiv.style.left = '100px';
+            chartContainer.appendChild(chartDiv);
+            chartCount++;
+
+            const chartInstance = echarts.init(chartDiv);
+            charts.push(chartInstance);
+
+            const closeButton = document.createElement('button');
+            closeButton.className = 'close-btn';
+            closeButton.innerText = 'X';
+            closeButton.onclick = () => {
+                chartContainer.removeChild(chartDiv);
+                chartCount--;
+                charts = charts.filter(chart => chart !== chartInstance);
+            };
+            chartDiv.appendChild(closeButton);
+
+            const xAxisSelect = document.getElementById('xAxis');
+            const yAxisSelect = document.getElementById('yAxis');
+
+            function updateChart() {
+                const xAxisType = xAxisSelect.value;
+                const yAxisType = yAxisSelect.value;
+
+                if (xAxisType && yAxisType) {
+                    $.post("/getdata", { table: xAxisType.split('.')[0], column: xAxisType.split('.')[1] }, function(dataX) {
+                        console.log("X-Axis Data:", dataX); // Debugging info
+                        $.post("/getdata", { table: yAxisType.split('.')[0], column: yAxisType.split('.')[1] }, function(dataY) {
+                            console.log("Y-Axis Data:", dataY); // Debugging info
+                            if (dataX.data && dataY.data) {
+                                const option = {
+                                    xAxis: {
+                                        type: 'category',
+                                        data: dataX.data,
+                                    },
+                                    yAxis: {
+                                        type: 'value'
+                                    },
+                                    series: [{
+                                        data: dataY.data.map((y, index) => y),
+                                        type: chartType // Set the chart type to 'bar'
+                                    }]
+                                };
+                                chartInstance.setOption(option);
+                            } else {
+                                console.error("Data loading error: ", dataX, dataY);
+                            }
+                        });
+                    });
+                }
+            }
+
+            xAxisSelect.addEventListener('change', updateChart);
+            yAxisSelect.addEventListener('change', updateChart);
+
+            updateChart(); // Initial chart update
+        }
     </script>
 </body>
 </html>
