@@ -75,6 +75,7 @@ def get_table():
     cur.execute(f"SELECT * FROM {data_choice}")
     row_headers = [x[0] for x in cur.description]  # Dies holt die Spaltennamen
     results = cur.fetchall()
+    
     json_data = []
     for result in results:
         json_data.append(dict(zip(row_headers, result)))

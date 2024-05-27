@@ -9,11 +9,23 @@
     <link rel="stylesheet" href="/static/CSS/barchart.css">
     <style>
         .chart-container {
-            position: relative;
-            width: 100%;
-            height: 100%;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            padding: 20px;
         }
-        .close-btn {
+        .chart {
+            position: relative;
+            margin: 10px;
+            width: calc(50% - 20px); /* Adjusted width */
+            height: 400px; /* Fixed height */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s;
+        }
+        .chart:hover {
+            transform: scale(1.05);
+        }
+        .x-btn {
             position: absolute;
             top: 10px;
             right: 10px;
@@ -23,70 +35,31 @@
             border-radius: 3px;
             cursor: pointer;
         }
-        .chart-container {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-around;
-            padding: 20px;
+        .color-picker {
+            margin: 10px 0;
         }
-        .chart {
-            margin: 10px;
-            flex-basis: calc(50% - 20px); /* Adjusted to make charts bigger */
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            transition: transform 0.2s;
-        }
-        .chart:hover {
-            transform: scale(1.05);
-        }
-        .chart img {
-            width: 100%;
-            display: block;
-        }
-        .chart h3 {
-            text-align: center;
-            padding: 15px;
-        }
-
-        @media (max-width: 768px) {
-            .chart {
-                flex-basis: calc(100% - 20px); /* Adjusted for smaller screens */
-            }
-        }
-
         .heading {
             text-align: center;
-            margin-top: 20px; /* Abstand von der oberen Seite */
-            margin-bottom: 20px; /* Abstand zum Inhalt darunter */
+            margin: 20px 0;
         }
-
         .heading h1 {
-            font-size: 28px; /* Größe der Überschrift */
-            color: #000; /* Farbe der Überschrift */
+            font-size: 28px;
+            color: #000;
         }
         .heading p {
-            font-size: 18px; /* Größe des Textes */
-            color: #666; /* Farbe des Textes */
+            font-size: 18px;
+            color: #666;
         }
-        .heading {
-            text-align: center;
-            margin-top: 20px;
-            margin-bottom: 20px;
-            z-index: 1000;
-            position: relative;
-        }
-
         body, html {
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-
         .container {
             display: flex;
             flex-direction: column;
         }
-
         .main {
             display: flex;
             justify-content: center;
@@ -95,11 +68,9 @@
             background-color: #f4f4f4;
             padding: 20px;
         }
-
         .data-selection {
             flex: 1;
         }
-
         .data-selection form {
             display: flex;
             flex-direction: column;
@@ -109,11 +80,9 @@
             box-shadow: 0 4px 8px rgba(0,0,0,0.2);
             width: 450px;
         }
-
         .data-selection label, .data-selection select {
             margin-bottom: 10px;
         }
-
         button {
             padding: 10px;
             background-color: coral;
@@ -121,18 +90,13 @@
             border: none;
             cursor: pointer;
         }
-
-        #chart {
+        #chartContainer {
             flex: 2;
-            width: 600px;
-            height: 400px;
-            margin-left: 20px;
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            width: 100%; /* Ensure it takes full width */
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
         }
-
         #loading {
             display: none;
             position: fixed;
@@ -146,7 +110,6 @@
             text-align: center;
             padding-top: 20%;
         }
-
         #loading .spinner {
             margin: 0 auto 20px auto;
             border: 8px solid rgba(255, 255, 255, 0.3);
@@ -156,22 +119,18 @@
             height: 60px;
             animation: spin 1s linear infinite;
         }
-
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-
         #loading p {
             font-size: 1.2em;
             margin-top: 10px;
         }
-
         #loading #progress {
             font-size: 1em;
             margin-top: 5px;
         }
-
         .options-menu {
             background: white;
             border: 1px solid #ccc;
@@ -179,10 +138,6 @@
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
             padding: 10px;
             z-index: 1000;
-        }
-
-        .color-picker {
-            margin: 10px 0;
         }
     </style>
 </head>
@@ -246,7 +201,6 @@
                             <option value="stores.Longitude">Longitude</option>
                         </optgroup>
                     </select>
-
                     <label for="yAxis">Y-Axis</label>
                     <select id="yAxis" name="yAxis">
                         <option value="None">None</option>
@@ -284,7 +238,6 @@
                             <option value="stores.Longitude">Longitude</option>
                         </optgroup>
                     </select>
-
                     <button type="submit">Submit</button>
                 </form>
             </section>
@@ -299,7 +252,6 @@
     <script src="/static/JS/sidemenu.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.3.3/echarts.min.js"></script>
-
     <script>
         let chartCount = 0;
         const maxCharts = 16;
@@ -325,8 +277,6 @@
             
             const chartDiv = document.createElement('div');
             chartDiv.className = 'chart';
-            chartDiv.style.width = '800px';  // Increased width
-            chartDiv.style.height = '600px';  // Increased height
             chartContainer.appendChild(chartDiv);
             chartCount++;
 
@@ -334,7 +284,7 @@
             charts.push(chartInstance);
 
             const closeButton = document.createElement('button');
-            closeButton.className = 'close-btn';
+            closeButton.className = 'x-btn';
             closeButton.innerText = 'X';
             closeButton.onclick = () => {
                 chartContainer.removeChild(chartDiv);
@@ -352,9 +302,9 @@
 
                 if (xAxisType && yAxisType) {
                     $.post("/getdata", { table: xAxisType.split('.')[0], column: xAxisType.split('.')[1] }, function(dataX) {
-                        console.log("X-Axis Data:", dataX); // Debugging info
+                        console.log("X-Axis Data:", dataX);
                         $.post("/getdata", { table: yAxisType.split('.')[0], column: yAxisType.split('.')[1] }, function(dataY) {
-                            console.log("Y-Axis Data:", dataY); // Debugging info
+                            console.log("Y-Axis Data:", dataY);
                             if (dataX.data && dataY.data) {
                                 const option = {
                                     xAxis: {
@@ -366,7 +316,7 @@
                                     },
                                     series: [{
                                         data: dataY.data.map((y, index) => ({ value: y, itemStyle: { color: '#5470c6' } })),
-                                        type: chartType // Set the chart type to 'bar'
+                                        type: chartType
                                     }]
                                 };
                                 chartInstance.setOption(option);
@@ -386,7 +336,7 @@
             xAxisSelect.addEventListener('change', updateChart);
             yAxisSelect.addEventListener('change', updateChart);
 
-            updateChart(); // Initial chart update
+            updateChart();
         }
 
         function showColorPicker(event, chartInstance, dataIndex) {
@@ -411,7 +361,7 @@
             optionsMenu.style.position = 'absolute';
             optionsMenu.style.left = `${event.pageX}px`;
             optionsMenu.style.top = `${event.pageY}px`;
-            optionsMenu.style.zIndex = 1000; // Ensure it's in the foreground
+            optionsMenu.style.zIndex = 1000;
 
             document.addEventListener('click', function removeOptionsMenu(event) {
                 if (!optionsMenu.contains(event.target)) {
