@@ -299,7 +299,6 @@
     <script src="/static/JS/sidemenu.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.3.3/echarts.min.js"></script>
-
     <script>
         let chartCount = 0;
         const maxCharts = 16;
@@ -308,6 +307,8 @@
         $(document).ready(function() {
             $.get("/tables", function(data) {
                 window.availableTables = data.tables;
+            }).fail(function() {
+                alert("Error loading table data");
             });
 
             $('#dataForm').on('submit', function(event) {
@@ -320,9 +321,17 @@
             });
         });
 
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+
         function addChart(chartType) {
             const chartContainer = document.getElementById('chartContainer');
-            
+
             const chartDiv = document.createElement('div');
             chartDiv.className = 'chart';
             chartDiv.style.width = '800px';  // Increased width
@@ -343,50 +352,66 @@
             };
             chartDiv.appendChild(closeButton);
 
+            updateChartFromSelection(chartInstance, chartType);
+        }
+
+        function updateChart(chartInstance, chartType, xAxisData, yAxisData) {
+            const option = {
+                xAxis: {
+                    type: 'category',
+                    data: xAxisData,
+                },
+                yAxis: {
+                    type: 'value'
+                },
+                series: [{
+                    data: yAxisData.map((y, index) => ({ value: y, itemStyle: { color: '#5470c6' } })),
+                    type: chartType // Set the chart type to 'bar'
+                }]
+            };
+            chartInstance.setOption(option);
+            chartInstance.on('contextmenu', function(params) {
+                if (params.componentType === 'series') {
+                    showColorPicker(params.event.event, chartInstance, params.dataIndex);
+                }
+            });
+        }
+
+        function updateChartFromSelection(chartInstance, chartType) {
             const xAxisSelect = document.getElementById('xAxis');
             const yAxisSelect = document.getElementById('yAxis');
 
-            function updateChart() {
+            function update() {
                 const xAxisType = xAxisSelect.value;
                 const yAxisType = yAxisSelect.value;
 
                 if (xAxisType && yAxisType) {
+                    showLoading();
                     $.post("/getdata", { table: xAxisType.split('.')[0], column: xAxisType.split('.')[1] }, function(dataX) {
                         console.log("X-Axis Data:", dataX); // Debugging info
                         $.post("/getdata", { table: yAxisType.split('.')[0], column: yAxisType.split('.')[1] }, function(dataY) {
                             console.log("Y-Axis Data:", dataY); // Debugging info
                             if (dataX.data && dataY.data) {
-                                const option = {
-                                    xAxis: {
-                                        type: 'category',
-                                        data: dataX.data,
-                                    },
-                                    yAxis: {
-                                        type: 'value'
-                                    },
-                                    series: [{
-                                        data: dataY.data.map((y, index) => ({ value: y, itemStyle: { color: '#5470c6' } })),
-                                        type: chartType // Set the chart type to 'bar'
-                                    }]
-                                };
-                                chartInstance.setOption(option);
-                                chartInstance.on('contextmenu', function(params) {
-                                    if (params.componentType === 'series') {
-                                        showColorPicker(params.event.event, chartInstance, params.dataIndex);
-                                    }
-                                });
+                                updateChart(chartInstance, chartType, dataX.data, dataY.data);
                             } else {
                                 console.error("Data loading error: ", dataX, dataY);
                             }
+                            hideLoading();
+                        }).fail(function() {
+                            alert("Error loading Y-Axis data");
+                            hideLoading();
                         });
+                    }).fail(function() {
+                        alert("Error loading X-Axis data");
+                        hideLoading();
                     });
                 }
             }
 
-            xAxisSelect.addEventListener('change', updateChart);
-            yAxisSelect.addEventListener('change', updateChart);
+            xAxisSelect.addEventListener('change', update);
+            yAxisSelect.addEventListener('change', update);
 
-            updateChart(); // Initial chart update
+            update(); // Initial chart update
         }
 
         function showColorPicker(event, chartInstance, dataIndex) {
