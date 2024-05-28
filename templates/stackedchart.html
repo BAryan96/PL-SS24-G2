@@ -7,7 +7,6 @@
     <link rel="stylesheet" href="/static/CSS/all.css">
     <link rel="stylesheet" href="/static/CSS/charts.css">
     <style>
-
         #addGraphButton, #submitButton {
             margin-top: 10px;
             padding: 10px 20px;
@@ -217,7 +216,7 @@
             const chartDom = document.getElementById('chart');
             const myChart = echarts.init(chartDom);
             const series = yAxisValues.map((yAxis, index) => ({
-                name: `Graph ${index + 1}`,
+                name: yAxis,
                 type: 'line',
                 stack: 'total',
                 areaStyle: {},
@@ -228,7 +227,7 @@
             const option = {
                 title: { text: 'Stacked Area Chart' },
                 tooltip: { trigger: 'axis' },
-                legend: { data: series.map(s => s.name) },
+                legend: { data: yAxisValues, top: '5%' },
                 xAxis: { type: 'category', boundaryGap: false, data: [] }, // Placeholder for actual data
                 yAxis: { type: 'value' },
                 series: series
