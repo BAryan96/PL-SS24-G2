@@ -6,7 +6,27 @@
     <title>Data Visualisation - DV</title>
     <link rel="stylesheet" href="/static/CSS/all.css">
     <link rel="stylesheet" href="/static/CSS/charts.css">
-    <style>        
+    <style>
+        #submitButton {
+            margin-top: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            color: #fff;
+            background-color: coral;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        #submitButton:hover {
+            background-color: #ff6f61; 
+        }
+        #chart { width: 100%; height: 600px; margin-top: 20px; }
+    
+        .spinner {
+            border: 4px solid rgba(255, 111, 97, 0.2);
+            border-left-color: #ff6f61;
+        }
     </style>
 </head>
 <body>
@@ -32,42 +52,143 @@
             <section class="data-selection">
                 <h2>Please Choose your Data</h2>
                 <form id="dataForm">
-                    <label for="xField">X Field</label>
-                    <select id="xField" name="xField">
-                        <option>None</option>
-                        <option>OrderID</option>
-                        <option>CustomerID</option>
-                        <option>StoreID</option>
-                        <option>Order Date</option>
-                        <option>Number of Items</option>
-                        <option>Total</option>
+                    <label for="xAxis">X-Axis</label>
+                    <select id="xAxis" name="xAxis">
+                        <option value="None">None</option>
+                        <optgroup label="Orders">
+                            <option value="orders.OrderID">OrderID</option>
+                            <option value="orders.CustomerID">CustomerID</option>
+                            <option value="orders.StoreID">StoreID</option>
+                            <option value="orders.OrderDate">Order Date</option>
+                            <option value="orders.nItems">Number of Items</option>
+                            <option value="orders.total">Total</option>
+                        </optgroup>
+                        <optgroup label="Customers">
+                            <option value="customers.CustomerID">CustomerID</option>
+                            <option value="customers.Latitude">Latitude</option>
+                            <option value="customers.Longitude">Longitude</option>
+                        </optgroup>
+                        <optgroup label="Order Items">
+                            <option value="orderItems.SKU">SKU</option>
+                            <option value="orderItems.OrderID">OrderID</option>
+                        </optgroup>
+                        <optgroup label="Products">
+                            <option value="products.SKU">SKU</option>
+                            <option value="products.Name">Name</option>
+                            <option value="products.Price">Price</option>
+                            <option value="products.Category">Category</option>
+                            <option value="products.Size">Size</option>
+                            <option value="products.Ingredients">Ingredients</option>
+                            <option value="products.Launch">Launch</option>
+                        </optgroup>
+                        <optgroup label="Stores">
+                            <option value="stores.StoreID">StoreID</option>
+                            <option value="stores.Zipcode">Zipcode</option>
+                            <option value="stores.StateShort">StateShort</option>
+                            <option value="stores.Latitude">Latitude</option>
+                            <option value="stores.Longitude">Longitude</option>
+                        </optgroup>
                     </select>
-
-                    <label for="yField">Y Field</label>
-                    <select id="yField" name="yField">
-                        <option>None</option>
-                        <option>OrderID</option>
-                        <option>CustomerID</option>
-                        <option>StoreID</option>
-                        <option>Order Date</option>
-                        <option>Number of Items</option>
-                        <option>Total</option>
+                    <label for="yAxis">Y-Axis</label>
+                    <select id="yAxis" name="yAxis">
+                        <option value="None">None</option>
+                        <optgroup label="Orders">
+                            <option value="orders.OrderID">OrderID</option>
+                            <option value="orders.CustomerID">CustomerID</option>
+                            <option value="orders.StoreID">StoreID</option>
+                            <option value="orders.OrderDate">Order Date</option>
+                            <option value="orders.nItems">Number of Items</option>
+                            <option value="orders.total">Total</option>
+                        </optgroup>
+                        <optgroup label="Customers">
+                            <option value="customers.CustomerID">CustomerID</option>
+                            <option value="customers.Latitude">Latitude</option>
+                            <option value="customers.Longitude">Longitude</option>
+                        </optgroup>
+                        <optgroup label="Order Items">
+                            <option value="orderItems.SKU">SKU</option>
+                            <option value="orderItems.OrderID">OrderID</option>
+                        </optgroup>
+                        <optgroup label="Products">
+                            <option value="products.SKU">SKU</option>
+                            <option value="products.Name">Name</option>
+                            <option value="products.Price">Price</option>
+                            <option value="products.Category">Category</option>
+                            <option value="products.Size">Size</option>
+                            <option value="products.Ingredients">Ingredients</option>
+                            <option value="products.Launch">Launch</option>
+                        </optgroup>
+                        <optgroup label="Stores">
+                            <option value="stores.StoreID">StoreID</option>
+                            <option value="stores.Zipcode">Zipcode</option>
+                            <option value="stores.StateShort">StateShort</option>
+                            <option value="stores.Latitude">Latitude</option>
+                            <option value="stores.Longitude">Longitude</option>
+                        </optgroup>
                     </select>
-
                     <button type="submit">Submit</button>
                 </form>
             </section>
-            <section id="chart"></section>
+            <section id="chartContainer" class="chart-container"></section>
         </main>
-        <div id="loading">
+        <div id="loading" style="display:none;">
             <div class="spinner"></div>
             <p>Please hold on: Your Data is being extracted from the Database.</p>
             <p id="progress">Loading: 0%</p>
         </div>
     </div>
-    <script src="/static/JS/sidemenu.js"></script>
-    <script src="/static/JS/basicscatter.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
-
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function(){
+            // Formularsubmit-Ereignis überwachen
+            $('#dataForm').submit(function(e){
+                e.preventDefault(); // Verhindert das Standardverhalten des Formulars
+    
+                // Ausgewählte Achsenwerte erhalten
+                var xAxis = $('#xAxis').val();
+                var yAxis = $('#yAxis').val();
+    
+                // AJAX-Anforderung senden, um Daten aus der Datenbank abzurufen
+                fetchData(xAxis, yAxis);
+            });
+    
+            // Funktion zum Laden und Verarbeiten der Daten
+            function fetchData(xAxis, yAxis) {
+                $.post('/getdata', { table: xAxis.split('.')[0], column: xAxis.split('.')[1] }, function(dataX) {
+                    if (dataX.data) {
+                        const xAxisData = dataX.data.map(entry => parseFloat(entry)); // Konvertieren Sie die Zeichenfolgen in Zahlen
+    
+                        $.post('/getdata', { table: yAxis.split('.')[0], column: yAxis.split('.')[1] }, function(dataY) {
+                            if (dataY.data) {
+                                const yAxisData = dataY.data.map(entry => parseFloat(entry)); // Konvertieren Sie die Zeichenfolgen in Zahlen
+    
+                                // Diagrammoptionen setzen und Diagramm erstellen
+                                var option = {
+                                    xAxis: {},
+                                    yAxis: {},
+                                    series: [
+                                        {
+                                            symbolSize: 20,
+                                            data: xAxisData.map((value, index) => [value, yAxisData[index]]), // Erstellen Sie Paare von X- und Y-Werten
+                                            type: 'scatter'
+                                        }
+                                    ]
+                                };
+    
+                                // Diagramm anzeigen
+                                var chartInstance = echarts.init(document.getElementById('chartContainer'));
+                                chartInstance.setOption(option);
+                            }
+                        });
+                    } else {
+                        console.error('Error fetching X-Axis data:', dataX);
+                    }
+                });
+            }
+        });
+    </script>
+    
+    <script src="/static/JS/sidemenu.js"></script>
 </body>
 </html>
