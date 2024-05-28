@@ -21,7 +21,7 @@
         #submitButton:hover {
             background-color: #ff6f61; 
         }
-        #chart { width: 100%; height: 600px; margin-top: 20px; }
+        #chartContainer { width: 100%; height: 600px; margin-top: 20px; }
     
         .spinner {
             border: 4px solid rgba(255, 111, 97, 0.2);
@@ -129,7 +129,9 @@
                     <button type="submit">Submit</button>
                 </form>
             </section>
-            <section id="chartContainer" class="chart-container"></section>
+            <section id="chartContainer" class="chart-container">
+                <div id="chart" style="width: 100%; height: 600px;"></div>
+            </section>
         </main>
         <div id="loading" style="display:none;">
             <div class="spinner"></div>
@@ -163,22 +165,58 @@
                             if (dataY.data) {
                                 const yAxisData = dataY.data.map(entry => parseFloat(entry)); // Konvertieren Sie die Zeichenfolgen in Zahlen
     
-                                // Diagrammoptionen setzen und Diagramm erstellen
+                                // Daten für das Scatter-Chart vorbereiten
+                                var scatterData = xAxisData.map((x, index) => [x, yAxisData[index]]);
+    
+                                // Scatter-Chart-Optionen setzen
                                 var option = {
-                                    xAxis: {},
-                                    yAxis: {},
-                                    series: [
-                                        {
-                                            symbolSize: 20,
-                                            data: xAxisData.map((value, index) => [value, yAxisData[index]]), // Erstellen Sie Paare von X- und Y-Werten
-                                            type: 'scatter'
+                                    tooltip: {
+                                        trigger: 'axis',
+                                        position: function (pt) {
+                                            return [pt[0], '10%'];
                                         }
-                                    ]
+                                    },
+                                    title: {
+                                        left: 'center',
+                                        text: 'Scatter Chart'
+                                    },
+                                    toolbox: {
+                                        feature: {
+                                            dataZoom: {
+                                                yAxisIndex: 'none'
+                                            },
+                                            restore: {},
+                                            saveAsImage: {}
+                                        }
+                                    },
+                                    xAxis: {
+                                        type: 'value'
+                                    },
+                                    yAxis: {
+                                        type: 'value'
+                                    },
+                                    dataZoom: [
+                                        {
+                                            type: 'inside',
+                                            start: 0,
+                                            end: 100
+                                        },
+                                        {
+                                            start: 0,
+                                            end: 100
+                                        }
+                                    ],
+                                    series: [{
+                                        symbolSize: 20,
+                                        data: scatterData,
+                                        type: 'scatter'
+                                    }]
                                 };
     
-                                // Diagramm anzeigen
-                                var chartInstance = echarts.init(document.getElementById('chartContainer'));
-                                chartInstance.setOption(option);
+                                // Scatter-Chart initialisieren und Optionen setzen
+                                var chartDom = document.getElementById('chart');
+                                var myChart = echarts.init(chartDom);
+                                myChart.setOption(option);
                             }
                         });
                     } else {
