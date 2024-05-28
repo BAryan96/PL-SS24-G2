@@ -62,8 +62,6 @@ def get_columns():
 @app.route("/getdata", methods=["POST"])
 def get_data():
     #Hier änderungen hinzufügen
-
-
     table = request.form['table']
     column = request.form['column']
     cur.execute(f"SELECT {column} FROM {table}")

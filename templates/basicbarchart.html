@@ -331,6 +331,7 @@
 
             const chartInstance = echarts.init(chartDiv);
             charts.push(chartInstance);
+            
             const closeButton = document.createElement('button');
             closeButton.className = 'close-btn';
             closeButton.innerText = 'X';
@@ -340,16 +341,18 @@
                 charts = charts.filter(chart => chart !== chartInstance);
             };
             chartDiv.appendChild(closeButton);
+
             const xAxisSelect = document.getElementById('xAxis');
             const yAxisSelect = document.getElementById('yAxis');
+
             function updateChart() {
                 const xAxisType = xAxisSelect.value;
                 const yAxisType = yAxisSelect.value;
                 if (xAxisType && yAxisType) {
                     $.post("/getdata", { table: xAxisType.split('.')[0], column: xAxisType.split('.')[1] }, function(dataX) {
-                        console.log("X-Axis Data:", dataX); // Debugging info
+                        console.log("X-Axis Data:", dataX); 
                         $.post("/getdata", { table: yAxisType.split('.')[0], column: yAxisType.split('.')[1] }, function(dataY) {
-                            console.log("Y-Axis Data:", dataY); // Debugging info
+                            console.log("Y-Axis Data:", dataY);
                             if (dataX.data && dataY.data) {
                                 const option = {
                                     xAxis: {
