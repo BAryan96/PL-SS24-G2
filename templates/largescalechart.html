@@ -7,7 +7,21 @@
     <link rel="stylesheet" href="/static/CSS/all.css">
     <link rel="stylesheet" href="/static/CSS/charts.css">
     <style>
-      
+        #addGraphButton, #submitButton {
+            margin-top: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            color: #fff;
+            background-color: coral;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        #addGraphButton:hover, #submitButton:hover {
+            background-color: coral;
+        }
+        #chart { width: 100%; height: 600px; margin-top: 20px; }
     </style>
 </head>
 <body>
@@ -33,55 +47,86 @@
             <section class="data-selection">
                 <h2>Please Choose your Data</h2>
                 <form id="dataForm">
-                    <label for="orders">Orders</label>
-                    <select id="orders" name="orders">
-                        <option>None</option>
-                        <option>OrderID</option>
-                        <option>CustomerID</option>
-                        <option>StoreID</option>
-                        <option>Order Date</option>
-                        <option>Number of Items</option>
-                        <option>Total</option>
-                    </select>
-
-                    <label for="customers">Customers</label>
-                    <select id="customers" name="customers">
-                        <option>None</option>
-                        <option>CustomerID</option>
-                        <option>Latitude</option>
-                        <option>Longitude</option>
-                    </select>
-
-                    <label for="orderItems">Order Items</label>
-                    <select id="orderItems" name="orderItems">
-                        <option>None</option>
-                        <option>SKU</option>
-                        <option>OrderID</option>
-                    </select>
-
-                    <label for="products">Products</label>
-                    <select id="products" name="products">
-                        <option>None</option>
-                        <option>SKU</option>
-                        <option>Name</option>
-                        <option>Price</option>
-                        <option>Category</option>
-                        <option>Size</option>
-                        <option>Ingredients</option>
-                        <option>Launch</option>
-                    </select>
-
-                    <label for="stores">Stores</label>
-                    <select id="stores" name="stores">
-                        <option>None</option>
-                        <option>StoreID</option>
-                        <option>Zipcode</option>
-                        <option>StateShort</option>
-                        <option>Latitude</option>
-                        <option>Longitude</option>
-                    </select>
-
-                    <button type="submit">Submit</button>
+                    <div class="form-group">
+                        <label for="xAxis">X-Axis</label>
+                        <select id="xAxis" name="xAxis">
+                            <option value="None">None</option>
+                            <optgroup label="Orders">
+                                <option value="orders.OrderID">OrderID</option>
+                                <option value="orders.CustomerID">CustomerID</option>
+                                <option value="orders.StoreID">StoreID</option>
+                                <option value="orders.OrderDate">Order Date</option>
+                                <option value="orders.nItems">Number of Items</option>
+                                <option value="orders.total">Total</option>
+                            </optgroup>
+                            <optgroup label="Customers">
+                                <option value="customers.CustomerID">CustomerID</option>
+                                <option value="customers.Latitude">Latitude</option>
+                                <option value="customers.Longitude">Longitude</option>
+                            </optgroup>
+                            <optgroup label="Order Items">
+                                <option value="orderItems.SKU">SKU</option>
+                                <option value="orderItems.OrderID">OrderID</option>
+                            </optgroup>
+                            <optgroup label="Products">
+                                <option value="products.SKU">SKU</option>
+                                <option value="products.Name">Name</option>
+                                <option value="products.Price">Price</option>
+                                <option value="products.Category">Category</option>
+                                <option value="products.Size">Size</option>
+                                <option value="products.Ingredients">Ingredients</option>
+                                <option value="products.Launch">Launch</option>
+                            </optgroup>
+                            <optgroup label="Stores">
+                                <option value="stores.StoreID">StoreID</option>
+                                <option value="stores.Zipcode">Zipcode</option>
+                                <option value="stores.StateShort">StateShort</option>
+                                <option value="stores.Latitude">Latitude</option>
+                                <option value="stores.Longitude">Longitude</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div class="form-group" id="yAxisGroup1">
+                        <label for="yAxis1">Y-Axis 1</label>
+                        <select id="yAxis1" name="yAxis1">
+                            <option value="None">None</option>
+                            <optgroup label="Orders">
+                                <option value="orders.OrderID">OrderID</option>
+                                <option value="orders.CustomerID">CustomerID</option>
+                                <option value="orders.StoreID">StoreID</option>
+                                <option value="orders.OrderDate">Order Date</option>
+                                <option value="orders.nItems">Number of Items</option>
+                                <option value="orders.total">Total</option>
+                            </optgroup>
+                            <optgroup label="Customers">
+                                <option value="customers.CustomerID">CustomerID</option>
+                                <option value="customers.Latitude">Latitude</option>
+                                <option value="customers.Longitude">Longitude</option>
+                            </optgroup>
+                            <optgroup label="Order Items">
+                                <option value="orderItems.SKU">SKU</option>
+                                <option value="orderItems.OrderID">OrderID</option>
+                            </optgroup>
+                            <optgroup label="Products">
+                                <option value="products.SKU">SKU</option>
+                                <option value="products.Name">Name</option>
+                                <option value="products.Price">Price</option>
+                                <option value="products.Category">Category</option>
+                                <option value="products.Size">Size</option>
+                                <option value="products.Ingredients">Ingredients</option>
+                                <option value="products.Launch">Launch</option>
+                            </optgroup>
+                            <optgroup label="Stores">
+                                <option value="stores.StoreID">StoreID</option>
+                                <option value="stores.Zipcode">Zipcode</option>
+                                <option value="stores.StateShort">StateShort</option>
+                                <option value="stores.Latitude">Latitude</option>
+                                <option value="stores.Longitude">Longitude</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <button type="button" id="addGraphButton">Add another Graph</button>
+                    <button type="submit" id="submitButton">Submit</button>
                 </form>
             </section>
             <section id="chart"></section>
@@ -93,11 +138,168 @@
         </div>
     </div>
     <script src="/static/JS/sidemenu.js"></script>
-    <script src="/static/JS/largescale.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
-      
-        </script>
-        
+        let graphCount = 1;
+
+        document.getElementById('addGraphButton').addEventListener('click', function() {
+            if (graphCount < 5) {
+                graphCount++;
+                const newYAxisGroup = document.createElement('div');
+                newYAxisGroup.classList.add('form-group');
+                newYAxisGroup.id = `yAxisGroup${graphCount}`;
+                newYAxisGroup.innerHTML = `
+                    <label for="yAxis${graphCount}">Y-Axis ${graphCount}</label>
+                    <select id="yAxis${graphCount}" name="yAxis${graphCount}">
+                        <option value="None">None</option>
+                        <optgroup label="Orders">
+                            <option value="orders.OrderID">OrderID</option>
+                            <option value="orders.CustomerID">CustomerID</option>
+                            <option value="orders.StoreID">StoreID</option>
+                            <option value="orders.OrderDate">Order Date</option>
+                            <option value="orders.nItems">Number of Items</option>
+                            <option value="orders.total">Total</option>
+                        </optgroup>
+                        <optgroup label="Customers">
+                            <option value="customers.CustomerID">CustomerID</option>
+                            <option value="customers.Latitude">Latitude</option>
+                            <option value="customers.Longitude">Longitude</option>
+                        </optgroup>
+                        <optgroup label="Order Items">
+                            <option value="orderItems.SKU">SKU</option>
+                            <option value="orderItems.OrderID">OrderID</option>
+                        </optgroup>
+                        <optgroup label="Products">
+                            <option value="products.SKU">SKU</option>
+                            <option value="products.Name">Name</option>
+                            <option value="products.Price">Price</option>
+                            <option value="products.Category">Category</option>
+                            <option value="products.Size">Size</option>
+                            <option value="products.Ingredients">Ingredients</option>
+                            <option value="products.Launch">Launch</option>
+                        </optgroup>
+                        <optgroup label="Stores">
+                            <option value="stores.StoreID">StoreID</option>
+                            <option value="stores.Zipcode">Zipcode</option>
+                            <option value="stores.StateShort">StateShort</option>
+                            <option value="stores.Latitude">Latitude</option>
+                            <option value="stores.Longitude">Longitude</option>
+                        </optgroup>
+                    </select>
+                `;
+                document.getElementById('dataForm').insertBefore(newYAxisGroup, document.getElementById('addGraphButton'));
+            }
+        });
+
+        document.getElementById('dataForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const xAxis = document.getElementById('xAxis').value;
+            if (xAxis === "None") {
+                alert('Please select a value for the X-Axis.');
+                return;
+            }
+
+            const yAxisValues = [];
+            for (let i = 1; i <= graphCount; i++) {
+                const yAxisValue = document.getElementById(`yAxis${i}`).value;
+                if (yAxisValue !== "None") {
+                    yAxisValues.push(yAxisValue);
+                }
+            }
+
+            if (yAxisValues.length === 0) {
+                alert('Please select at least one Y-Axis value.');
+                return;
+            }
+
+            const chartDom = document.getElementById('chart');
+            const myChart = echarts.init(chartDom);
+            const series = yAxisValues.map((yAxis, index) => ({
+                name: yAxis,
+                type: 'line',
+                symbol: 'none',
+                sampling: 'lttb',
+                itemStyle: {
+                    color: 'rgb(255, 70, 131)'
+                },
+                areaStyle: {
+                    color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                        { offset: 0, color: 'rgb(255, 158, 68)' },
+                        { offset: 1, color: 'rgb(255, 70, 131)' }
+                    ])
+                },
+                data: [] // Placeholder for actual data
+            }));
+
+            const option = {
+                title: { text: 'Large Area Chart', left: 'center' },
+                tooltip: {
+                    trigger: 'axis',
+                    position: function (pt) {
+                        return [pt[0], '10%'];
+                    }
+                },
+                toolbox: {
+                    feature: {
+                        dataZoom: {
+                            yAxisIndex: 'none'
+                        },
+                        restore: {},
+                        saveAsImage: {}
+                    }
+                },
+                xAxis: {
+                    type: 'category',
+                    boundaryGap: false,
+                    data: [] // Placeholder for actual data
+                },
+                yAxis: {
+                    type: 'value',
+                    boundaryGap: [0, '100%']
+                },
+                dataZoom: [
+                    { type: 'inside', start: 0, end: 10 },
+                    { start: 0, end: 10 }
+                ],
+                series: series
+            };
+            myChart.setOption(option);
+
+            // Fetch data from the server
+            fetchData(xAxis, yAxisValues, series, myChart);
+        });
+
+        function fetchData(xAxis, yAxisValues, series, chartInstance) {
+            $.post('/getdata', { table: xAxis.split('.')[0], column: xAxis.split('.')[1] }, function(dataX) {
+                if (dataX.data) {
+                    const xAxisData = dataX.data;
+                    let promises = [];
+                    yAxisValues.forEach((yAxis, index) => {
+                        const promise = $.post('/getdata', { table: yAxis.split('.')[0], column: yAxis.split('.')[1] });
+                        promises.push(promise);
+                    });
+
+                    Promise.all(promises).then(responses => {
+                        responses.forEach((response, index) => {
+                            if (response.data) {
+                                series[index].data = response.data;
+                            }
+                        });
+
+                        const option = {
+                            xAxis: { data: xAxisData },
+                            series: series
+                        };
+                        chartInstance.setOption(option);
+                    }).catch(error => {
+                        console.error('Error fetching data:', error);
+                    });
+                } else {
+                    console.error('Error fetching X-Axis data:', dataX);
+                }
+            });
+        }
+    </script>
 </body>
 </html>
