@@ -132,5 +132,16 @@ def get_relation_data():
     data = cur.fetchall()
     return jsonify(data)
 
+@app.route("/store-orders", methods=["GET"])
+def get_store_orders():
+    query = """
+        SELECT storeID, COUNT(orderID) as orderCount
+        FROM orders
+        GROUP BY storeID
+    """
+    cur.execute(query)
+    results = cur.fetchall()
+    return jsonify(results)
+
 if __name__ == "__main__":
     app.run(debug=True)
