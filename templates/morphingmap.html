@@ -7,7 +7,20 @@
     <link rel="stylesheet" href="/static/CSS/all.css">
     <link rel="stylesheet" href="/static/CSS/charts.css">
     <style>
-    
+        #submitButton {
+            margin-top: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            color: #fff;
+            background-color: coral;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        #submitButton:hover {
+            background-color: #e57373;
+        }
     </style>
 </head>
 <body>
@@ -33,71 +46,379 @@
             <section class="data-selection">
                 <h2>Please Choose your Data</h2>
                 <form id="dataForm">
-                    <label for="orders">Orders</label>
-                    <select id="orders" name="orders">
-                        <option>None</option>
-                        <option>OrderID</option>
-                        <option>CustomerID</option>
-                        <option>StoreID</option>
-                        <option>Order Date</option>
-                        <option>Number of Items</option>
-                        <option>Total</option>
-                    </select>
-
-                    <label for="customers">Customers</label>
-                    <select id="customers" name="customers">
-                        <option>None</option>
-                        <option>CustomerID</option>
-                        <option>Latitude</option>
-                        <option>Longitude</option>
-                    </select>
-
-                    <label for="orderItems">Order Items</label>
-                    <select id="orderItems" name="orderItems">
-                        <option>None</option>
-                        <option>SKU</option>
-                        <option>OrderID</option>
-                    </select>
-
-                    <label for="products">Products</label>
-                    <select id="products" name="products">
-                        <option>None</option>
-                        <option>SKU</option>
-                        <option>Name</option>
-                        <option>Price</option>
-                        <option>Category</option>
-                        <option>Size</option>
-                        <option>Ingredients</option>
-                        <option>Launch</option>
-                    </select>
-
-                    <label for="stores">Stores</label>
-                    <select id="stores" name="stores">
-                        <option>None</option>
-                        <option>StoreID</option>
-                        <option>Zipcode</option>
-                        <option>StateShort</option>
-                        <option>Latitude</option>
-                        <option>Longitude</option>
-                    </select>
-
-                    <button type="submit">Submit</button>
+                    <div class="form-group">
+                        <label for="xAxis">X-Axis</label>
+                        <select id="xAxis" name="xAxis">
+                            <option value="None">None</option>
+                            <optgroup label="Orders">
+                                <option value="orders.OrderID">OrderID</option>
+                                <option value="orders.CustomerID">CustomerID</option>
+                                <option value="orders.StoreID">StoreID</option>
+                                <option value="orders.OrderDate">Order Date</option>
+                                <option value="orders.nItems">Number of Items</option>
+                                <option value="orders.total">Total</option>
+                            </optgroup>
+                            <optgroup label="Customers">
+                                <option value="customers.CustomerID">CustomerID</option>
+                                <option value="customers.Latitude">Latitude</option>
+                                <option value="customers.Longitude">Longitude</option>
+                            </optgroup>
+                            <optgroup label="Order Items">
+                                <option value="orderItems.SKU">SKU</option>
+                                <option value="orderItems.OrderID">OrderID</option>
+                            </optgroup>
+                            <optgroup label="Products">
+                                <option value="products.SKU">SKU</option>
+                                <option value="products.Name">Name</option>
+                                <option value="products.Price">Price</option>
+                                <option value="products.Category">Category</option>
+                                <option value="products.Size">Size</option>
+                                <option value="products.Ingredients">Ingredients</option>
+                                <option value="products.Launch">Launch</option>
+                            </optgroup>
+                            <optgroup label="Stores">
+                                <option value="stores.StoreID">StoreID</option>
+                                <option value="stores.Zipcode">Zipcode</option>
+                                <option value="stores.StateShort">StateShort</option>
+                                <option value="stores.Latitude">Latitude</option>
+                                <option value="stores.Longitude">Longitude</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <button type="submit" id="submitButton">Submit</button>
                 </form>
             </section>
-            <section id="chart"></section>
+            <section id="chart">
+            </section>
         </main>
-        <div id="loading">
-            <div class="spinner"></div>
-            <p>Please hold on: Your Data is being extracted from the Database.</p>
-            <p id="progress">Loading: 0%</p>
-        </div>
     </div>
-    <script src="/static/JS/sidemenu.js"></script>
-    <script src="/static/JS/morphing.js"></script
-    <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/echarts/map/js/northamerica.js"></script> 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.3.2/echarts.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.3.2/core/echarts.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.3.2/components/visualMap/VisualMapComponent.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.3.2/components/geo/GeoComponent.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.3.2/charts/map/MapChart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.3.2/components/universalTransition/UniversalTransition.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.3.2/renderers/CanvasRenderer.min.js"></script>
     <script>
+        var chartDom = document.getElementById('chart');
+        var myChart = echarts.init(chartDom);
+        var option;
 
+        var cityData = [
+            { name: "Tuscarora", state: "Nevada", latitude: 41.328852, longitude: -116.12251, zipcode: 89834 },
+            { name: "Sunol", state: "California", latitude: 37.593883, longitude: -121.88281, zipcode: 94586 },
+            { name: "Esparto", state: "California", latitude: 38.744062, longitude: -121.99929, zipcode: 95627 },
+            { name: "Cibola", state: "Arizona", latitude: 33.326956, longitude: -114.68562, zipcode: 85328 },
+            { name: "Stockton", state: "California", latitude: 38.004922, longitude: -121.40022, zipcode: 95219 },
+            { name: "Arbuckle", state: "California", latitude: 38.97159, longitude: -122.02725, zipcode: 95912 },
+            { name: "Mount Hamilton", state: "California", latitude: 37.388718, longitude: -121.63845, zipcode: 95140 },
+            { name: "Jackpot", state: "Nevada", latitude: 41.890872, longitude: -114.44545, zipcode: 89825 },
+            { name: "Battle Mountain", state: "Nevada", latitude: 40.489736, longitude: -117.08692, zipcode: 89820 },
+            { name: "Lompoc", state: "California", latitude: 34.639682, longitude: -120.4471, zipcode: 93436 },
+            { name: "San Luis Obispo", state: "California", latitude: 35.262548, longitude: -120.65196, zipcode: 93401 },
+            { name: "Austin", state: "Nevada", latitude: 39.748753, longitude: -117.01152, zipcode: 89310 },
+            { name: "Loyalton", state: "California", latitude: 39.663256, longitude: -120.24835, zipcode: 96118 },
+            { name: "San Simeon", state: "California", latitude: 35.664386, longitude: -121.21965, zipcode: 93452 },
+            { name: "Crescent City", state: "California", latitude: 41.782681, longitude: -124.16703, zipcode: 95531 },
+            { name: "Eureka", state: "Nevada", latitude: 39.717627, longitude: -116.02944, zipcode: 89316 },
+            { name: "Goldfield", state: "Nevada", latitude: 37.571495, longitude: -117.31507, zipcode: 89013 },
+            { name: "Montague", state: "California", latitude: 41.736424, longitude: -122.40008, zipcode: 96064 },
+            { name: "Wells", state: "Nevada", latitude: 41.208288, longitude: -114.86098, zipcode: 89835 },
+            { name: "Landers", state: "California", latitude: 34.31039, longitude: -116.45012, zipcode: 92285 },
+        ];
+
+        var stateData = [
+            { name: 'Alabama', value: 4822023 },
+            { name: 'Alaska', value: 731449 },
+            { name: 'Arizona', value: 6553255 },
+            { name: 'Arkansas', value: 2949131 },
+            { name: 'California', value: 38041430 },
+            { name: 'Colorado', value: 5187582 },
+            { name: 'Connecticut', value: 3590347 },
+            { name: 'Delaware', value: 917092 },
+            { name: 'District of Columbia', value: 632323 },
+            { name: 'Florida', value: 19317568 },
+            { name: 'Georgia', value: 9919945 },
+            { name: 'Hawaii', value: 1392313 },
+            { name: 'Idaho', value: 1595728 },
+            { name: 'Illinois', value: 12875255 },
+            { name: 'Indiana', value: 6537334 },
+            { name: 'Iowa', value: 3074186 },
+            { name: 'Kansas', value: 2885905 },
+            { name: 'Kentucky', value: 4380415 },
+            { name: 'Louisiana', value: 4601893 },
+            { name: 'Maine', value: 1329192 },
+            { name: 'Maryland', value: 5884563 },
+            { name: 'Massachusetts', value: 6646144 },
+            { name: 'Michigan', value: 9883360 },
+            { name: 'Minnesota', value: 5379139 },
+            { name: 'Mississippi', value: 2984926 },
+            { name: 'Missouri', value: 6021988 },
+            { name: 'Montana', value: 1005141 },
+            { name: 'Nebraska', value: 1855525 },
+            { name: 'Nevada', value: 2758931 },
+            { name: 'New Hampshire', value: 1320718 },
+            { name: 'New Jersey', value: 8864590 },
+            { name: 'New Mexico', value: 2085538 },
+            { name: 'New York', value: 19570261 },
+            { name: 'North Carolina', value: 9752073 },
+            { name: 'North Dakota', value: 699628 },
+            { name: 'Ohio', value: 11544225 },
+            { name: 'Oklahoma', value: 3814820 },
+            { name: 'Oregon', value: 3899353 },
+            { name: 'Pennsylvania', value: 12763536 },
+            { name: 'Rhode Island', value: 1050292 },
+            { name: 'South Carolina', value: 4723723 },
+            { name: 'South Dakota', value: 833354 },
+            { name: 'Tennessee', value: 6456243 },
+            { name: 'Texas', value: 26059203 },
+            { name: 'Utah', value: 2855287 },
+            { name: 'Vermont', value: 626011 },
+            { name: 'Virginia', value: 8185867 },
+            { name: 'Washington', value: 6897012 },
+            { name: 'West Virginia', value: 1855413 },
+            { name: 'Wisconsin', value: 5726398 },
+            { name: 'Wyoming', value: 576412 },
+            { name: 'Puerto Rico', value: 3667084 }
+        ];
+        
+        stateData.sort(function (a, b) {
+            return a.value - b.value;
+        });
+
+        myChart.showLoading();
+        fetch('/static/data/USA.json')
+            .then(response => response.json())
+            .then(usaJson => {
+                myChart.hideLoading();
+                echarts.registerMap('USA', usaJson, {
+                    Alaska: {
+                        left: -131,
+                        top: 25,
+                        width: 15
+                    },
+                    Hawaii: {
+                        left: -110,
+                        top: 28,
+                        width: 5
+                    },
+                    'Puerto Rico': {
+                        left: -76,
+                        top: 26,
+                        width: 2
+                    }
+                });
+
+                const mapOption = {
+                    visualMap: {
+                        left: 'right',
+                        min: 500000,
+                        max: 38000000,
+                        inRange: {
+                            color: ['#313695', '#4575b4', '#74add1', '#abd9e9', '#e0f3f8', '#ffffbf', '#fee090', '#fdae61', '#f46d43', '#d73027', '#a50026']
+                        },
+                        text: ['High', 'Low'],
+                        calculable: true
+                    },
+                    series: [
+                        {
+                            id: 'population',
+                            type: 'map',
+                            roam: true,
+                            map: 'USA',
+                            itemStyle: {
+                                areaColor: '#ffffff', // Set map background to white
+                                borderColor: '#111' // Set border color
+                            },
+                            animationDurationUpdate: 1000,
+                            universalTransition: true,
+                            data: stateData,
+                            markPoint: {
+                                symbol: 'circle',
+                                symbolSize: 10,
+                                label: {
+                                    show: false,
+                                    formatter: '{b}',
+                                    fontSize: 12,
+                                    color: '#fff',
+                                    distance: 10 // Distance of the label from the point
+                                },
+                                itemStyle: {
+                                    color: '#FF5722', // Modern pin color
+                                    borderColor: '#fff',
+                                    borderWidth: 1,
+                                    shadowBlur: 10,
+                                    shadowColor: '#333'
+                                },
+                                emphasis: {
+                                    label: {
+                                        show: true // Show label on emphasis
+                                    }
+                                },
+                                data: cityData.map(function (item) {
+                                    return {
+                                        name: item.name,
+                                        coord: [item.longitude, item.latitude]
+                                    };
+                                })
+                            }
+                        }
+                    ],
+                    toolbox: {
+                        feature: {
+                            saveAsImage: {},
+                            myDarkMode: {
+                                show: true,
+                                title: 'Dark Mode',
+                                icon: 'path://M512 0C229.23072 0 0 229.23072 0 512s229.23072 512 512 512 512-229.23072 512-512S794.76928 0 512 0z m0 938.0864c-234.24 0-426.0864-191.8464-426.0864-426.0864S277.76 85.9136 512 85.9136c55.7312 0 111.4624 11.7248 163.6864 35.0208-32.768 56.32-87.04 94.72-151.0912 105.2672-78.4896 13.7216-147.2-12.288-199.7312-55.808 0 0-12.6976 80.9472-12.6976 119.296 0 136.3968 104.7552 247.9104 239.9232 261.8368 79.872 8.2944 152.576-24.7808 198.3488-80.64 28.2624 48.64 45.568 106.752 45.568 170.3424 0 234.24-191.8464 426.0864-426.0864 426.0864z',
+                                onclick: function() {
+                                    darkMode = !darkMode;
+                                    updateChartAppearance();
+                                }
+                            },
+                            myDecalPattern: {
+                                show: true,
+                                title: 'Decal Pattern',
+                                icon: 'path://M50 250 Q 150 50 250 250 T 450 250',
+                                onclick: function() {
+                                    decalPattern = !decalPattern;
+                                    updateChartAppearance();
+                                }
+                            },
+                            myShare: {
+                                show: true,
+                                title: 'Share',
+                                icon: 'path://M864 160h-192V96H352v64H160c-35.328 0-64 28.672-64 64v576c0 35.328 28.672 64 64 64h704c35.328 0 64-28.672 64-64V224c0-35.328-28.672-64-64-64z m0 640H160V224h192v64h320v-64h192v576z m-320-320h-64v192h-192V480h-64l160-160 160 160z',
+                                onclick: function() {
+                                    const url = window.location.href;
+                                    navigator.clipboard.writeText(url).then(function() {
+                                        alert('URL copied to clipboard');
+                                    }, function(err) {
+                                        console.error('Could not copy URL: ', err);
+                                    });
+                                }
+                            },
+                            myTool1: {
+                                show: true,
+                                title: 'Switch to Bar Chart',
+                                icon: 'path://M512 0C229.23072 0 0 229.23072 0 512s229.23072 512 512 512 512-229.23072 512-512S794.76928 0 512 0z m0 938.0864c-234.24 0-426.0864-191.8464-426.0864-426.0864S277.76 85.9136 512 85.9136c55.7312 0 111.4624 11.7248 163.6864 35.0208-32.768 56.32-87.04 94.72-151.0912 105.2672-78.4896 13.7216-147.2-12.288-199.7312-55.808 0 0-12.6976 80.9472-12.6976 119.296 0 136.3968 104.7552 247.9104 239.9232 261.8368 79.872 8.2944 152.576-24.7808 198.3488-80.64 28.2624 48.64 45.568 106.752 45.568 170.3424 0 234.24-191.8464 426.0864-426.0864 426.0864z',
+                                onclick: function () {
+                                    currentOption = barOption;
+                                    myChart.setOption(currentOption, true);
+                                }
+                            }
+                        }
+                    }
+                };
+
+                const barOption = {
+                    tooltip: { 
+                        trigger: 'axis',
+                        axisPointer: {
+                            type: 'cross',
+                            label:{
+                                backgroundColor: '#6a7985'
+                            }
+                        } 
+                    },
+                    xAxis: {
+                        type: 'value'
+                    },
+                    yAxis: {
+                        type: 'category',
+                        axisLabel: {
+                            rotate: 30
+                        },
+                        data: cityData.map(function (item) {
+                            return item.name;
+                        })
+                    },
+                    animationDurationUpdate: 1000,
+                    series: {
+                        type: 'bar',
+                        id: 'population',
+                        data: cityData.map(function (item) {
+                            return item.zipcode; // Using zipcode as an example metric for the bar chart
+                        }),
+                        universalTransition: true
+                    },
+                    toolbox: {
+                        feature: {
+                            saveAsImage: {},
+                            myDarkMode: {
+                                show: true,
+                                title: 'Dark Mode',
+                                icon: 'path://M512 0C229.23072 0 0 229.23072 0 512s229.23072 512 512 512 512-229.23072 512-512S794.76928 0 512 0z m0 938.0864c-234.24 0-426.0864-191.8464-426.0864-426.0864S277.76 85.9136 512 85.9136c55.7312 0 111.4624 11.7248 163.6864 35.0208-32.768 56.32-87.04 94.72-151.0912 105.2672-78.4896 13.7216-147.2-12.288-199.7312-55.808 0 0-12.6976 80.9472-12.6976 119.296 0 136.3968 104.7552 247.9104 239.9232 261.8368 79.872 8.2944 152.576-24.7808 198.3488-80.64 28.2624 48.64 45.568 106.752 45.568 170.3424 0 234.24-191.8464 426.0864-426.0864 426.0864z',
+                                onclick: function() {
+                                    darkMode = !darkMode;
+                                    updateChartAppearance();
+                                }
+                            },
+                            myDecalPattern: {
+                                show: true,
+                                title: 'Decal Pattern',
+                                icon: 'path://M50 250 Q 150 50 250 250 T 450 250',
+                                onclick: function() {
+                                    decalPattern = !decalPattern;
+                                    updateChartAppearance();
+                                }
+                            },
+                            myShare: {
+                                show: true,
+                                title: 'Share',
+                                icon: 'path://M864 160h-192V96H352v64H160c-35.328 0-64 28.672-64 64v576c0 35.328 28.672 64 64 64h704c35.328 0 64-28.672 64-64V224c0-35.328-28.672-64-64-64z m0 640H160V224h192v64h320v-64h192v576z m-320-320h-64v192h-192V480h-64l160-160 160 160z',
+                                onclick: function() {
+                                    const url = window.location.href;
+                                    navigator.clipboard.writeText(url).then(function() {
+                                        alert('URL copied to clipboard');
+                                    }, function(err) {
+                                        console.error('Could not copy URL: ', err);
+                                    });
+                                }
+                            },
+                            myTool1: {
+                                show: true,
+                                title: 'Switch to Map',
+                                icon: 'path://M512 0C229.23072 0 0 229.23072 0 512s229.23072 512 512 512 512-229.23072 512-512S794.76928 0 512 0z m0 938.0864c-234.24 0-426.0864-191.8464-426.0864-426.0864S277.76 85.9136 512 85.9136c55.7312 0 111.4624 11.7248 163.6864 35.0208-32.768 56.32-87.04 94.72-151.0912 105.2672-78.4896 13.7216-147.2-12.288-199.7312-55.808 0 0-12.6976 80.9472-12.6976 119.296 0 136.3968 104.7552 247.9104 239.9232 261.8368 79.872 8.2944 152.576-24.7808 198.3488-80.64 28.2624 48.64 45.568 106.752 45.568 170.3424 0 234.24-191.8464 426.0864-426.0864 426.0864z',
+                                onclick: function () {
+                                    currentOption = mapOption;
+                                    myChart.setOption(currentOption, true);
+                                }
+                            }
+                        }
+                    }
+                };
+
+                let currentOption = mapOption;
+                myChart.setOption(mapOption);
+
+                document.getElementById('xAxis').addEventListener('change', function () {
+                    var selectedValue = this.value;
+                    // Adjust the data mapping logic as needed to fit your dataset structure
+                    barOption.series.data = cityData.map(function (item) {
+                        return item[selectedValue] || item.zipcode;
+                    });
+                    myChart.setOption(barOption, true);
+                });
+            });
+
+        option && myChart.setOption(option);
+
+        let darkMode = false;
+        let decalPattern = false;
+
+        function updateChartAppearance() {
+            if (myChart) {
+                const option = myChart.getOption();
+                option.backgroundColor = darkMode ? '#333' : '#fff';
+                option.textStyle = { color: darkMode ? '#fff' : '#000' };
+                option.series.forEach(series => {
+                    series.itemStyle = series.itemStyle || {};
+                    series.itemStyle.decal = decalPattern ? { symbol: 'path://M50 250 Q 150 50 250 250 T 450 250' } : null;
+                });
+                myChart.setOption(option);
+            }
+        }
     </script>
 </body>
 </html>
