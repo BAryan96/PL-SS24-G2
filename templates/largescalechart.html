@@ -108,7 +108,7 @@
                                 <option value="orderItems.OrderID">OrderID</option>
                             </optgroup>
                             <optgroup label="Products">
-                                <option value="products.SKU">SKU</</option>
+                                <option value="products.SKU">SKU</option>
                                 <option value="products.Name">Name</option>
                                 <option value="products.Price">Price</option>
                                 <option value="products.Category">Category</option>
@@ -167,16 +167,29 @@
                 name: yAxis,
                 type: 'line',
                 stack: 'total',
-                areaStyle: {},
+                areaStyle: {
+                    color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                        {
+                            offset: 0,
+                            color: 'rgb(255, 158, 68)'
+                        },
+                        {
+                            offset: 1,
+                            color: 'rgb(255, 70, 131)'
+                        }
+                    ])
+                },
                 emphasis: { focus: 'series' },
-                itemStyle: decalPattern ? { decal: { symbol: 'path://M50 250 Q 150 50 250 250 T 450 250' } } : {},
-                data: [] 
+                itemStyle: {
+                    color: 'rgb(255, 70, 131)'
+                },
+                data: []
             }));
 
             const option = {
                 title: { 
                     left: 'center',
-                    text: 'Stacked Area Chart' },
+                    text: 'Scale Area Chart' },
                 tooltip: { 
                     trigger: 'axis',
                     axisPointer: {

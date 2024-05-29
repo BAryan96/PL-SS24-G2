@@ -184,6 +184,15 @@
                                     }],
                                     backgroundColor: darkMode ? '#333' : '#fff',
                                     textStyle: { color: darkMode ? '#fff' : '#000' },
+                                    tooltip: { 
+                    trigger: 'axis',
+                    axisPointer: {
+                        type: 'cross',
+                        label:{
+                            backgroundColor: '#6a7985'
+                        }
+                    } 
+                },
                                     toolbox: {
                                         feature: {
                                             saveAsImage: {},

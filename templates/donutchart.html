@@ -30,72 +30,79 @@
         </div>
         <main class="main">
             <section class="data-selection">
-                <h2>Please Choose your Data</h2>
+                <h2>Please Choose the Relation</h2>
                 <form id="dataForm">
-                    <label for="orders">Orders</label>
-                    <select id="orders" name="orders">
-                        <option>None</option>
-                        <option>OrderID</option>
-                        <option>CustomerID</option>
-                        <option>StoreID</option>
-                        <option>Order Date</option>
-                        <option>Number of Items</option>
-                        <option>Total</option>
-                    </select>
-
-                    <label for="customers">Customers</label>
-                    <select id="customers" name="customers">
-                        <option>None</option>
-                        <option>CustomerID</option>
-                        <option>Latitude</option>
-                        <option>Longitude</option>
-                    </select>
-
-                    <label for="orderItems">Order Items</label>
-                    <select id="orderItems" name="orderItems">
-                        <option>None</option>
-                        <option>SKU</option>
-                        <option>OrderID</option>
-                    </select>
-
-                    <label for="products">Products</label>
-                    <select id="products" name="products">
-                        <option>None</option>
-                        <option>SKU</option>
-                        <option>Name</option>
-                        <option>Price</option>
-                        <option>Category</option>
-                        <option>Size</option>
-                        <option>Ingredients</option>
-                        <option>Launch</option>
-                    </select>
-
-                    <label for="stores">Stores</label>
-                    <select id="stores" name="stores">
-                        <option>None</option>
-                        <option>StoreID</option>
-                        <option>Zipcode</option>
-                        <option>StateShort</option>
-                        <option>Latitude</option>
-                        <option>Longitude</option>
-                    </select>
-
+                    <div class="form-group">
+                        <label for="relation">Relation</label>
+                        <select id="relation" name="relation">
+                            <option value="customer_orders">Customer Orders</option>
+                            <option value="product_sales">Product Sales</option>
+                            <option value="store_sales">Store Sales</option>
+                            <!-- Füge weitere Relationen hinzu -->
+                        </select>
+                    </div>
                     <button type="submit">Submit</button>
                 </form>
             </section>
-            <section id="chart"></section>
+            <section id="chart" style="width: 600px; height: 400px;"></section>
         </main>
-        <div id="loading">
-            <div class="spinner"></div>
-            <p>Please hold on: Your Data is being extracted from the Database.</p>
-            <p id="progress">Loading: 0%</p>
-        </div>
     </div>
     <script src="/static/JS/sidemenu.js"></script>
-    <script src="/static/JS/donutchart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
     <script>
+        document.getElementById('dataForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            var relation = document.getElementById('relation').value;
 
+            fetch(`/api/data?relation=${relation}`)
+                .then(response => response.json())
+                .then(data => {
+                    var chartDom = document.getElementById('chart');
+                    var myChart = echarts.init(chartDom);
+                    var option = {
+                        title: {
+                            text: 'Data Visualization',
+                            left: 'center'
+                        },
+                        tooltip: {
+                            trigger: 'item'
+                        },
+                        legend: {
+                            orient: 'vertical',
+                            left: 'left'
+                        },
+                        series: [
+                            {
+                                name: 'Value',
+                                type: 'pie',
+                                radius: ['50%', '70%'],
+                                avoidLabelOverlap: false,
+                                itemStyle: {
+                                    borderRadius: 10,
+                                    borderColor: '#fff',
+                                    borderWidth: 2
+                                },
+                                label: {
+                                    show: false,
+                                    position: 'center'
+                                },
+                                emphasis: {
+                                    label: {
+                                        show: true,
+                                        fontSize: '30',
+                                        fontWeight: 'bold'
+                                    }
+                                },
+                                labelLine: {
+                                    show: false
+                                },
+                                data: data.map(item => ({name: item[0], value: item[1]}))
+                            }
+                        ]
+                    };
+                    myChart.setOption(option);
+                });
+        });
     </script>
 </body>
 </html>
