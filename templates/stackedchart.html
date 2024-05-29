@@ -22,31 +22,8 @@
             background-color: coral;
         }
         #chart { width: 100%; height: 600px; margin-top: 20px; position: relative; }
-        .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; position: absolute; top: 10px; left: 10px; background: rgba(255, 255, 255, 0.8); padding: 10px; border-radius: 5px; z-index: 10; }
-        .slider-container { display: flex; align-items: center; margin-right: 10px; }
-        .slider-container label { margin-right: 5px; }
-        .share-button {
-            padding: 10px 20px;
-            font-size: 16px;
-            color: #fff;
-            background-color: #007bff;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-        }
-        .share-button:hover {
-            background-color: #0056b3;
-        }
-        .color-picker {
-    display: none;
-    position: absolute;
-    z-index: 1000;
-    background: #fff;
-    border: 1px solid #ccc;
-    padding: 5px;
-    border-radius: 5px;
-}
+       
+
 
     </style>
 </head>
@@ -158,11 +135,6 @@
             <section id="chart">
             </section>
         </main>
-        <div id="loading">
-            <div class="spinner"></div>
-            <p>Please hold on: Your Data is being extracted from the Database.</p>
-            <p id="progress">Loading: 0%</p>
-        </div>
     </div>
     <script src="/static/JS/sidemenu.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
@@ -252,7 +224,7 @@
                 areaStyle: {},
                 emphasis: { focus: 'series' },
                 itemStyle: decalPattern ? { decal: { symbol: 'path://M50 250 Q 150 50 250 250 T 450 250' } } : {},
-                data: [] // Placeholder for actual data
+                data: [] 
             }));
 
             const option = {
@@ -329,7 +301,6 @@
             };
             myChart.setOption(option);
 
-            // Fetch data from the server
             fetchData(xAxis, yAxisValues, series, myChart);
         });
 
