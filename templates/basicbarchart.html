@@ -247,7 +247,7 @@
             xAxisSelect.addEventListener('change', updateChart);
             yAxisSelect.addEventListener('change', updateChart);
 
-            updateChart(); // Initial chart update
+            updateChart();
         }
 
         function updateChartAppearance() {
@@ -285,7 +285,7 @@
             optionsMenu.style.position = 'absolute';
             optionsMenu.style.left = `${event.pageX}px`;
             optionsMenu.style.top = `${event.pageY}px`;
-            optionsMenu.style.zIndex = 1000; // Ensure it's in the foreground
+            optionsMenu.style.zIndex = 1000; 
 
             document.addEventListener('click', function removeOptionsMenu(event) {
                 if (!optionsMenu.contains(event.target)) {

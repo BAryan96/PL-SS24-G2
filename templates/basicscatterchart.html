@@ -136,32 +136,28 @@
         let myChart;
         
         $(document).ready(function(){
-            // Formularsubmit-Ereignis überwachen
             $('#dataForm').submit(function(e){
-                e.preventDefault(); // Verhindert das Standardverhalten des Formulars
+                e.preventDefault(); 
     
-                // Ausgewählte Achsenwerte erhalten
                 var xAxis = $('#xAxis').val();
                 var yAxis = $('#yAxis').val();
     
-                // AJAX-Anforderung senden, um Daten aus der Datenbank abzurufen
                 fetchData(xAxis, yAxis);
             });
     
-            // Funktion zum Laden und Verarbeiten der Daten
             function fetchData(xAxis, yAxis) {
                 $.post('/getdata', { table: xAxis.split('.')[0], column: xAxis.split('.')[1] }, function(dataX) {
                     if (dataX.data) {
-                        const xAxisData = dataX.data.map(entry => parseFloat(entry)); // Konvertieren Sie die Zeichenfolgen in Zahlen
+                        const xAxisData = dataX.data.map(entry => parseFloat(entry)); 
     
                         $.post('/getdata', { table: yAxis.split('.')[0], column: yAxis.split('.')[1] }, function(dataY) {
                             if (dataY.data) {
-                                const yAxisData = dataY.data.map(entry => parseFloat(entry)); // Konvertieren Sie die Zeichenfolgen in Zahlen
+                                const yAxisData = dataY.data.map(entry => parseFloat(entry)); 
     
-                                // Daten für das Scatter-Chart vorbereiten
+                                
                                 var scatterData = xAxisData.map((x, index) => [x, yAxisData[index]]);
     
-                                // Scatter-Chart-Optionen setzen
+                               
                                 var option = {
                                     title: {
                                         left: 'center',
@@ -235,7 +231,6 @@
                                     textStyle: { color: darkMode ? '#fff' : '#000' }
                                 };
     
-                                // Scatter-Chart initialisieren und Optionen setzen
                                 var chartDom = document.getElementById('chart');
                                 myChart = echarts.init(chartDom);
                                 myChart.setOption(option);
