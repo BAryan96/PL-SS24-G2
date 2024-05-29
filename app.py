@@ -1,57 +1,43 @@
 from flask import Flask, render_template, request, jsonify
 from DB import connect_to_database, get_cursor
-
 app = Flask(__name__)
-
 conn = connect_to_database()
 cur = get_cursor(conn)
-
 @app.route("/")
 def landingpage():
     return render_template('landingpage.html')
-
 @app.route("/login")
 def login():
     return render_template('login.html')
-
 @app.route("/charts")
 def charts():
     return render_template('charts.html')
-
 @app.route("/stackedchart")
 def stackedchart():
     return render_template('stackedchart.html')
-
 @app.route("/largescalechart")
 def largescalechart():
     return render_template('largescalechart.html')
-
 @app.route("/donutchart")
 def donutchart():
     return render_template('donutchart.html')
-
 @app.route("/basicscatterchart")
 def basicscatterchart():
     return render_template('basicscatterchart.html')
-
 @app.route("/morphingmap")
 def morphingmap():
     return render_template('morphingmap.html')
-
 @app.route("/basicbarchart")
 def basicbarchart():
     return render_template('basicbarchart.html')
-
 @app.route("/heatmap")
 def heatmap():
     return render_template('heatmap.html')
-
 @app.route("/tables")
 def get_tables():
     cur.execute("SHOW TABLES")
     tables = [row[0] for row in cur.fetchall()]
     return jsonify({"tables": tables})
-
 @app.route("/columns", methods=["POST"])
 def get_columns():
     table = request.form['table']
@@ -61,6 +47,7 @@ def get_columns():
 
 @app.route("/getdata", methods=["POST"])
 def get_data():
+    #Hier änderungen hinzufügen
     table = request.form['table']
     column = request.form['column']
     cur.execute(f"SELECT {column} FROM {table}")
@@ -112,4 +99,5 @@ def get_relation_data():
     return jsonify(data)
 
 if __name__ == "__main__":
+    app.run(debug=True) 
     app.run(debug=True)
