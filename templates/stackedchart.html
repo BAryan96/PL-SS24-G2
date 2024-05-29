@@ -22,7 +22,7 @@
             background-color: coral;
         }
         #chart { width: 100%; height: 600px; margin-top: 20px; position: relative; }
-        .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; position: absolute; top: 10px; right: 10px; background: rgba(255, 255, 255, 0.8); padding: 10px; border-radius: 5px; }
+        .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; position: absolute; top: 10px; left: 10px; background: rgba(255, 255, 255, 0.8); padding: 10px; border-radius: 5px; z-index: 10; }
         .slider-container { display: flex; align-items: center; margin-right: 10px; }
         .slider-container label { margin-right: 5px; }
         .share-button {
@@ -38,6 +38,16 @@
         .share-button:hover {
             background-color: #0056b3;
         }
+        .color-picker {
+    display: none;
+    position: absolute;
+    z-index: 1000;
+    background: #fff;
+    border: 1px solid #ccc;
+    padding: 5px;
+    border-radius: 5px;
+}
+
     </style>
 </head>
 <body>
@@ -146,17 +156,6 @@
                 </form>
             </section>
             <section id="chart">
-                <div class="toolbar">
-                    <div class="slider-container">
-                        <label for="darkMode">Dark Mode</label>
-                        <input type="checkbox" id="darkMode">
-                    </div>
-                    <div class="slider-container">
-                        <label for="decalPattern">Decal Pattern</label>
-                        <input type="checkbox" id="decalPattern">
-                    </div>
-                    <button class="share-button" id="shareButton">Share</button>
-                </div>
             </section>
         </main>
         <div id="loading">
@@ -170,6 +169,9 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
         let graphCount = 1;
+        let darkMode = false;
+        let decalPattern = false;
+        let myChart;
 
         document.getElementById('addGraphButton').addEventListener('click', function() {
             if (graphCount < 5) {
@@ -242,23 +244,88 @@
             }
 
             const chartDom = document.getElementById('chart');
-            const myChart = echarts.init(chartDom);
+            myChart = echarts.init(chartDom);
             const series = yAxisValues.map((yAxis, index) => ({
                 name: yAxis,
                 type: 'line',
                 stack: 'total',
                 areaStyle: {},
                 emphasis: { focus: 'series' },
+                itemStyle: decalPattern ? { decal: { symbol: 'path://M50 250 Q 150 50 250 250 T 450 250' } } : {},
                 data: [] // Placeholder for actual data
             }));
 
             const option = {
-                title: { text: 'Stacked Area Chart' },
-                tooltip: { trigger: 'axis' },
-                legend: { data: yAxisValues, top: '5%' },
-                xAxis: { type: 'category', boundaryGap: false, data: [] }, // Placeholder for actual data
-                yAxis: { type: 'value' },
-                series: series
+                title: { 
+                    left: 'center',
+                    text: 'Stacked Area Chart' },
+                tooltip: { 
+                    trigger: 'axis',
+                    axisPointer: {
+                        type: 'cross',
+                        label:{
+                            backgroundColor: '#6a7985'
+                        }
+                    } 
+                
+                },
+                legend: { 
+                    data: yAxisValues, top: '5%' 
+                },
+                xAxis: { 
+                    type: 'category', boundaryGap: false, data: [] },
+                yAxis: { 
+                    type: 'value' },
+                series: series,
+                backgroundColor: darkMode ? '#333' : '#fff',
+                textStyle: { color: darkMode ? '#fff' : '#000' },
+                toolbox: {
+                    feature: {
+                        saveAsImage:{},
+                        myDarkMode: {
+                            show: true,
+                            title: 'Dark Mode',
+                            icon: 'path://M512 0C229.23072 0 0 229.23072 0 512s229.23072 512 512 512 512-229.23072 512-512S794.76928 0 512 0z m0 938.0864c-234.24 0-426.0864-191.8464-426.0864-426.0864S277.76 85.9136 512 85.9136c55.7312 0 111.4624 11.7248 163.6864 35.0208-32.768 56.32-87.04 94.72-151.0912 105.2672-78.4896 13.7216-147.2-12.288-199.7312-55.808 0 0-12.6976 80.9472-12.6976 119.296 0 136.3968 104.7552 247.9104 239.9232 261.8368 79.872 8.2944 152.576-24.7808 198.3488-80.64 28.2624 48.64 45.568 106.752 45.568 170.3424 0 234.24-191.8464 426.0864-426.0864 426.0864z',
+                            onclick: function() {
+                                darkMode = !darkMode;
+                                updateChartAppearance();
+                            }
+                        },
+                        myDecalPattern: {
+                            show: true,
+                            title: 'Decal Pattern',
+                            icon: 'path://M50 250 Q 150 50 250 250 T 450 250',
+                            onclick: function() {
+                                decalPattern = !decalPattern;
+                                updateChartAppearance();
+                            }
+                        },
+                        myShare: {
+                            show: true,
+                            title: 'Share',
+                            icon: 'path://M864 160h-192V96H352v64H160c-35.328 0-64 28.672-64 64v576c0 35.328 28.672 64 64 64h704c35.328 0 64-28.672 64-64V224c0-35.328-28.672-64-64-64z m0 640H160V224h192v64h320v-64h192v576z m-320-320h-64v192h-192V480h-64l160-160 160 160z',
+                            onclick: function() {
+                                const url = window.location.href;
+                                navigator.clipboard.writeText(url).then(function() {
+                                    alert('URL copied to clipboard');
+                                }, function(err) {
+                                    console.error('Could not copy URL: ', err);
+                                });
+                            }
+                        }
+                    }
+                },
+                dataZoom: [
+                    {
+                        type: 'inside',
+                        start: 0,
+                        end: 100
+                    },
+                    {
+                        start: 0,
+                        end: 100
+                    }
+                ]
             };
             myChart.setOption(option);
 
@@ -284,39 +351,6 @@
                         });
 
                         var option = {
-                            tooltip: {
-                                        trigger: 'axis',
-                                        axisPointer:{
-                                            type: 'cross',
-                                            label: {
-                                                backgroundcolour: '#6a7985'
-                                            }
-                                        }
-                                    },
-                                    title: {
-                                        left: 'center',
-                                        text: 'Stacked Area Chart'
-                                    },
-                                    toolbox: {
-                                        feature: {
-                                            dataZoom: {
-                                                yAxisIndex: 'none'
-                                            },
-                                            restore: {},
-                                            saveAsImage: {}
-                                        }
-                                    },
-                                    dataZoom: [
-                                        {
-                                            type: 'inside',
-                                            start: 0,
-                                            end: 100
-                                        },
-                                        {
-                                            start: 0,
-                                            end: 100
-                                        }
-                                    ],
                             xAxis: { data: xAxisData },
                             series: series
                         };
@@ -330,20 +364,27 @@
             });
         }
 
+        function updateChartAppearance() {
+            if (myChart) {
+                const option = myChart.getOption();
+                option.backgroundColor = darkMode ? '#333' : '#fff';
+                option.textStyle = { color: darkMode ? '#fff' : '#000' };
+                option.series.forEach(series => {
+                    series.itemStyle = series.itemStyle || {};
+                    series.itemStyle.decal = decalPattern ? { symbol: 'path://M50 250 Q 150 50 250 250 T 450 250' } : null;
+                });
+                myChart.setOption(option);
+            }
+        }
+
         document.getElementById('darkMode').addEventListener('change', function() {
-            document.body.classList.toggle('dark-mode', this.checked);
+            darkMode = this.checked;
+            updateChartAppearance();
         });
 
         document.getElementById('decalPattern').addEventListener('change', function() {
-            const chartDom = document.getElementById('chart');
-            const myChart = echarts.init(chartDom);
-            myChart.setOption({
-                series: {
-                    itemStyle: {
-                        decal: this.checked ? { symbol: 'image://path/to/decal.png' } : null
-                    }
-                }
-            });
+            decalPattern = this.checked;
+            updateChartAppearance();
         });
 
         document.getElementById('shareButton').addEventListener('click', function() {
@@ -354,6 +395,7 @@
                 console.error('Could not copy URL: ', err);
             });
         });
+
     </script>
 </body>
 </html>
