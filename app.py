@@ -61,12 +61,12 @@ def get_columns():
 
 @app.route("/getdata", methods=["POST"])
 def get_data():
-    #Hier änderungen hinzufügen
     table = request.form['table']
     column = request.form['column']
     cur.execute(f"SELECT {column} FROM {table}")
     data = [row[0] for row in cur.fetchall()]
     return jsonify({"data": data})
+
 @app.route("/get_table", methods=["POST"])
 def get_table():
     data_choice = request.form['data-choice']
@@ -78,6 +78,38 @@ def get_table():
     for result in results:
         json_data.append(dict(zip(row_headers, result)))
     return render_template('index.html', data=json_data)
+
+# Neue Route für die Donut-Chart Daten
+@app.route("/api/data", methods=["GET"])
+def get_relation_data():
+    relation = request.args.get('relation')
+    if relation == "customer_orders":
+        query = """
+            SELECT customers.CustomerID, COUNT(orders.OrderID) 
+            FROM customers 
+            JOIN orders ON customers.CustomerID = orders.CustomerID 
+            GROUP BY customers.CustomerID
+        """
+    elif relation == "product_sales":
+        query = """
+            SELECT products.Name, COUNT(orderItems.SKU) 
+            FROM products 
+            JOIN orderItems ON products.SKU = orderItems.SKU 
+            GROUP BY products.Name
+        """
+    elif relation == "store_sales":
+        query = """
+            SELECT stores.StoreID, COUNT(orders.OrderID) 
+            FROM stores 
+            JOIN orders ON stores.StoreID = orders.StoreID 
+            GROUP BY stores.StoreID
+        """
+    else:
+        return jsonify({"error": "Invalid relation"}), 400
+
+    cur.execute(query)
+    data = cur.fetchall()
+    return jsonify(data)
 
 if __name__ == "__main__":
     app.run(debug=True)
