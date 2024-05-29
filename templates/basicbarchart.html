@@ -8,182 +8,10 @@
     <link rel="stylesheet" href="/static/CSS/charts.css">
     <link rel="stylesheet" href="/static/CSS/barchart.css">
     <style>
-        .chart-container {
-            position: relative;
-            width: 100%;
-            height: 100%;
-        }
-        .close-btn {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            z-index: 100;
-            background: #fff;
-            border: 1px solid #ccc;
-            border-radius: 3px;
-            cursor: pointer;
-        }
-        .chart-container {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-around;
-            padding: 20px;
-        }
-        .chart {
-            margin: 10px;
-            flex-basis: calc(50% - 20px); /* Adjusted to make charts bigger */
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            transition: transform 0.2s;
-        }
-        .chart:hover {
-            transform: scale(1.05);
-        }
-        .chart img {
-            width: 100%;
-            display: block;
-        }
-        .chart h3 {
-            text-align: center;
-            padding: 15px;
-        }
-
-        @media (max-width: 768px) {
-            .chart {
-                flex-basis: calc(100% - 20px); /* Adjusted for smaller screens */
-            }
-        }
-
-        .heading {
-            text-align: center;
-            margin-top: 20px; /* Abstand von der oberen Seite */
-            margin-bottom: 20px; /* Abstand zum Inhalt darunter */
-        }
-
-        .heading h1 {
-            font-size: 28px; /* Größe der Überschrift */
-            color: #000; /* Farbe der Überschrift */
-        }
-        .heading p {
-            font-size: 18px; /* Größe des Textes */
-            color: #666; /* Farbe des Textes */
-        }
-        .heading {
-            text-align: center;
-            margin-top: 20px;
-            margin-bottom: 20px;
-            z-index: 1000;
-            position: relative;
-        }
-
-        body, html {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        .container {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .main {
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            min-height: calc(100vh - 100px);
-            background-color: #f4f4f4;
-            padding: 20px;
-        }
-
-        .data-selection {
-            flex: 1;
-        }
-
-        .data-selection form {
-            display: flex;
-            flex-direction: column;
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-            width: 450px;
-        }
-
-        .data-selection label, .data-selection select {
-            margin-bottom: 10px;
-        }
-
-        button {
-            padding: 10px;
-            background-color: coral;
-            color: white;
-            border: none;
-            cursor: pointer;
-        }
-
-        #chart {
-            flex: 2;
-            width: 600px;
-            height: 400px;
-            margin-left: 20px;
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-        }
-
-        #loading {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            color: white;
-            text-align: center;
-            padding-top: 20%;
-        }
-
-        #loading .spinner {
-            margin: 0 auto 20px auto;
-            border: 8px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            border-top: 8px solid white;
-            width: 60px;
-            height: 60px;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        #loading p {
-            font-size: 1.2em;
-            margin-top: 10px;
-        }
-
-        #loading #progress {
-            font-size: 1em;
-            margin-top: 5px;
-        }
-
-        .options-menu {
-            background: white;
-            border: 1px solid #ccc;
-            border-radius: 3px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            padding: 10px;
-            z-index: 1000;
-        }
-
         .color-picker {
             margin: 10px 0;
         }
+        #chart { width: 100%; height: 600px; margin-top: 20px; position: relative; }
     </style>
 </head>
 <body>
@@ -286,7 +114,7 @@
                     <button type="submit">Submit</button>
                 </form>
             </section>
-            <section id="chartContainer" class="chart-container"></section>
+            <section id="chart"></section>
         </main>
         <div id="loading">
             <div class="spinner"></div>
@@ -301,6 +129,8 @@
         let chartCount = 0;
         const maxCharts = 16;
         let charts = [];
+        let darkMode = false;
+        let decalPattern = false;
         $(document).ready(function() {
             $.get("/tables", function(data) {
                 window.availableTables = data.tables;
@@ -314,34 +144,20 @@
                 }
             });
         });
+
         function addChart(chartType) {
-            const chartContainer = document.getElementById('chartContainer');
+            const chartContainer = document.getElementById('chart');
 
             const chartDiv = document.createElement('div');
             chartDiv.className = 'chart';
-            chartDiv.style.width = '600px';
-            chartDiv.style.height = '400px';
-            chartDiv.style.position = 'absolute';
-            chartDiv.style.top = '100px';
-            chartDiv.style.left = '100px';
-            chartDiv.style.width = '800px';  // Increased width
-            chartDiv.style.height = '600px';  // Increased height
+            chartDiv.style.width = '100%';
+            chartDiv.style.height = '600px';
             chartContainer.appendChild(chartDiv);
             chartCount++;
 
             const chartInstance = echarts.init(chartDiv);
             charts.push(chartInstance);
             
-            const closeButton = document.createElement('button');
-            closeButton.className = 'close-btn';
-            closeButton.innerText = 'X';
-            closeButton.onclick = () => {
-                chartContainer.removeChild(chartDiv);
-                chartCount--;
-                charts = charts.filter(chart => chart !== chartInstance);
-            };
-            chartDiv.appendChild(closeButton);
-
             const xAxisSelect = document.getElementById('xAxis');
             const yAxisSelect = document.getElementById('yAxis');
 
@@ -363,10 +179,47 @@
                                         type: 'value'
                                     },
                                     series: [{
-                                        data: dataY.data.map((y, index) => y),
                                         data: dataY.data.map((y, index) => ({ value: y, itemStyle: { color: '#5470c6' } })),
                                         type: chartType 
-                                    }]
+                                    }],
+                                    backgroundColor: darkMode ? '#333' : '#fff',
+                                    textStyle: { color: darkMode ? '#fff' : '#000' },
+                                    toolbox: {
+                                        feature: {
+                                            saveAsImage: {},
+                                            myDarkMode: {
+                                                show: true,
+                                                title: 'Dark Mode',
+                                                icon: 'path://M512 0C229.23072 0 0 229.23072 0 512s229.23072 512 512 512 512-229.23072 512-512S794.76928 0 512 0z m0 938.0864c-234.24 0-426.0864-191.8464-426.0864-426.0864S277.76 85.9136 512 85.9136c55.7312 0 111.4624 11.7248 163.6864 35.0208-32.768 56.32-87.04 94.72-151.0912 105.2672-78.4896 13.7216-147.2-12.288-199.7312-55.808 0 0-12.6976 80.9472-12.6976 119.296 0 136.3968 104.7552 247.9104 239.9232 261.8368 79.872 8.2944 152.576-24.7808 198.3488-80.64 28.2624 48.64 45.568 106.752 45.568 170.3424 0 234.24-191.8464 426.0864-426.0864 426.0864z',
+                                                onclick: function () {
+                                                    darkMode = !darkMode;
+                                                    updateChartAppearance();
+                                                }
+                                            },
+                                            myDecalPattern: {
+                                                show: true,
+                                                title: 'Decal Pattern',
+                                                icon: 'path://M50 250 Q 150 50 250 250 T 450 250',
+                                                onclick: function () {
+                                                    decalPattern = !decalPattern;
+                                                    updateChartAppearance();
+                                                }
+                                            },
+                                            myShare: {
+                                                show: true,
+                                                title: 'Share',
+                                                icon: 'path://M864 160h-192V96H352v64H160c-35.328 0-64 28.672-64 64v576c0 35.328 28.672 64 64 64h704c35.328 0 64-28.672 64-64V224c0-35.328-28.672-64-64-64z m0 640H160V224h192v64h320v-64h192v576z m-320-320h-64v192h-192V480h-64l160-160 160 160z',
+                                                onclick: function () {
+                                                    const url = window.location.href;
+                                                    navigator.clipboard.writeText(url).then(function () {
+                                                        alert('URL copied to clipboard');
+                                                    }, function (err) {
+                                                        console.error('Could not copy URL: ', err);
+                                                    });
+                                                }
+                                            }
+                                        }
+                                    }
                                 };
                                 chartInstance.setOption(option);
                                 chartInstance.on('contextmenu', function(params) {
@@ -381,10 +234,24 @@
                     });
                 }
             }
+
             xAxisSelect.addEventListener('change', updateChart);
             yAxisSelect.addEventListener('change', updateChart);
 
             updateChart(); // Initial chart update
+        }
+
+        function updateChartAppearance() {
+            charts.forEach(chartInstance => {
+                const option = chartInstance.getOption();
+                option.backgroundColor = darkMode ? '#333' : '#fff';
+                option.textStyle = { color: darkMode ? '#fff' : '#000' };
+                option.series.forEach(series => {
+                    series.itemStyle = series.itemStyle || {};
+                    series.itemStyle.decal = decalPattern ? { symbol: 'path://M50 250 Q 150 50 250 250 T 450 250' } : null;
+                });
+                chartInstance.setOption(option);
+            });
         }
 
         function showColorPicker(event, chartInstance, dataIndex) {
