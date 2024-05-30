@@ -17,7 +17,7 @@ def get_data():
     if df.empty:
         json_data = []
     else:
-        json_data = df.to_dict(orient='records')
+        json_data = df.to_dict(orient='records')  # Konvertiere den DataFrame in eine Liste von Diktaten
 
     relevant_columns = {
         'products': ['price'],
@@ -95,6 +95,31 @@ def perform_stats():
     columns = custom_stats_options.get(table_choice, {}).get(stat_choice, [])
 
     return render_template('perform_stats.html', columns=columns, table_choice=table_choice, stat_choice=stat_choice)
+
+@app.route("/calculatestatsdetails", methods=["POST"])
+def calculate_stats_details():
+    table_name = request.form['table_name']
+    column_name = request.form['column-choice']
+
+    if table_name == 'stores' and column_name == 'sum profit':
+        query = """
+            SELECT s.storeID, SUM(p.price) AS profit
+            FROM stores s
+            JOIN orders o ON s.storeID = o.storeID
+            JOIN orderItems oi ON o.orderID = oi.orderID
+            JOIN products p ON oi.SKU = p.SKU
+            GROUP BY s.storeID
+            ORDER BY s.storeID;
+        """
+        df = fetch_data(query)
+    else:
+        # Falls eine andere Berechnung gewählt wird, hier einen Platzhalter für die allgemeine Statistikberechnung
+        query = f"SELECT {column_name} FROM {table_name}"
+        df = fetch_data(query)
+        desc_stats = calculate_descriptive_stats(df[column_name])
+        return render_template('index.html', stats=desc_stats.to_dict(), table_name=table_name)
+
+    return render_template('result.html', data=df.to_dict(orient='records'), columns=df.columns)
 
 if __name__ == "__main__":
     app.run(debug=True)

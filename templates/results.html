@@ -1,0 +1,33 @@
+<!-- templates/result.html -->
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Ergebnisse der Berechnung</title>
+</head>
+<body>
+    <h2>Ergebnisse der Berechnung</h2>
+    <table border="1">
+        <thead>
+            <tr>
+                {% for col in columns %}
+                    <th>{{ col }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in data %}
+                <tr>
+                    {% for col in columns %}
+                        <td>{{ row[col] }}</td>
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <br>
+    <form action="/">
+        <button type="submit">Zurück zur Startseite</button>
+    </form>
+</body>
+</html>

@@ -6,9 +6,9 @@
 </head>
 <body>
     <h2>Ergebnisse der {{ stat_choice }} Berechnung für {{ table_choice }}</h2>
-    <form action="/performstats" method="post">
-        <input type="hidden" name="table-choice" value="{{ table_choice }}">
-        <input type="hidden" name="stat-choice" value="{{ stat_choice }}">
+    <form action="/calculatestatsdetails" method="post">
+        <input type="hidden" name="table_name" value="{{ table_choice }}">
+        <input type="hidden" name="stat_choice" value="{{ stat_choice }}">
         <label for="column-choice">Wähle eine Option:</label>
         <select id="column-choice" name="column-choice">
             {% for column in columns %}
@@ -21,5 +21,21 @@
     <form action="/">
         <button type="submit">Zurück zur Startseite</button>
     </form>
+
+    {% if data %}
+        <h3>Ergebnisse:</h3>
+        <table border="1">
+            <tr>
+                <th>Store ID</th>
+                <th>Total Profit</th>
+            </tr>
+            {% for row in data %}
+                <tr>
+                    <td>{{ row['storeID'] }}</td>
+                    <td>{{ row['total_profit'] }}</td>
+                </tr>
+            {% endfor %}
+        </table>
+    {% endif %}
 </body>
 </html>
