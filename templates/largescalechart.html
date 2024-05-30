@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Visualisation - DV</title>
+    <link rel="stylesheet" href="/static/CSS/all.css">
+    <link rel="stylesheet" href="/static/CSS/charts.css">
+    <style>
+        #submitButton {
+            margin-top: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            color: #fff;
+            background-color: coral;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+       #submitButton:hover {
+            background-color: coral;
+        }
+        #chart { width: 100%; height: 600px; margin-top: 20px; position: relative; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo-area">
+                <span class="logo-circle"></span>
+                <span class="logo-text">Data Visualisation - DV</span>
+            </div>
+            <button class="menu-button">☰</button>
+        </header>
+        <div class="side-menu" id="sideMenu">
+            <button class="close-button">X</button>
+            <h1>What would you like to See?</h1>
+            <a href="/charts">Chart Overview</a>
+            <a href="#">Edit/Clear Data</a>
+            <a href="#">Forecast</a>
+            <a href="#">My Profile</a>
+            <a href="/login">Sign In</a>
+            <a href="/">Log Out</a>
+        </div>
+        <main class="main">
+            <section class="data-selection">
+                <h2>Please Choose your Data</h2>
+                <form id="dataForm">
+                    <div class="form-group">
+                        <label for="xAxis">X-Axis</label>
+                        <select id="xAxis" name="xAxis">
+                            <option value="None">None</option>
+                            <optgroup label="Orders">
+                                <option value="orders.OrderID">OrderID</option>
+                                <option value="orders.CustomerID">CustomerID</option>
+                                <option value="orders.StoreID">StoreID</option>
+                                <option value="orders.OrderDate">Order Date</option>
+                                <option value="orders.nItems">Number of Items</option>
+                                <option value="orders.total">Total</option>
+                            </optgroup>
+                            <optgroup label="Customers">
+                                <option value="customers.CustomerID">CustomerID</option>
+                                <option value="customers.Latitude">Latitude</option>
+                                <option value="customers.Longitude">Longitude</option>
+                            </optgroup>
+                            <optgroup label="Order Items">
+                                <option value="orderItems.SKU">SKU</option>
+                                <option value="orderItems.OrderID">OrderID</option>
+                            </optgroup>
+                            <optgroup label="Products">
+                                <option value="products.SKU">SKU</option>
+                                <option value="products.Name">Name</option>
+                                <option value="products.Price">Price</option>
+                                <option value="products.Category">Category</option>
+                                <option value="products.Size">Size</option>
+                                <option value="products.Ingredients">Ingredients</option>
+                                <option value="products.Launch">Launch</option>
+                            </optgroup>
+                            <optgroup label="Stores">
+                                <option value="stores.StoreID">StoreID</option>
+                                <option value="stores.Zipcode">Zipcode</option>
+                                <option value="stores.StateShort">StateShort</option>
+                                <option value="stores.Latitude">Latitude</option>
+                                <option value="stores.Longitude">Longitude</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div class="form-group" id="yAxisGroup1">
+                        <label for="yAxis1">Y-Axis 1</label>
+                        <select id="yAxis1" name="yAxis1">
+                            <option value="None">None</option>
+                            <optgroup label="Orders">
+                                <option value="orders.OrderID">OrderID</option>
+                                <option value="orders.CustomerID">CustomerID</option>
+                                <option value="orders.StoreID">StoreID</option>
+                                <option value="orders.OrderDate">Order Date</option>
+                                <option value="orders.nItems">Number of Items</option>
+                                <option value="orders.total">Total</option>
+                            </optgroup>
+                            <optgroup label="Customers">
+                                <option value="customers.CustomerID">CustomerID</option>
+                                <option value="customers.Latitude">Latitude</option>
+                                <option value="customers.Longitude">Longitude</option>
+                            </optgroup>
+                            <optgroup label="Order Items">
+                                <option value="orderItems.SKU">SKU</option>
+                                <option value="orderItems.OrderID">OrderID</option>
+                            </optgroup>
+                            <optgroup label="Products">
+                                <option value="products.SKU">SKU</option>
+                                <option value="products.Name">Name</option>
+                                <option value="products.Price">Price</option>
+                                <option value="products.Category">Category</option>
+                                <option value="products.Size">Size</option>
+                                <option value="products.Ingredients">Ingredients</option>
+                                <option value="products.Launch">Launch</option>
+                            </optgroup>
+                            <optgroup label="Stores">
+                                <option value="stores.StoreID">StoreID</option>
+                                <option value="stores.Zipcode">Zipcode</option>
+                                <option value="stores.StateShort">StateShort</option>
+                                <option value="stores.Latitude">Latitude</option>
+                                <option value="stores.Longitude">Longitude</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <button type="submit" id="submitButton">Submit</button>
+                </form>
+            </section>
+            <section id="chart"></section>
+        </main>
+    </div>
+    <script src="/static/JS/sidemenu.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        let graphCount = 1;
+        let darkMode = false;
+        let decalPattern = false;
+        let myChart;
+
+        document.getElementById('dataForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const xAxis = document.getElementById('xAxis').value;
+            if (xAxis === "None") {
+                alert('Please select a value for the X-Axis.');
+                return;
+            }
+
+            const yAxisValues = [];
+            for (let i = 1; i <= graphCount; i++) {
+                const yAxisValue = document.getElementById(`yAxis${i}`).value;
+                if (yAxisValue !== "None") {
+                    yAxisValues.push(yAxisValue);
+                }
+            }
+
+            if (yAxisValues.length === 0) {
+                alert('Please select at least one Y-Axis value.');
+                return;
+            }
+
+            const chartDom = document.getElementById('chart');
+            myChart = echarts.init(chartDom);
+            const series = yAxisValues.map((yAxis, index) => ({
+                name: yAxis,
+                type: 'line',
+                stack: 'total',
+                areaStyle: {
+                    color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                        {
+                            offset: 0,
+                            color: 'rgb(255, 158, 68)'
+                        },
+                        {
+                            offset: 1,
+                            color: 'rgb(255, 70, 131)'
+                        }
+                    ])
+                },
+                emphasis: { focus: 'series' },
+                itemStyle: {
+                    color: 'rgb(255, 70, 131)'
+                },
+                data: []
+            }));
+
+            const option = {
+                title: { 
+                    left: 'center',
+                    text: 'Scale Area Chart' },
+                tooltip: { 
+                    trigger: 'axis',
+                    axisPointer: {
+                        type: 'cross',
+                        label:{
+                            backgroundColor: '#6a7985'
+                        }
+                    } 
+                },
+                legend: { 
+                    data: yAxisValues, top: '5%' 
+                },
+                xAxis: { 
+                    type: 'category', boundaryGap: false, data: [] },
+                yAxis: { 
+                    type: 'value' },
+                series: series,
+                backgroundColor: darkMode ? '#333' : '#fff',
+                textStyle: { color: darkMode ? '#fff' : '#000' },
+                toolbox: {
+                    feature: {
+                        saveAsImage:{},
+                        myDarkMode: {
+                            show: true,
+                            title: 'Dark Mode',
+                            icon: 'path://M512 0C229.23072 0 0 229.23072 0 512s229.23072 512 512 512 512-229.23072 512-512S794.76928 0 512 0z m0 938.0864c-234.24 0-426.0864-191.8464-426.0864-426.0864S277.76 85.9136 512 85.9136c55.7312 0 111.4624 11.7248 163.6864 35.0208-32.768 56.32-87.04 94.72-151.0912 105.2672-78.4896 13.7216-147.2-12.288-199.7312-55.808 0 0-12.6976 80.9472-12.6976 119.296 0 136.3968 104.7552 247.9104 239.9232 261.8368 79.872 8.2944 152.576-24.7808 198.3488-80.64 28.2624 48.64 45.568 106.752 45.568 170.3424 0 234.24-191.8464 426.0864-426.0864 426.0864z',
+                            onclick: function() {
+                                darkMode = !darkMode;
+                                updateChartAppearance();
+                            }
+                        },
+                        myDecalPattern: {
+                            show: true,
+                            title: 'Decal Pattern',
+                            icon: 'path://M50 250 Q 150 50 250 250 T 450 250',
+                            onclick: function() {
+                                decalPattern = !decalPattern;
+                                updateChartAppearance();
+                            }
+                        },
+                        myShare: {
+                            show: true,
+                            title: 'Share',
+                            icon: 'path://M864 160h-192V96H352v64H160c-35.328 0-64 28.672-64 64v576c0 35.328 28.672 64 64 64h704c35.328 0 64-28.672 64-64V224c0-35.328-28.672-64-64-64z m0 640H160V224h192v64h320v-64h192v576z m-320-320h-64v192h-192V480h-64l160-160 160 160z',
+                            onclick: function() {
+                                const url = window.location.href;
+                                navigator.clipboard.writeText(url).then(function() {
+                                    alert('URL copied to clipboard');
+                                }, function(err) {
+                                    console.error('Could not copy URL: ', err);
+                                });
+                            }
+                        }
+                    }
+                },
+                dataZoom: [
+                    {
+                        type: 'inside',
+                        start: 0,
+                        end: 100
+                    },
+                    {
+                        start: 0,
+                        end: 100
+                    }
+                ]
+            };
+            myChart.setOption(option);
+
+            fetchData(xAxis, yAxisValues, series, myChart);
+        });
+
+        function fetchData(xAxis, yAxisValues, series, chartInstance) {
+            $.post('/getdata', { table: xAxis.split('.')[0], column: xAxis.split('.')[1] }, function(dataX) {
+                if (dataX.data) {
+                    const xAxisData = dataX.data;
+                    let promises = [];
+                    yAxisValues.forEach((yAxis, index) => {
+                        const promise = $.post('/getdata', { table: yAxis.split('.')[0], column: yAxis.split('.')[1] });
+                        promises.push(promise);
+                    });
+
+                    Promise.all(promises).then(responses => {
+                        responses.forEach((response, index) => {
+                            if (response.data) {
+                                series[index].data = response.data;
+                            }
+                        });
+
+                        const option = {
+                            xAxis: { data: xAxisData },
+                            series: series
+                        };
+                        chartInstance.setOption(option);
+                    }).catch(error => {
+                        console.error('Error fetching data:', error);
+                    });
+                } else {
+                    console.error('Error fetching X-Axis data:', dataX);
+                }
+            });
+        }
+
+        function updateChartAppearance() {
+            if (myChart) {
+                const option = myChart.getOption();
+                option.backgroundColor = darkMode ? '#333' : '#fff';
+                option.textStyle = { color: darkMode ? '#fff' : '#000' };
+                option.series.forEach(series => {
+                    series.itemStyle = series.itemStyle || {};
+                    series.itemStyle.decal = decalPattern ? { symbol: 'path://M50 250 Q 150 50 250 250 T 450 250' } : null;
+                });
+                myChart.setOption(option);
+            }
+        }
+
+        document.getElementById('darkMode').addEventListener('change', function() {
+            darkMode = this.checked;
+            updateChartAppearance();
+        });
+
+        document.getElementById('decalPattern').addEventListener('change', function() {
+            decalPattern = this.checked;
+            updateChartAppearance();
+        });
+
+        document.getElementById('shareButton').addEventListener('click', function() {
+            const url = window.location.href;
+            navigator.clipboard.writeText(url).then(function() {
+                alert('URL copied to clipboard');
+            }, function(err) {
+                console.error('Could not copy URL: ', err);
+            });
+        });
+
+    </script>
+</body>
+</html>

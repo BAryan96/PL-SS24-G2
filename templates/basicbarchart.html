@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Visualisation - DV</title>
+    <link rel="stylesheet" href="/static/CSS/all.css">
+    <link rel="stylesheet" href="/static/CSS/charts.css">
+    <link rel="stylesheet" href="/static/CSS/barchart.css">
+    <style>
+        .color-picker {
+            margin: 10px 0;
+        }
+        #chart { width: 100%; height: 600px; margin-top: 20px; position: relative; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo-area">
+                <span class="logo-circle"></span>
+                <span class="logo-text">Data Visualisation - DV</span>
+            </div>
+            <button class="menu-button">☰</button>
+        </header>
+        <div class="side-menu" id="sideMenu">
+            <button class="close-button">X</button>
+            <h1>What would you like to See?</h1>
+            <a href="/charts">Chart Overview</a>
+            <a href="#">Edit/Clear Data</a>
+            <a href="#">Forecast</a>
+            <a href="#">My Profile</a>
+            <a href="/login">Sign In</a>
+            <a href="/">Log Out</a>
+        </div>
+        <main class="main">
+            <section class="data-selection">
+                <h2>Please Choose your Data</h2>
+                <form id="dataForm">
+                    <label for="xAxis">X-Axis</label>
+                    <select id="xAxis" name="xAxis">
+                        <option value="None">None</option>
+                        <optgroup label="Orders">
+                            <option value="orders.OrderID">OrderID</option>
+                            <option value="orders.CustomerID">CustomerID</option>
+                            <option value="orders.StoreID">StoreID</option>
+                            <option value="orders.OrderDate">Order Date</option>
+                            <option value="orders.nItems">Number of Items</option>
+                            <option value="orders.total">Total</option>
+                        </optgroup>
+                        <optgroup label="Customers">
+                            <option value="customers.CustomerID">CustomerID</option>
+                            <option value="customers.Latitude">Latitude</option>
+                            <option value="customers.Longitude">Longitude</option>
+                        </optgroup>
+                        <optgroup label="Order Items">
+                            <option value="orderItems.SKU">SKU</option>
+                            <option value="orderItems.OrderID">OrderID</option>
+                        </optgroup>
+                        <optgroup label="Products">
+                            <option value="products.SKU">SKU</option>
+                            <option value="products.Name">Name</option>
+                            <option value="products.Price">Price</option>
+                            <option value="products.Category">Category</option>
+                            <option value="products.Size">Size</option>
+                            <option value="products.Ingredients">Ingredients</option>
+                            <option value="products.Launch">Launch</option>
+                        </optgroup>
+                        <optgroup label="Stores">
+                            <option value="stores.StoreID">StoreID</option>
+                            <option value="stores.Zipcode">Zipcode</option>
+                            <option value="stores.StateShort">StateShort</option>
+                            <option value="stores.Latitude">Latitude</option>
+                            <option value="stores.Longitude">Longitude</option>
+                        </optgroup>
+                    </select>
+                    <label for="yAxis">Y-Axis</label>
+                    <select id="yAxis" name="yAxis">
+                        <option value="None">None</option>
+                        <optgroup label="Orders">
+                            <option value="orders.OrderID">OrderID</option>
+                            <option value="orders.CustomerID">CustomerID</option>
+                            <option value="orders.StoreID">StoreID</option>
+                            <option value="orders.OrderDate">Order Date</option>
+                            <option value="orders.nItems">Number of Items</option>
+                            <option value="orders.total">Total</option>
+                        </optgroup>
+                        <optgroup label="Customers">
+                            <option value="customers.CustomerID">CustomerID</option>
+                            <option value="customers.Latitude">Latitude</option>
+                            <option value="customers.Longitude">Longitude</option>
+                        </optgroup>
+                        <optgroup label="Order Items">
+                            <option value="orderItems.SKU">SKU</option>
+                            <option value="orderItems.OrderID">OrderID</option>
+                        </optgroup>
+                        <optgroup label="Products">
+                            <option value="products.SKU">SKU</option>
+                            <option value="products.Name">Name</option>
+                            <option value="products.Price">Price</option>
+                            <option value="products.Category">Category</option>
+                            <option value="products.Size">Size</option>
+                            <option value="products.Ingredients">Ingredients</option>
+                            <option value="products.Launch">Launch</option>
+                        </optgroup>
+                        <optgroup label="Stores">
+                            <option value="stores.StoreID">StoreID</option>
+                            <option value="stores.Zipcode">Zipcode</option>
+                            <option value="stores.StateShort">StateShort</option>
+                            <option value="stores.Latitude">Latitude</option>
+                            <option value="stores.Longitude">Longitude</option>
+                        </optgroup>
+                    </select>
+                    <button type="submit">Submit</button>
+                </form>
+            </section>
+            <section id="chart"></section>
+        </main>
+        <div id="loading">
+            <div class="spinner"></div>
+            <p>Please hold on: Your Data is being extracted from the Database.</p>
+            <p id="progress">Loading: 0%</p>
+        </div>
+    </div>
+    <script src="/static/JS/sidemenu.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.3.3/echarts.min.js"></script>
+    <script>
+        let chartCount = 0;
+        const maxCharts = 16;
+        let charts = [];
+        let darkMode = false;
+        let decalPattern = false;
+        $(document).ready(function() {
+            $.get("/tables", function(data) {
+                window.availableTables = data.tables;
+            });
+            $('#dataForm').on('submit', function(event) {
+                event.preventDefault();
+                if (chartCount < maxCharts) {
+                    addChart('bar');
+                } else {
+                    alert('Maximum number of charts reached.');
+                }
+            });
+        });
+
+        function addChart(chartType) {
+            const chartContainer = document.getElementById('chart');
+
+            const chartDiv = document.createElement('div');
+            chartDiv.className = 'chart';
+            chartDiv.style.width = '100%';
+            chartDiv.style.height = '600px';
+            chartContainer.appendChild(chartDiv);
+            chartCount++;
+
+            const chartInstance = echarts.init(chartDiv);
+            charts.push(chartInstance);
+            
+            const xAxisSelect = document.getElementById('xAxis');
+            const yAxisSelect = document.getElementById('yAxis');
+
+            function updateChart() {
+                const xAxisType = xAxisSelect.value;
+                const yAxisType = yAxisSelect.value;
+                if (xAxisType && yAxisType) {
+                    $.post("/getdata", { table: xAxisType.split('.')[0], column: xAxisType.split('.')[1] }, function(dataX) {
+                        console.log("X-Axis Data:", dataX); 
+                        $.post("/getdata", { table: yAxisType.split('.')[0], column: yAxisType.split('.')[1] }, function(dataY) {
+                            console.log("Y-Axis Data:", dataY);
+                            if (dataX.data && dataY.data) {
+                                const option = {
+                                    xAxis: {
+                                        type: 'category',
+                                        data: dataX.data,
+                                    },
+                                    yAxis: {
+                                        type: 'value'
+                                    },
+                                    series: [{
+                                        data: dataY.data.map((y, index) => ({ value: y, itemStyle: { color: '#5470c6' } })),
+                                        type: chartType 
+                                    }],
+                                    backgroundColor: darkMode ? '#333' : '#fff',
+                                    textStyle: { color: darkMode ? '#fff' : '#000' },
+                                    tooltip: { 
+                    trigger: 'axis',
+                    axisPointer: {
+                        type: 'cross',
+                        label:{
+                            backgroundColor: '#6a7985'
+                        }
+                    } 
+                },
+                                    toolbox: {
+                                        feature: {
+                                            saveAsImage: {},
+                                            myDarkMode: {
+                                                show: true,
+                                                title: 'Dark Mode',
+                                                icon: 'path://M512 0C229.23072 0 0 229.23072 0 512s229.23072 512 512 512 512-229.23072 512-512S794.76928 0 512 0z m0 938.0864c-234.24 0-426.0864-191.8464-426.0864-426.0864S277.76 85.9136 512 85.9136c55.7312 0 111.4624 11.7248 163.6864 35.0208-32.768 56.32-87.04 94.72-151.0912 105.2672-78.4896 13.7216-147.2-12.288-199.7312-55.808 0 0-12.6976 80.9472-12.6976 119.296 0 136.3968 104.7552 247.9104 239.9232 261.8368 79.872 8.2944 152.576-24.7808 198.3488-80.64 28.2624 48.64 45.568 106.752 45.568 170.3424 0 234.24-191.8464 426.0864-426.0864 426.0864z',
+                                                onclick: function () {
+                                                    darkMode = !darkMode;
+                                                    updateChartAppearance();
+                                                }
+                                            },
+                                            myDecalPattern: {
+                                                show: true,
+                                                title: 'Decal Pattern',
+                                                icon: 'path://M50 250 Q 150 50 250 250 T 450 250',
+                                                onclick: function () {
+                                                    decalPattern = !decalPattern;
+                                                    updateChartAppearance();
+                                                }
+                                            },
+                                            myShare: {
+                                                show: true,
+                                                title: 'Share',
+                                                icon: 'path://M864 160h-192V96H352v64H160c-35.328 0-64 28.672-64 64v576c0 35.328 28.672 64 64 64h704c35.328 0 64-28.672 64-64V224c0-35.328-28.672-64-64-64z m0 640H160V224h192v64h320v-64h192v576z m-320-320h-64v192h-192V480h-64l160-160 160 160z',
+                                                onclick: function () {
+                                                    const url = window.location.href;
+                                                    navigator.clipboard.writeText(url).then(function () {
+                                                        alert('URL copied to clipboard');
+                                                    }, function (err) {
+                                                        console.error('Could not copy URL: ', err);
+                                                    });
+                                                }
+                                            }
+                                        }
+                                    }
+                                };
+                                chartInstance.setOption(option);
+                                chartInstance.on('contextmenu', function(params) {
+                                    if (params.componentType === 'series') {
+                                        showColorPicker(params.event.event, chartInstance, params.dataIndex);
+                                    }
+                                });
+                            } else {
+                                console.error("Data loading error: ", dataX, dataY);
+                            }
+                        });
+                    });
+                }
+            }
+
+            xAxisSelect.addEventListener('change', updateChart);
+            yAxisSelect.addEventListener('change', updateChart);
+
+            updateChart();
+        }
+
+        function updateChartAppearance() {
+            charts.forEach(chartInstance => {
+                const option = chartInstance.getOption();
+                option.backgroundColor = darkMode ? '#333' : '#fff';
+                option.textStyle = { color: darkMode ? '#fff' : '#000' };
+                option.series.forEach(series => {
+                    series.itemStyle = series.itemStyle || {};
+                    series.itemStyle.decal = decalPattern ? { symbol: 'path://M50 250 Q 150 50 250 250 T 450 250' } : null;
+                });
+                chartInstance.setOption(option);
+            });
+        }
+
+        function showColorPicker(event, chartInstance, dataIndex) {
+            const optionsMenu = document.createElement('div');
+            optionsMenu.className = 'options-menu';
+
+            const colorPicker = document.createElement('input');
+            colorPicker.type = 'color';
+            colorPicker.className = 'color-picker';
+            colorPicker.addEventListener('input', function () {
+                const option = chartInstance.getOption();
+                option.series[0].data[dataIndex].itemStyle = { color: colorPicker.value };
+                chartInstance.setOption(option);
+            });
+
+            colorPicker.addEventListener('change', function () {
+                document.body.removeChild(optionsMenu);
+            });
+
+            optionsMenu.appendChild(colorPicker);
+            document.body.appendChild(optionsMenu);
+            optionsMenu.style.position = 'absolute';
+            optionsMenu.style.left = `${event.pageX}px`;
+            optionsMenu.style.top = `${event.pageY}px`;
+            optionsMenu.style.zIndex = 1000; 
+
+            document.addEventListener('click', function removeOptionsMenu(event) {
+                if (!optionsMenu.contains(event.target)) {
+                    document.body.removeChild(optionsMenu);
+                    document.removeEventListener('click', removeOptionsMenu);
+                }
+            }, { once: true });
+        }
+    </script>
+</body>
+</html>
