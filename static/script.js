@@ -74,59 +74,65 @@ function addChart(chartType) {
     yAxisSelect.innerHTML = `<option value="">Select Y Axis</option>`;
     chartDiv.appendChild(yAxisSelect);
 
+    const aggregationSelect = document.createElement('select');
+    aggregationSelect.className = 'aggregation-select';
+    aggregationSelect.innerHTML = `
+        <option value="">Select for Y Axis Aggregation</option>
+        <option value="">No Aggregation</option>
+        <option value="Summe">Sum</option>
+        <option value="Max">Max</option>
+        <option value="Min">Min</option>
+        <option value="Anzahl">Count</option>
+        <option value="Diskrete Anzahl">Distinct Count</option>
+    `;
+    chartDiv.appendChild(aggregationSelect);
+
     let seriesData = [];
-    //Ändern zu x und y sowie jeweilige Konvertierung
-function updateChart() {
-    const xAxisType = xAxisSelect.value;
-    const yAxisType = yAxisSelect.value;
 
-    if (xAxisType && yAxisType) {
-        $.post("/getdata", { 
-            table1: tableSelect1.value, 
-            column1: xAxisType,
-            table2: tableSelect2.value, 
-            column2: yAxisType 
-        }, function(response) {
-            const dataX = response.dataX;
-            const dataY = response.dataY;
+    function updateChart() {
+        const xAxisType = xAxisSelect.value;
+        const yAxisType = yAxisSelect.value;
+        const aggregationType = aggregationSelect.value;
 
-            const seriesData = dataX.map((x, index) => ({
-                value: [x, dataY[index]],
-                itemStyle: { color: '#5470c6' }
-            }));
+        if (xAxisType && yAxisType) {
+            $.post("/getdata", { 
+                table1: tableSelect1.value, 
+                column1: xAxisType,
+                table2: tableSelect2.value, 
+                column2: yAxisType,
+                chartType: chartType,
+                aggregationType: aggregationType
+            }, function(response) {
+                const dataX = response.xAxis.data;
+                const dataY = response.series[0].data;
 
-            let option = {
-                xAxis: {
-                    type: 'category',
-                    data: dataX,
-                },
-                yAxis: {
-                    type: 'value'
-                },
-                series: [{
-                    data: seriesData,
-                    type: chartType
-                }]
-            };
-
-            if (chartType === 'pie') {
-                option = {
-                    series: [{
-                        type: 'pie',
-                        data: seriesData.map(data => ({
-                            value: data.value[1],
-                            name: data.value[0],
-                            itemStyle: data.itemStyle
-                        }))
-                    }]
-                };
-            }
-
-            chartInstance.setOption(option);
-        });
+                let option;
+                if (chartType === "pie") {
+                    option = {
+                        series: [{
+                            data: dataY.map((value, index) => ({ value, name: dataX[index] })),
+                            type: chartType
+                        }]
+                    };
+                } else {
+                    option = {
+                        xAxis: {
+                            type: 'category',
+                            data: dataX,
+                        },
+                        yAxis: {
+                            type: 'value'
+                        },
+                        series: [{
+                            data: dataY,
+                            type: chartType
+                        }]
+                    };
+                }
+                chartInstance.setOption(option);
+            });
+        }
     }
-}
-
 
     tableSelect1.addEventListener('change', function() {
         if (this.value) {
@@ -152,6 +158,7 @@ function updateChart() {
 
     xAxisSelect.addEventListener('change', updateChart);
     yAxisSelect.addEventListener('change', updateChart);
+    aggregationSelect.addEventListener('change', updateChart);
 
     chartDiv.addEventListener('contextmenu', function(event) {
         event.preventDefault();
@@ -228,7 +235,7 @@ function handleFilter(data) {
         series.data = newData;
         chart.setOption(options);
 
-        //anpassen
+        //anpassen für Tiefenfilter
         //reset filter doppelklick
     });
 }
