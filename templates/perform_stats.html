@@ -6,9 +6,9 @@
 </head>
 <body>
     <h2>Ergebnisse der {{ stat_choice }} Berechnung für {{ table_choice }}</h2>
-    <form action="/calculatestats" method="post">
-        <input type="hidden" name="table_choice" value="{{ table_choice }}">
-        <input type="hidden" name="stat_choice" value="{{ stat_choice }}">
+    <form action="/performstats" method="post">
+        <input type="hidden" name="table-choice" value="{{ table_choice }}">
+        <input type="hidden" name="stat-choice" value="{{ stat_choice }}">
         <label for="column-choice">Wähle eine Option:</label>
         <select id="column-choice" name="column-choice">
             {% for column in columns %}
@@ -18,7 +18,7 @@
         <button type="submit">Berechnung durchführen</button>
     </form>
     <br>
-    <form action="/" method="get">
+    <form action="/">
         <button type="submit">Zurück zur Startseite</button>
     </form>
 </body>

@@ -17,7 +17,7 @@ def get_data():
     if df.empty:
         json_data = []
     else:
-        json_data = df.to_dict(orient='records')  # Konvertiere den DataFrame in eine Liste von Diktaten
+        json_data = df.to_dict(orient='records')
 
     relevant_columns = {
         'products': ['price'],
