@@ -26,6 +26,10 @@
         <button type="submit">Abfrage starten</button>
     </form>
 
+    <form action="/stats" method="get">
+        <button type="submit">Statistcal Calculations</button>
+    </form>
+
     {% if data %}
     <h2>Daten</h2>
     <table>
@@ -46,6 +50,7 @@
             {% endfor %}
         </tbody>
     </table>
+    {% endif %}
 
     {% if columns %}
     <form action="/calculatestats" method="post">
@@ -58,7 +63,6 @@
         </select>
         <button type="submit">Statistiken berechnen</button>
     </form>
-    {% endif %}
     {% endif %}
 
     {% if stats %}

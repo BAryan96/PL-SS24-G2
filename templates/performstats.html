@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Ergebnisse der Berechnungen</title>
+</head>
+<body>
+    <h2>Ergebnisse der {{ stat_choice }} Berechnung für {{ table_choice }}</h2>
+    <form action="/calculatestats" method="post">
+        <input type="hidden" name="table_choice" value="{{ table_choice }}">
+        <input type="hidden" name="stat_choice" value="{{ stat_choice }}">
+        <label for="column-choice">Wähle eine Option:</label>
+        <select id="column-choice" name="column-choice">
+            {% for column in columns %}
+                <option value="{{ column }}">{{ column }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit">Berechnung durchführen</button>
+    </form>
+    <br>
+    <form action="/" method="get">
+        <button type="submit">Zurück zur Startseite</button>
+    </form>
+</body>
+</html>

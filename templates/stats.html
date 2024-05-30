@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Statistische Berechnungen</title>
+</head>
+<body>
+    <form action="/performstats" method="post">
+        <label for="table-choice">Wähle eine Tabelle:</label>
+        <select id="table-choice" name="table-choice">
+            <option value="stores">stores</option>
+            <option value="customers">customers</option>
+            <option value="products">products</option>
+        </select>
+        <label for="stat-choice">Wähle eine Berechnung:</label>
+        <select id="stat-choice" name="stat-choice">
+            <option value="Sum">Sum</option>
+            <option value="Mean">Mean</option>
+            <option value="Median">Median</option>
+            <option value="Range">Range</option>
+            <option value="Standard Deviation">Standard Deviation</option>
+            <option value="Q1">Q1</option>
+            <option value="Q2">Q2</option>
+            <option value="Q3">Q3</option>
+        </select>
+        <button type="submit">Auswahl bestätigen</button>
+    </form>
+    <br>
+    <form action="/" method="get">
+        <button type="submit">Zurück zur Startseite</button>
+    </form>
+</body>
+</html>
