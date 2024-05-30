@@ -99,6 +99,7 @@ def get_table():
         json_data.append(dict(zip(row_headers, result)))
     return render_template('index.html', data=json_data)
 
+#wichtig
 @app.route("/api/data", methods=["GET"])
 def get_relation_data():
     relation = request.args.get('relation')

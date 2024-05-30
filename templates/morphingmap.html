@@ -46,64 +46,26 @@
             <section class="data-selection">
                 <h2>Please Choose your Data</h2>
                 <form id="dataForm">
-                    <div class="form-group">
-                        <label for="xAxis">X-Axis</label>
-                        <select id="xAxis" name="xAxis">
-                            <option value="None">None</option>
-                            <optgroup label="Orders">
-                                <option value="orders.OrderID">OrderID</option>
-                                <option value="orders.CustomerID">CustomerID</option>
-                                <option value="orders.StoreID">StoreID</option>
-                                <option value="orders.OrderDate">Order Date</option>
-                                <option value="orders.nItems">Number of Items</option>
-                                <option value="orders.total">Total</option>
-                            </optgroup>
-                            <optgroup label="Customers">
-                                <option value="customers.CustomerID">CustomerID</option>
-                                <option value="customers.Latitude">Latitude</option>
-                                <option value="customers.Longitude">Longitude</option>
-                            </optgroup>
-                            <optgroup label="Order Items">
-                                <option value="orderItems.SKU">SKU</option>
-                                <option value="orderItems.OrderID">OrderID</option>
-                            </optgroup>
-                            <optgroup label="Products">
-                                <option value="products.SKU">SKU</option>
-                                <option value="products.Name">Name</option>
-                                <option value="products.Price">Price</option>
-                                <option value="products.Category">Category</option>
-                                <option value="products.Size">Size</option>
-                                <option value="products.Ingredients">Ingredients</option>
-                                <option value="products.Launch">Launch</option>
-                            </optgroup>
-                            <optgroup label="Stores">
-                                <option value="stores.StoreID">StoreID</option>
-                                <option value="stores.Zipcode">Zipcode</option>
-                                <option value="stores.StateShort">StateShort</option>
-                                <option value="stores.Latitude">Latitude</option>
-                                <option value="stores.Longitude">Longitude</option>
-                                <option value="stores.City">City</option>
-                                <option value="stores.State">State</option>
-                            </optgroup>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="yAxis">Y-Axis</label>
-                        <select id="yAxis" name="yAxis">
-                            <option value="stores.StoreID">StoreID</option>
-                            <option value="stores.Zipcode">Zipcode</option>
-                            <option value="stores.StateShort">StateShort</option>
-                            <option value="stores.Latitude">Latitude</option>
-                            <option value="stores.Longitude">Longitude</option>
-                            <option value="stores.City">City</option>
-                            <option value="stores.State">State</option>
-                        </select>
-                    </div>
+                    <label for="xTable">Table for X-Axis</label>
+                    <select id="xTable" name="xTable">
+                        <option value="None">None</option>
+                    </select>
+                    <label for="xColumn">Column for X-Axis</label>
+                    <select id="xColumn" name="xColumn">
+                        <option value="None">None</option>
+                    </select>
+                    <label for="yTable">Table for Y-Axis</label>
+                    <select id="yTable" name="yTable">
+                        <option value="None">None</option>
+                    </select>
+                    <label for="yColumn">Column for Y-Axis</label>
+                    <select id="yColumn" name="yColumn">
+                        <option value="None">None</option>
+                    </select>
                     <button type="submit" id="submitButton">Submit</button>
                 </form>
             </section>
-            <section id="chart">
-            </section>
+            <section id="chart"></section>
         </main>
     </div>
     <script src="/static/JS/sidemenu.js"></script>
@@ -119,37 +81,116 @@
         var myChart = echarts.init(chartDom);
         var option;
 
-        function fetchData(xAxis, yAxis) {
-            return fetch(`/getChartData?xAxis=${xAxis}&yAxis=${yAxis}`)
-                .then(response => response.json());
-        }
+        document.addEventListener('DOMContentLoaded', function() {
+            const xTableSelect = document.getElementById('xTable');
+            const xColumnSelect = document.getElementById('xColumn');
+            const yTableSelect = document.getElementById('yTable');
+            const yColumnSelect = document.getElementById('yColumn');
 
-        document.getElementById('dataForm').addEventListener('submit', function (e) {
-            e.preventDefault();
-            var xAxis = document.getElementById('xAxis').value;
-            var yAxis = document.getElementById('yAxis').value;
+            fetch('/tables')
+                .then(response => response.json())
+                .then(data => {
+                    data.tables.forEach(table => {
+                        const optionXTable = document.createElement('option');
+                        optionXTable.value = table;
+                        optionXTable.textContent = table;
+                        xTableSelect.appendChild(optionXTable);
 
-            fetchData(xAxis, yAxis).then(data => {
-                var xAxisData = data.map(item => item.xAxis);
-                var yAxisData = data.map(item => item.yAxis);
+                        const optionYTable = document.createElement('option');
+                        optionYTable.value = table;
+                        optionYTable.textContent = table;
+                        yTableSelect.appendChild(optionYTable);
+                    });
+                })
+                .catch(error => console.error('Error fetching tables:', error));
 
-                var barOption = {
-                    xAxis: {
-                        type: 'category',
-                        data: xAxisData
-                    },
-                    yAxis: {
-                        type: 'value'
-                    },
-                    series: [{
-                        data: yAxisData,
-                        type: 'bar'
-                    }]
-                };
+            xTableSelect.addEventListener('change', function() {
+                fetchColumns(this.value, xColumnSelect);
+            });
 
-                myChart.setOption(barOption, true);
+            yTableSelect.addEventListener('change', function() {
+                fetchColumns(this.value, yColumnSelect);
             });
         });
+
+        function fetchColumns(table, columnSelect) {
+            fetch('/columns', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ table: table })
+            })
+            .then(response => response.json())
+            .then(data => {
+                columnSelect.innerHTML = '<option value="None">None</option>';
+                data.columns.forEach(column => {
+                    const option = document.createElement('option');
+                    option.value = column;
+                    option.textContent = column;
+                    columnSelect.appendChild(option);
+                });
+            })
+            .catch(error => console.error('Error fetching columns:', error));
+        }
+
+        document.getElementById('dataForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const xTable = document.getElementById('xTable').value;
+            const xColumn = document.getElementById('xColumn').value;
+            const yTable = document.getElementById('yTable').value;
+            const yColumn = document.getElementById('yColumn').value;
+
+            if (xTable === "None" || xColumn === "None" || yTable === "None" || yColumn === "None") {
+                alert('Please select values for all required fields.');
+                return;
+            }
+
+            fetchData(xTable, xColumn, yTable, yColumn);
+        });
+
+        async function fetchData(xTable, xColumn, yTable, yColumn) {
+            try {
+                const dataX = await fetch('/getdata', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ table: xTable, column: xColumn })
+                }).then(response => response.json());
+
+                const dataY = await fetch('/getdata', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ table: yTable, column: yColumn })
+                }).then(response => response.json());
+
+                if (dataX.data && dataY.data) {
+                    const xAxisData = dataX.data.map(entry => entry[xColumn]);
+                    const yAxisData = dataY.data.map(entry => entry[yColumn]);
+
+                    const barOption = {
+                        xAxis: {
+                            type: 'category',
+                            data: xAxisData
+                        },
+                        yAxis: {
+                            type: 'value'
+                        },
+                        series: [{
+                            data: yAxisData,
+                            type: 'bar'
+                        }]
+                    };
+
+                    const chartDom = document.getElementById('chart');
+                    const myChart = echarts.init(chartDom);
+                    myChart.setOption(barOption, true);
+                } else {
+                    console.error('Error fetching data:', dataX.error || dataY.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
 
         var cityData = [
             { name: "Tuscarora", state: "Nevada", latitude: 41.328852, longitude: -116.12251, zipcode: 89834 },
