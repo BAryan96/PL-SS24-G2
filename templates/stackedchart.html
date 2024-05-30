@@ -284,7 +284,7 @@
         function fetchData(xTable, xColumn, yTable1, yColumn1, yTable2, yColumn2, series, chartInstance) {
             $.post('/getdata', { table: xTable, column: xColumn }, function(dataX) {
                 if (dataX.data) {
-                    const xAxisData = [...new Set(dataX.data)]; // Ensure unique x-axis data points
+                    const xAxisData = [...new Set(dataX.data)]; 
                     const xAxisDataIndexMap = {};
                     xAxisData.forEach((item, index) => {
                         xAxisDataIndexMap[item] = index;

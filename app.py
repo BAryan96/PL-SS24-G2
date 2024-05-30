@@ -49,12 +49,14 @@ def basicbarchart():
 def heatmap():
     return render_template('heatmap.html')
 
+#wichtig 
 @app.route("/tables")
 def get_tables():
     cur.execute("SHOW TABLES")
     tables = [row[0] for row in cur.fetchall()]
     return jsonify({"tables": tables})
 
+#wichtig
 @app.route("/columns", methods=["POST"])
 def get_columns():
     data = request.get_json()
@@ -66,7 +68,7 @@ def get_columns():
     columns = [row[0] for row in cur.fetchall()]
     return jsonify({"columns": columns})
 
-
+#wichtig
 @app.route("/getdata", methods=["POST"])
 def get_data():
     table = request.form['table']
@@ -74,6 +76,17 @@ def get_data():
     cur.execute(f"SELECT {column} FROM {table}")
     data = [row[0] for row in cur.fetchall()]
     return jsonify({"data": data})
+
+#wichtig für Scatter
+@app.route("/getdataforscatter", methods=["POST"])
+def get_dataforscatter():
+    data = request.get_json()
+    table = data.get('table')
+    column = data.get('column')
+    cur.execute(f"SELECT {column} FROM {table}")
+    data = [row[0] for row in cur.fetchall()]
+    return jsonify({"data": data})
+
 
 @app.route("/get_table", methods=["POST"])
 def get_table():
