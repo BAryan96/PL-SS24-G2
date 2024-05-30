@@ -27,6 +27,7 @@
     </form>
 
     {% if data %}
+    <h2>Daten</h2>
     <table>
         <thead>
             <tr>
@@ -45,5 +46,49 @@
             {% endfor %}
         </tbody>
     </table>
+
+    {% if columns %}
+    <form action="/calculatestats" method="post">
+        <input type="hidden" name="table_name" value="{{ table_name }}">
+        <label for="column_name">Wähle ein Attribut:</label>
+        <select id="column_name" name="column_name">
+            {% for column in columns %}
+                <option value="{{ column }}">{{ column }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit">Statistiken berechnen</button>
+    </form>
     {% endif %}
+    {% endif %}
+
+    {% if stats %}
+    <h2>Deskriptive Statistiken</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Sum</th>
+                <th>Mean</th>
+                <th>Median</th>
+                <th>Range</th>
+                <th>Standard Deviation</th>
+                <th>Q1</th>
+                <th>Q2</th>
+                <th>Q3</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>{{ stats['Sum'] }}</td>
+                <td>{{ stats['Mean'] }}</td>
+                <td>{{ stats['Median'] }}</td>
+                <td>{{ stats['Range'] }}</td>
+                <td>{{ stats['Standard Deviation'] }}</td>
+                <td>{{ stats['Q1'] }}</td>
+                <td>{{ stats['Q2'] }}</td>
+                <td>{{ stats['Q3'] }}</td>
+            </tr>
+        </tbody>
+    </table>
+    {% endif %}
+</body>
 </html>
