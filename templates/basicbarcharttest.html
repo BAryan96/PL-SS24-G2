@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Visualisation - DV</title>
+    <link rel="stylesheet" href="/static/CSS/all.css">
+    <link rel="stylesheet" href="/static/CSS/charts.css">
+    <link rel="stylesheet" href="/static/CSS/barchart.css">
+    <style>
+        .color-picker {
+            margin: 10px 0;
+        }
+        #chart { width: 100%; height: 600px; margin-top: 20px; position: relative; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo-area">
+                <span class="logo-circle"></span>
+                <span class="logo-text">Data Visualisation - DV</span>
+            </div>
+            <button class="menu-button">☰</button>
+        </header>
+        <div class="side-menu" id="sideMenu">
+            <button class="close-button">X</button>
+            <h1>What would you like to See?</h1>
+            <a href="/charts">Chart Overview</a>
+            <a href="#">Edit/Clear Data</a>
+            <a href="#">Forecast</a>
+            <a href="#">My Profile</a>
+            <a href="/login">Sign In</a>
+            <a href="/">Log Out</a>
+        </div>
+        <main class="main">
+            <section class="data-selection">
+                <h2>Please Choose your Data</h2>
+                <form id="dataForm">
+                    <label for="tableSelect1">Select Table for X-Axis</label>
+                    <select id="tableSelect1" name="tableSelect1">
+                        <option value="">Select Table</option>
+                    </select>
+                    <label for="xAxis">X-Axis</label>
+                    <select id="xAxis" name="xAxis">
+                        <option value="">Select X Axis</option>
+                    </select>
+                    <label for="tableSelect2">Select Table for Y-Axis</label>
+                    <select id="tableSelect2" name="tableSelect2">
+                        <option value="">Select Table</option>
+                    </select>
+                    <label for="yAxis">Y-Axis</label>
+                    <select id="yAxis" name="yAxis">
+                        <option value="">Select Y Axis</option>
+                    </select>
+                    <label for="aggregationSelect">Y-Axis Aggregation</label>
+                    <select id="aggregationSelect" name="aggregationSelect">
+                        <option value="">Select for Y Axis Aggregation</option>
+                        <option value="">No Aggregation</option>
+                        <option value="Summe">Sum</option>
+                        <option value="Max">Max</option>
+                        <option value="Min">Min</option>
+                        <option value="Anzahl">Count</option>
+                        <option value="Diskrete Anzahl">Distinct Count</option>
+                    </select>
+                    <button type="submit">Submit</button>
+                </form>
+            </section>
+            <section id="chart"></section>
+        </main>
+        <div id="loading">
+            <div class="spinner"></div>
+            <p>Please hold on: Your Data is being extracted from the Database.</p>
+            <p id="progress">Loading: 0%</p>
+        </div>
+    </div>
+    <script src="/static/JS/sidemenu.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.3.3/echarts.min.js"></script>
+    <script>
+        let chartCount = 0;
+        const maxCharts = 16;
+        let charts = [];
+        let darkMode = false;
+        let decalPattern = false;
+
+        $(document).ready(function() {
+            $.get("/tables", function(data) {
+                const tableSelect1 = document.getElementById('tableSelect1');
+                const tableSelect2 = document.getElementById('tableSelect2');
+                data.tables.forEach(table => {
+                    tableSelect1.innerHTML += `<option value="${table}">${table}</option>`;
+                    tableSelect2.innerHTML += `<option value="${table}">${table}</option>`;
+                });
+
+                tableSelect1.addEventListener('change', function() {
+                    if (this.value) {
+                        $.post("/columns", { table: this.value }, function(data) {
+                            const xAxisSelect = document.getElementById('xAxis');
+                            xAxisSelect.innerHTML = `<option value="">Select X Axis</option>`;
+                            data.columns.forEach(column => {
+                                xAxisSelect.innerHTML += `<option value="${column}">${column}</option>`;
+                            });
+                        });
+                    }
+                });
+
+                tableSelect2.addEventListener('change', function() {
+                    if (this.value) {
+                        $.post("/columns", { table: this.value }, function(data) {
+                            const yAxisSelect = document.getElementById('yAxis');
+                            yAxisSelect.innerHTML = `<option value="">Select Y Axis</option>`;
+                            data.columns.forEach(column => {
+                                yAxisSelect.innerHTML += `<option value="${column}">${column}</option>`;
+                            });
+                        });
+                    }
+                });
+            });
+
+            $('#dataForm').on('submit', function(event) {
+                event.preventDefault();
+                if (chartCount < maxCharts) {
+                    addChart('bar');
+                } else {
+                    alert('Maximum number of charts reached.');
+                }
+            });
+        });
+
+        function addChart(chartType) {
+            const chartContainer = document.getElementById('chart');
+            const chartDiv = document.createElement('div');
+            chartDiv.className = 'chart';
+            chartDiv.style.width = '100%';
+            chartDiv.style.height = '600px';
+            chartContainer.appendChild(chartDiv);
+            chartCount++;
+
+            const chartInstance = echarts.init(chartDiv);
+            charts.push(chartInstance);
+
+            updateChart(chartInstance, chartType);
+        }
+
+        function updateChart(chartInstance, chartType) {
+            const tableSelect1 = document.getElementById('tableSelect1');
+            const tableSelect2 = document.getElementById('tableSelect2');
+            const xAxisSelect = document.getElementById('xAxis');
+            const yAxisSelect = document.getElementById('yAxis');
+            const aggregationSelect = document.getElementById('aggregationSelect');
+
+            const xAxisType = xAxisSelect.value;
+            const yAxisType = yAxisSelect.value;
+            const aggregationType = aggregationSelect.value;
+
+            if (xAxisType && yAxisType) {
+                $.post("/getdata", { 
+                    table1: tableSelect1.value, 
+                    column1: xAxisType,
+                    table2: tableSelect2.value, 
+                    column2: yAxisType,
+                    chartType: chartType,
+                    aggregationType: aggregationType
+                }, function(response) {
+                    const dataX = response.xAxis.data;
+                    const dataY = response.series[0].data;
+
+                    let option;
+                        option = {
+                            xAxis: {
+                                type: 'category',
+                                data: dataX,
+                            },
+                            yAxis: {
+                                type: 'value'
+                            },
+                            series: [{
+                                data: dataY,
+                                type: chartType
+                            }]
+                        };
+                    
+                    chartInstance.setOption(option);
+                });
+            }
+        }
+    </script>
+</body>
+</html>
