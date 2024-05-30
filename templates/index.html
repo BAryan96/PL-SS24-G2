@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Datenbankabfrage</title>
+    <style>
+        table, th, td {
+            border: 1px solid black;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+    <form action="/get_table" method="post">
+        <label for="data-choice">Wähle eine Option:</label>
+        <select id="data-choice" name="data-choice">
+            <option value="stores">stores</option>
+            <option value="customers">customers</option>
+            <option value="orderItems">orderItems</option>
+            <option value="orders">orders</option>
+            <option value="products">products</option>
+        </select>
+        <button type="submit">Abfrage starten</button>
+    </form>
+
+    {% if data %}
+    <table>
+        <thead>
+            <tr>
+                {% for key in data[0].keys() %}
+                    <th>{{ key }}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in data %}
+                <tr>
+                    {% for value in row.values() %}
+                        <td>{{ value }}</td>
+                    {% endfor %}
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+</html>
