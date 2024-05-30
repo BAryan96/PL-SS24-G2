@@ -75,51 +75,58 @@ function addChart(chartType) {
     chartDiv.appendChild(yAxisSelect);
 
     let seriesData = [];
+    //Ändern zu x und y sowie jeweilige Konvertierung
+function updateChart() {
+    const xAxisType = xAxisSelect.value;
+    const yAxisType = yAxisSelect.value;
 
-    function updateChart() {
-        const xAxisType = xAxisSelect.value;
-        const yAxisType = yAxisSelect.value;
+    if (xAxisType && yAxisType) {
+        $.post("/getdata", { 
+            table1: tableSelect1.value, 
+            column1: xAxisType,
+            table2: tableSelect2.value, 
+            column2: yAxisType 
+        }, function(response) {
+            const dataX = response.dataX;
+            const dataY = response.dataY;
 
-        if (xAxisType && yAxisType) {
-            $.post("/getdata", { table: tableSelect1.value, column: xAxisType }, function(dataX) {
-                $.post("/getdata", { table: tableSelect2.value, column: yAxisType }, function(dataY) {
-                    seriesData = dataX.data.map((x, index) => ({
-                        value: [x, dataY.data[index]],
-                        itemStyle: { color: '#5470c6' }
-                    }));
+            const seriesData = dataX.map((x, index) => ({
+                value: [x, dataY[index]],
+                itemStyle: { color: '#5470c6' }
+            }));
 
-                    let option = {
-                        xAxis: {
-                            type: 'category',
-                            data: dataX.data,
-                        },
-                        yAxis: {
-                            type: 'value'
-                        },
-                        series: [{
-                            data: seriesData,
-                            type: chartType
-                        }]
-                    };
+            let option = {
+                xAxis: {
+                    type: 'category',
+                    data: dataX,
+                },
+                yAxis: {
+                    type: 'value'
+                },
+                series: [{
+                    data: seriesData,
+                    type: chartType
+                }]
+            };
 
-                    if (chartType === 'pie') {
-                        option = {
-                            series: [{
-                                type: 'pie',
-                                data: seriesData.map(data => ({
-                                    value: data.value[1],
-                                    name: data.value[0],
-                                    itemStyle: data.itemStyle
-                                }))
-                            }]
-                        };
-                    }
+            if (chartType === 'pie') {
+                option = {
+                    series: [{
+                        type: 'pie',
+                        data: seriesData.map(data => ({
+                            value: data.value[1],
+                            name: data.value[0],
+                            itemStyle: data.itemStyle
+                        }))
+                    }]
+                };
+            }
 
-                    chartInstance.setOption(option);
-                });
-            });
-        }
+            chartInstance.setOption(option);
+        });
     }
+}
+
 
     tableSelect1.addEventListener('change', function() {
         if (this.value) {
@@ -222,5 +229,6 @@ function handleFilter(data) {
         chart.setOption(options);
 
         //anpassen
+        //reset filter doppelklick
     });
 }
