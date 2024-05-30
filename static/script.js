@@ -4,6 +4,7 @@ let draggedElement = null;
 let offsetX, offsetY;
 let charts = [];
 
+// um tabellennamen rauszubekommen 
 $(document).ready(function() {
     $.get("/tables", function(data) {
         window.availableTables = data.tables;
@@ -127,7 +128,7 @@ function updateChart() {
     }
 }
 
-
+//hier noch
     tableSelect1.addEventListener('change', function() {
         if (this.value) {
             $.post("/columns", { table: this.value }, function(data) {
@@ -138,7 +139,7 @@ function updateChart() {
             });
         }
     });
-
+//und hier auch
     tableSelect2.addEventListener('change', function() {
         if (this.value) {
             $.post("/columns", { table: this.value }, function(data) {

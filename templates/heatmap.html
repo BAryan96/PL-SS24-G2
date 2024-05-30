@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="/static/CSS/charts.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <style>
-        
+        /* Ihr CSS-Styling */
     </style>
 </head>
 <body>
@@ -35,58 +35,16 @@
             <section class="data-selection">
                 <h2>Please Choose your Data</h2>
                 <form id="dataForm">
-                    <label for="orders">Orders</label>
-                    <select id="orders" name="orders">
-                        <option>None</option>
-                        <option>OrderID</option>
-                        <option>CustomerID</option>
-                        <option>StoreID</option>
-                        <option>Order Date</option>
-                        <option>Number of Items</option>
-                        <option>Total</option>
+                    <label for="relation">Relation</label>
+                    <select id="relation" name="relation">
+                        <option value="">None</option>
+                        <option value="store-orders">Store Orders</option>
+                        <!-- Weitere Optionen für andere Relationen können hier hinzugefügt werden -->
                     </select>
-
-                    <label for="customers">Customers</label>
-                    <select id="customers" name="customers">
-                        <option>None</option>
-                        <option>CustomerID</option>
-                        <option>Latitude</option>
-                        <option>Longitude</option>
-                    </select>
-
-                    <label for="orderItems">Order Items</label>
-                    <select id="orderItems" name="orderItems">
-                        <option>None</option>
-                        <option>SKU</option>
-                        <option>OrderID</option>
-                    </select>
-
-                    <label for="products">Products</label>
-                    <select id="products" name="products">
-                        <option>None</option>
-                        <option>SKU</option>
-                        <option>Name</option>
-                        <option>Price</option>
-                        <option>Category</option>
-                        <option>Size</option>
-                        <option>Ingredients</option>
-                        <option>Launch</option>
-                    </select>
-
-                    <label for="stores">Stores</label>
-                    <select id="stores" name="stores">
-                        <option>None</option>
-                        <option>StoreID</option>
-                        <option>Zipcode</option>
-                        <option>StateShort</option>
-                        <option>Latitude</option>
-                        <option>Longitude</option>
-                    </select>
-
                     <button type="submit">Submit</button>
                 </form>
             </section>
-            <section id="chart"></section>
+            <section id="chart" style="width: 100%; height: 600px;"></section>
         </main>
         <div id="loading">
             <div class="spinner"></div>
@@ -95,9 +53,93 @@
         </div>
     </div>
     <script src="/static/JS/sidemenu.js"></script>
-    <script src="/static/JS/heatmap.js"></script>
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('dataForm').addEventListener('submit', function(event) {
+                event.preventDefault();
+                const relation = document.getElementById('relation').value;
+                if (!relation) {
+                    alert('Please select a relation');
+                    return;
+                }
+                fetch(`/${relation}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        const chartDom = document.getElementById('chart');
+                        const myChart = echarts.init(chartDom);
 
+                        // Bereiten Sie die Daten für die Heatmap vor
+                        const xAxisData = data.map(item => item[0]);
+                        const yAxisData = ['Order Count'];
+                        const heatmapData = data.map((item, index) => [index, 0, item[1]]);
+
+                        const option = {
+                            tooltip: {
+                                position: 'top'
+                            },
+                            grid: {
+                                height: '50%',
+                                top: '10%',
+                                left: '10%',
+                                right: '10%'
+                            },
+                            xAxis: {
+                                type: 'category',
+                                data: xAxisData,
+                                splitArea: {
+                                    show: true
+                                },
+                                axisLabel: {
+                                    interval: 0,
+                                    rotate: 30,
+                                    margin: 8,
+                                    formatter: function (value) {
+                                        return value.length > 5 ? value.substr(0, 5) + '...' : value;
+                                    }
+                                }
+                            },
+                            yAxis: {
+                                type: 'category',
+                                data: yAxisData,
+                                splitArea: {
+                                    show: true
+                                }
+                            },
+                            visualMap: {
+                                min: 0,
+                                max: Math.max(...data.map(item => item[1])),
+                                calculable: true,
+                                orient: 'horizontal',
+                                left: 'center',
+                                bottom: '15%'
+                            },
+                            series: [{
+                                name: 'Order Count',
+                                type: 'heatmap',
+                                data: heatmapData,
+                                label: {
+                                    show: false,
+                                    formatter: function (params) {
+                                        return params.value[2];
+                                    }
+                                },
+                                itemStyle: {
+                                    emphasis: {
+                                        shadowBlur: 10,
+                                        shadowColor: 'rgba(0, 0, 0, 0.5)'
+                                    }
+                                }
+                            }]
+                        };
+
+                        myChart.setOption(option);
+                    })
+                    .catch(error => {
+                        console.error('Error fetching data:', error);
+                    });
+            });
+        });
+    </script>
 </body>
 </html>
