@@ -143,5 +143,27 @@ def get_store_orders():
     results = cur.fetchall()
     return jsonify(results)
 
+@app.route("/getChartData", methods=["GET"])
+def get_chart_data():
+    xAxis = request.args.get('xAxis')
+    yAxis = request.args.get('yAxis')
+
+    if not xAxis or not yAxis:
+        return jsonify({"error": "Invalid parameters"}), 400
+
+    query = f"""
+        SELECT {xAxis} as xAxis, COUNT({yAxis}) as yAxis
+        FROM orders
+        JOIN stores ON orders.StoreID = stores.StoreID
+        GROUP BY {xAxis}
+    """
+    try:
+        cur.execute(query)
+        data = cur.fetchall()
+        result = [{"xAxis": row[0], "yAxis": row[1]} for row in data]
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == "__main__":
     app.run(debug=True)

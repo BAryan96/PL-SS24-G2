@@ -82,7 +82,21 @@
                                 <option value="stores.StateShort">StateShort</option>
                                 <option value="stores.Latitude">Latitude</option>
                                 <option value="stores.Longitude">Longitude</option>
+                                <option value="stores.City">City</option>
+                                <option value="stores.State">State</option>
                             </optgroup>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="yAxis">Y-Axis</label>
+                        <select id="yAxis" name="yAxis">
+                            <option value="stores.StoreID">StoreID</option>
+                            <option value="stores.Zipcode">Zipcode</option>
+                            <option value="stores.StateShort">StateShort</option>
+                            <option value="stores.Latitude">Latitude</option>
+                            <option value="stores.Longitude">Longitude</option>
+                            <option value="stores.City">City</option>
+                            <option value="stores.State">State</option>
                         </select>
                     </div>
                     <button type="submit" id="submitButton">Submit</button>
@@ -92,6 +106,7 @@
             </section>
         </main>
     </div>
+    <script src="/static/JS/sidemenu.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.3.2/echarts.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.3.2/core/echarts.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.3.2/components/visualMap/VisualMapComponent.min.js"></script>
@@ -103,6 +118,38 @@
         var chartDom = document.getElementById('chart');
         var myChart = echarts.init(chartDom);
         var option;
+
+        function fetchData(xAxis, yAxis) {
+            return fetch(`/getChartData?xAxis=${xAxis}&yAxis=${yAxis}`)
+                .then(response => response.json());
+        }
+
+        document.getElementById('dataForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+            var xAxis = document.getElementById('xAxis').value;
+            var yAxis = document.getElementById('yAxis').value;
+
+            fetchData(xAxis, yAxis).then(data => {
+                var xAxisData = data.map(item => item.xAxis);
+                var yAxisData = data.map(item => item.yAxis);
+
+                var barOption = {
+                    xAxis: {
+                        type: 'category',
+                        data: xAxisData
+                    },
+                    yAxis: {
+                        type: 'value'
+                    },
+                    series: [{
+                        data: yAxisData,
+                        type: 'bar'
+                    }]
+                };
+
+                myChart.setOption(barOption, true);
+            });
+        });
 
         var cityData = [
             { name: "Tuscarora", state: "Nevada", latitude: 41.328852, longitude: -116.12251, zipcode: 89834 },
