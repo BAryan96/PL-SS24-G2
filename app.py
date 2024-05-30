@@ -57,10 +57,15 @@ def get_tables():
 
 @app.route("/columns", methods=["POST"])
 def get_columns():
-    table = request.form['table']
+    data = request.get_json()
+    table = data.get('table')
+    if not table:
+        return jsonify({"error": "No table provided"}), 400
+
     cur.execute(f"SHOW COLUMNS FROM {table}")
     columns = [row[0] for row in cur.fetchall()]
     return jsonify({"columns": columns})
+
 
 @app.route("/getdata", methods=["POST"])
 def get_data():
