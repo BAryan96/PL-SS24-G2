@@ -9,7 +9,6 @@
     <link rel="stylesheet" href="/static/CSS/charts.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <style>
-        /* Ihr CSS-Styling */
     </style>
 </head>
 <body>
@@ -39,6 +38,7 @@
                     <select id="relation" name="relation">
                         <option value="">None</option>
                         <option value="store-orders">Store Orders</option>
+                        
                         <!-- Weitere Optionen für andere Relationen können hier hinzugefügt werden -->
                     </select>
                     <button type="submit">Submit</button>
@@ -46,11 +46,6 @@
             </section>
             <section id="chart" style="width: 100%; height: 600px;"></section>
         </main>
-        <div id="loading">
-            <div class="spinner"></div>
-            <p>Please hold on: Your Data is being extracted from the Database.</p>
-            <p id="progress">Loading: 0%</p>
-        </div>
     </div>
     <script src="/static/JS/sidemenu.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
