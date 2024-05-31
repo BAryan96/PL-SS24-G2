@@ -17,7 +17,7 @@ def get_data():
     if df.empty:
         json_data = []
     else:
-        json_data = df.to_dict(orient='records')  # Konvertiere den DataFrame in eine Liste von Diktaten
+        json_data = df.to_dict(orient='records')
 
     relevant_columns = {
         'products': ['price'],
@@ -103,15 +103,102 @@ def calculate_stats_details():
 
     if table_name == 'stores' and column_name == 'sum profit':
         query = """
-            SELECT s.storeID, SUM(p.price) AS profit
+        SELECT s.storeID, SUM(o.total) AS profit
             FROM stores s
             JOIN orders o ON s.storeID = o.storeID
-            JOIN orderItems oi ON o.orderID = oi.orderID
-            JOIN products p ON oi.SKU = p.SKU
             GROUP BY s.storeID
-            ORDER BY s.storeID;
+            ORDER BY profit;
+        """
+    
+        df = fetch_data(query)
+
+    elif table_name == 'stores' and column_name == 'sum customers':
+       query = """
+       SELECT s.storeID, COUNT(DISTINCT o.customerID) AS num_customers
+            FROM stores s
+            JOIN orders o ON s.storeID = o.storeID
+            GROUP BY s.storeID
+            ORDER BY num_customers;
+        """
+       df = fetch_data(query)
+
+    elif table_name == 'stores' and column_name == 'sum sales':
+        query = """
+        SELECT s.storeID, COUNT(o.orderID) AS num_orders
+            FROM stores s
+            JOIN orders o ON s.storeID = o.storeID
+            GROUP BY s.storeID
+            ORDER BY num_orders;
         """
         df = fetch_data(query)
+
+    elif table_name == 'stores' and column_name == 'sum sold products':
+        query = """
+        SELECT s.storeID, SUM(o.nItems) AS total_sold_products
+            FROM stores s
+            JOIN orders o ON s.storeID = o.storeID
+            GROUP BY s.storeID
+            ORDER BY total_sold_products;
+        """
+        df = fetch_data(query)
+
+    elif table_name == 'stores' and column_name == 'mean total':
+        query = """
+        SELECT s.storeID, AVG(o.total) AS average_total
+            FROM stores s
+            JOIN orders o ON s.storeID = o.storeID
+            GROUP BY s.storeID
+            ORDER BY average_total;
+        """
+        df = fetch_data(query)
+
+    elif table_name == 'stores' and column_name == 'mean products/order':
+        query = """
+        SELECT s.storeID, AVG(o.nItems) AS average_products_per_order
+            FROM stores s
+            JOIN orders o ON s.storeID = o.storeID
+            GROUP BY s.storeID
+            ORDER BY average_products_per_order;
+        """
+        df = fetch_data (query)
+
+    elif table_name == 'stores' and column_name == 'mean distance customer/store':
+        query = """
+        SELECT 
+            s.storeID, 
+            AVG(
+                6371 * ACOS(
+                    COS(RADIANS(s.latitude)) * COS(RADIANS(c.latitude)) * COS(RADIANS(c.longitude) - RADIANS(s.longitude)) + 
+                    SIN(RADIANS(s.latitude)) * SIN(RADIANS(c.latitude))
+                )
+            ) AS average_distance
+        FROM stores s
+        JOIN orders o ON s.storeID = o.storeID
+        JOIN customers c ON o.customerID = c.customerID
+        GROUP BY s.storeID
+        ORDER BY average_distance;
+        """
+        df = fetch_data (query)
+
+    elif table_name == 'stores' and column_name == 'mean reorder rate':
+        query = """
+        SELECT
+            s.storeID,
+            AVG(customer_orders.num_orders) AS avg_reorder_rate
+        FROM stores s
+        JOIN (
+            SELECT
+                o.storeID,
+                o.customerID,
+                COUNT(o.orderID) AS num_orders
+            FROM orders o
+            GROUP BY o.storeID, o.customerID
+        ) AS customer_orders ON s.storeID = customer_orders.storeID
+        GROUP BY s.storeID
+        ORDER BY s.storeID;
+"""
+        df = fetch_data (query)
+
     else:
         # Falls eine andere Berechnung gewählt wird, hier einen Platzhalter für die allgemeine Statistikberechnung
         query = f"SELECT {column_name} FROM {table_name}"

@@ -1,11 +1,12 @@
+<!-- templates/perform_stats.html -->
 <!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>Ergebnisse der Berechnungen</title>
+    <title>Results of Calculations</title>
 </head>
 <body>
-    <h2>Ergebnisse der {{ stat_choice }} Berechnung für {{ table_choice }}</h2>
+    <h2>Results for {{ stat_choice }} Calculation for {{ table_choice }}</h2>
     <form action="/calculatestatsdetails" method="post">
         <input type="hidden" name="table_name" value="{{ table_choice }}">
         <input type="hidden" name="stat_choice" value="{{ stat_choice }}">
@@ -15,15 +16,15 @@
                 <option value="{{ column }}">{{ column }}</option>
             {% endfor %}
         </select>
-        <button type="submit">Berechnung durchführen</button>
+        <button type="submit">Perform Calculations</button>
     </form>
     <br>
     <form action="/">
-        <button type="submit">Zurück zur Startseite</button>
+        <button type="submit">Go Back</button>
     </form>
 
     {% if data %}
-        <h3>Ergebnisse:</h3>
+        <h3>Results:</h3>
         <table border="1">
             <tr>
                 <th>Store ID</th>
