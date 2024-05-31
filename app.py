@@ -5,9 +5,9 @@ app = Flask(__name__)
 conn = connect_to_database()
 cur = get_cursor(conn)
 
-@app.route("//")
-def test():
-    return render_template('test.html')
+#@app.route("//")
+#def test():
+#    return render_template('test.html')
 
 @app.route("/")
 def landingpage():
@@ -88,18 +88,7 @@ def get_dataforscatter():
     return jsonify({"data": data})
 
 
-@app.route("/get_table", methods=["POST"])
-def get_table():
-    data_choice = request.form['data-choice']
-    cur.execute(f"SELECT * FROM {data_choice}")
-    row_headers = [x[0] for x in cur.description]
-    results = cur.fetchall()
-    json_data = []
-    for result in results:
-        json_data.append(dict(zip(row_headers, result)))
-    return render_template('index.html', data=json_data)
-
-#wichtig
+#wichtig für donutchart
 @app.route("/api/data", methods=["GET"])
 def get_relation_data():
     relation = request.args.get('relation')
@@ -153,6 +142,7 @@ def get_relation_data():
     data = cur.fetchall()
     return jsonify(data)
 
+#wichtig für heatmap, weitere relationen hinzufügen
 @app.route("/store-orders", methods=["GET"])
 def get_store_orders():
     query = """
@@ -165,28 +155,6 @@ def get_store_orders():
     results = cur.fetchall()
     return jsonify(results)
 
-@app.route("/getChartData", methods=["GET"])
-def get_chart_data():
-    xAxis = request.args.get('xAxis')
-    yAxis = request.args.get('yAxis')
-
-    if not xAxis or not yAxis:
-        return jsonify({"error": "Invalid parameters"}), 400
-
-    query = f"""
-        SELECT {xAxis} as xAxis, COUNT({yAxis}) as yAxis
-        FROM orders
-        JOIN stores ON orders.StoreID = stores.StoreID
-        GROUP BY {xAxis}
-    """
-    try:
-        cur.execute(query)
-        data = cur.fetchall()
-        result = [{"xAxis": row[0], "yAxis": row[1]} for row in data]
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-    
 
 if __name__ == "__main__":
     app.run(debug=True)
