@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_from_directory
 from DB import connect_to_database, get_cursor
 
 app = Flask(__name__)
@@ -62,25 +62,31 @@ def get_columns():
     columns = [row[0] for row in cur.fetchall()]
     return jsonify({"columns": columns})
 
-
 @app.route("/getdata", methods=["POST"])
 def get_data():
-    table1 = request.form['table1']
-    column1 = request.form['column1']
-    table2 = request.form['table2']
-    column2 = request.form['column2']
-    chart_type = request.form['chartType']
-    aggregation_type = request.form.get('aggregationType', '')
+    if not request.is_json:
+        return jsonify({"error": "Request data must be JSON"}), 415
 
-    # Erstellung der Joins basierend auf den Tabellenbeziehungen
+    data = request.get_json()
+    print("Received JSON data:", data)
+
+    tables = data.get('tables', [])
+    columns = data.get('columns', [])
+    chart_type = data.get('chartType')
+    aggregation_type = data.get('aggregationType', '')
+
+    if not tables or not columns or not chart_type:
+        return jsonify({"error": "Missing required fields"}), 400
+
+    filters = data.get('filters', [])
+
     joins = {
         ('products', 'order_items'): ('SKU', 'SKU'),
-        ('orderitems', 'orders'): ('orderID', 'orderID'),
+        ('order_items', 'orders'): ('orderID', 'orderID'),
         ('orders', 'customers'): ('customerID', 'customerID'),
         ('orders', 'stores'): ('storeID', 'storeID'),
     }
 
-    # Bestimmen der Aggregationsfunktion
     if aggregation_type == "Summe":
         aggregation_function = "SUM("
     elif aggregation_type == "Max":
@@ -94,181 +100,77 @@ def get_data():
     else:
         aggregation_function = None
 
-    # Überprüfen, ob ein direkter Join möglich ist
-    if table1 == table2:
-        if aggregation_function:
-            query = f"SELECT {column1}, {aggregation_function}{column2}) FROM {table1} GROUP BY {column1}"
+    filter_query = ""
+    if filters:
+        filter_clauses = []
+        for filter in filters:
+            filter_table = filter['filterTable']
+            filter_column = filter['filterColumn']
+            filter_value = filter['filterValue']
+            filter_clauses.append(f"{filter_table}.{filter_column} = '{filter_value}'")
+        filter_query = " WHERE " + " OR ".join(filter_clauses)
+
+    # Sicherstellen, dass die Filtertabelle in den Tabellen enthalten ist
+    for filter in filters:
+        filter_table = filter['filterTable']
+        if filter_table not in tables:
+            tables.append(filter_table)
+            columns.append('')
+
+    # Entfernen doppelter Tabellennamen
+    unique_tables = []
+    for table in tables:
+        if table not in unique_tables:
+            unique_tables.append(table)
+
+    # Generierung der Join-Bedingungen
+    join_conditions = []
+    from_clause = unique_tables[0]
+    for i in range(1, len(unique_tables)):
+        table1, table2 = unique_tables[i - 1], unique_tables[i]
+        if table1 != table2:
+            if (table1, table2) in joins:
+                join_column1, join_column2 = joins[(table1, table2)]
+                join_conditions.append(f"JOIN {table2} ON {table1}.{join_column1} = {table2}.{join_column2}")
+            elif (table2, table1) in joins:
+                join_column1, join_column2 = joins[(table2, table1)]
+                join_conditions.append(f"JOIN {table2} ON {table1}.{join_column2} = {table2}.{join_column1}")
+            else:
+                return jsonify({"error": f"No valid join path found between {table1} and {table2}"}), 400
         else:
-            query = f"SELECT {column1}, {column2} FROM {table1}"
-    elif (table1, table2) in joins:
-        join_column1, join_column2 = joins[(table1, table2)]
-        if aggregation_function:
-            query = f"""
-            SELECT t1.{column1}, {aggregation_function}t2.{column2}) 
-            FROM {table1} t1 
-            JOIN {table2} t2 ON t1.{join_column1} = t2.{join_column2} 
-            GROUP BY t1.{column1}
-            """
-        else:
-            query = f"""
-            SELECT t1.{column1}, t2.{column2} 
-            FROM {table1} t1 
-            JOIN {table2} t2 ON t1.{join_column1} = t2.{join_column2}
-            """
-    elif (table2, table1) in joins:
-        join_column1, join_column2 = joins[(table2, table1)]
-        if aggregation_function:
-            query = f"""
-            SELECT t1.{column1}, {aggregation_function}t2.{column2}) 
-            FROM {table1} t1 
-            JOIN {table2} t2 ON t1.{join_column2} = t2.{join_column1} 
-            GROUP BY t1.{column1}
-            """
-        else:
-            query = f"""
-            SELECT t1.{column1}, t2.{column2} 
-            FROM {table1} t1 
-            JOIN {table2} t2 ON t1.{join_column2} = t2.{join_column1}
-            """
+            from_clause = table1  # Nur die erste Tabelle in der FROM-Klausel behalten, wenn die Tabellen gleich sind
+
+    join_query = " ".join(join_conditions)
+
+    if aggregation_function:
+        select_columns = f"{columns[0]}, {aggregation_function}{columns[1]})"
+        group_by = f"GROUP BY {columns[0]}"
     else:
-        # Fixing für JOINS 2 oder 3 Grades
-        for (t1, t2), (jc1, jc2) in joins.items():
-            if (table1 == t1 and table2 in [k for k, v in joins if v[0] == jc1]) or \
-               (table1 == t2 and table2 in [k for k, v in joins if v[1] == jc2]):
-                join_column1, join_column2 = joins[(table1, t2 if table1 == t1 else t1)]
-                if aggregation_function:
-                    query = f"""
-                    SELECT t1.{column1}, {aggregation_function}t2.{column2})
-                    FROM {table1} t1
-                    JOIN {t2 if table1 == t1 else t1} t2_inter ON t1.{join_column1} = t2_inter.{jc1}
-                    JOIN {table2} t2 ON t2_inter.{jc2} = t2.{join_column2}
-                    GROUP BY t1.{column1}
-                    """
-                else:
-                    query = f"""
-                    SELECT t1.{column1}, t2.{column2}
-                    FROM {table1} t1
-                    JOIN {t2 if table1 == t1 else t1} t2_inter ON t1.{join_column1} = t2_inter.{jc1}
-                    JOIN {table2} t2 ON t2_inter.{jc2} = t2.{join_column2}
-                    """
-                break
-        else:
-            return jsonify({"error": "No valid join path found"}), 400
+        select_columns = ", ".join([f"{table}.{column}" for table, column in zip(tables, columns) if column])
+        group_by = f"GROUP BY {', '.join([f'{table}.{column}' for table, column in zip(tables, columns) if column])}"
+
+    query = f"""
+    SELECT {select_columns}
+    FROM {from_clause}
+    {join_query}
+    {filter_query}
+    {group_by}
+    """
 
     print("Generated SQL Query:", query)
     cur.execute(query)
     data = cur.fetchall()
 
-    dataX = [row[0] for row in data]
-    dataY = [row[1] for row in data]
-
-    # Generieren der JSON-Antwort im gewünschten Format
-    option = {
-        "xAxis": {
-            "type": 'category',
-            "data": dataX
-        },
-        "yAxis": {
-            "type": 'value'
-        },
-        "series": [
-            {
-                "data": dataY,
-                "type": chart_type
-            }
-        ]
+    response = {
+        "chartType": chart_type
     }
 
-    if chart_type == "pie":
-        option = {
-            "series": [
-                {
-                    "data": [{"value": y, "name": x} for x, y in zip(dataX, dataY)],
-                    "type": "pie"
-                }
-            ]
-        }
-    elif chart_type == "scatter":
-        option = {
-            "xAxis": {
-                "type": 'category',
-                "data": dataX
-            },
-            "yAxis": {
-                "type": 'value'
-            },
-            "series": [
-                {
-                    "data": [{"value": [x, y]} for x, y in zip(dataX, dataY)],
-                    "type": "scatter"
-                }
-            ]
-        }
-    elif chart_type == "heatmap":
-        option = {
-            "xAxis": {
-                "type": 'category',
-                "data": dataX
-            },
-            "yAxis": {
-                "type": 'category',
-                "data": dataY
-            },
-            "series": [
-                {
-                    "data": [{"value": [x, y, 1]} for x, y in zip(dataX, dataY)],  # Beispielhaftes Gewicht 1
-                    "type": "heatmap"
-                }
-            ]
-        }
-    elif chart_type == "large area":
-        option = {
-            "xAxis": {
-                "type": 'category',
-                "data": dataX
-            },
-            "yAxis": {
-                "type": 'value'
-            },
-            "series": [
-                {
-                    "data": dataY,
-                    "type": 'line',
-                    "areaStyle": {}
-                }
-            ]
-        }
-    elif chart_type == "map":
-        # Annahme: Daten enthalten geographische Koordinaten
-        option = {
-            "series": [
-                {
-                    "type": 'map',
-                    "mapType": 'world',  # Oder spezifische Karte anpassen
-                    "data": [{"name": x, "value": y} for x, y in zip(dataX, dataY)]
-                }
-            ]
-        }
-    elif chart_type == "stacked area":
-        option = {
-            "xAxis": {
-                "type": 'category',
-                "data": dataX
-            },
-            "yAxis": {
-                "type": 'value'
-            },
-            "series": [
-                {
-                    "data": dataY,
-                    "type": 'line',
-                    "stack": 'total',
-                    "areaStyle": {}
-                }
-            ]
-        }
+    for idx, col in enumerate(columns):
+        if col:
+            response[f"data{chr(88 + idx)}"] = [row[idx] for row in data]
 
-    return jsonify(option)
+    print(response)
+    return jsonify(response)
 
 
 @app.route("/test")
