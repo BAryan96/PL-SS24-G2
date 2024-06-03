@@ -8,6 +8,7 @@ let highlightedPoints = {};  // Globale Datenstruktur zum Speichern der hervorge
 let updateQueue = [];  // Warteschlange für die Diagrammaktualisierungen
 let updating = false;  // Flag, um anzuzeigen, ob eine Aktualisierung gerade durchgeführt wird
 
+// um tabellennamen rauszubekommen 
 $(document).ready(function() {
     // Lädt die verfügbaren Tabellen vom Backend beim Laden der Seite
     $.get("/tables", function(data) {
@@ -239,7 +240,7 @@ function addChart(chartType) {
             });
         }
     });
-
+//und hier auch
     tableSelect2.addEventListener('change', function() {
         // Lädt die Spalten für die Y-Achse basierend auf der ausgewählten Tabelle
         if (this.value) {

@@ -5,6 +5,10 @@ app = Flask(__name__)
 conn = connect_to_database()
 cur = get_cursor(conn)
 
+#@app.route("//")
+#def test():
+#    return render_template('test.html')
+
 @app.route("/")
 def landingpage():
     return render_template('landingpage.html')
@@ -49,15 +53,21 @@ def basicbarchart():
 def heatmap():
     return render_template('heatmap.html')
 
+#wichtig 
 @app.route("/tables")
 def get_tables():
     cur.execute("SHOW TABLES")
     tables = [row[0] for row in cur.fetchall()]
     return jsonify({"tables": tables})
 
+#wichtig
 @app.route("/columns", methods=["POST"])
 def get_columns():
-    table = request.form['table']
+    data = request.get_json()
+    table = data.get('table')
+    if not table:
+        return jsonify({"error": "No table provided"}), 400
+
     cur.execute(f"SHOW COLUMNS FROM {table}")
     columns = [row[0] for row in cur.fetchall()]
     return jsonify({"columns": columns})

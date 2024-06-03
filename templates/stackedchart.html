@@ -22,9 +22,7 @@
             background-color: coral;
         }
         #chart { width: 100%; height: 600px; margin-top: 20px; position: relative; }
-       
-
-
+        .hidden { display: none; }
     </style>
 </head>
 <body>
@@ -50,210 +48,123 @@
             <section class="data-selection">
                 <h2>Please Choose your Data</h2>
                 <form id="dataForm">
-                    <div class="form-group">
-                        <label for="xAxis">X-Axis</label>
-                        <select id="xAxis" name="xAxis">
-                            <option value="None">None</option>
-                            <optgroup label="Orders">
-                                <option value="orders.OrderID">OrderID</option>
-                                <option value="orders.CustomerID">CustomerID</option>
-                                <option value="orders.StoreID">StoreID</option>
-                                <option value="orders.OrderDate">Order Date</option>
-                                <option value="orders.nItems">Number of Items</option>
-                                <option value="orders.total">Total</option>
-                            </optgroup>
-                            <optgroup label="Customers">
-                                <option value="customers.CustomerID">CustomerID</option>
-                                <option value="customers.Latitude">Latitude</option>
-                                <option value="customers.Longitude">Longitude</option>
-                            </optgroup>
-                            <optgroup label="Order Items">
-                                <option value="orderItems.SKU">SKU</option>
-                                <option value="orderItems.OrderID">OrderID</option>
-                            </optgroup>
-                            <optgroup label="Products">
-                                <option value="products.SKU">SKU</option>
-                                <option value="products.Name">Name</option>
-                                <option value="products.Price">Price</option>
-                                <option value="products.Category">Category</option>
-                                <option value="products.Size">Size</option>
-                                <option value="products.Ingredients">Ingredients</option>
-                                <option value="products.Launch">Launch</option>
-                            </optgroup>
-                            <optgroup label="Stores">
-                                <option value="stores.StoreID">StoreID</option>
-                                <option value="stores.Zipcode">Zipcode</option>
-                                <option value="stores.StateShort">StateShort</option>
-                                <option value="stores.Latitude">Latitude</option>
-                                <option value="stores.Longitude">Longitude</option>
-                            </optgroup>
+                    <label for="xTable">Table for X-Axis</label>
+                    <select id="xTable" name="xTable">
+                        <option value="">None</option>
+                    </select>
+
+                    <label for="xColumn">Column for X-Axis</label>
+                    <select id="xColumn" name="xColumn">
+                        <option value="">None</option>
+                    </select>
+
+                    <label for="yTable1">Table for Y-Axis 1</label>
+                    <select id="yTable1" name="yTable1">
+                        <option value="">None</option>
+                    </select>
+
+                    <label for="yColumn1">Column for Y-Axis 1</label>
+                    <select id="yColumn1" name="yColumn1">
+                        <option value="">None</option>
+                    </select>
+
+                    <div id="additionalInputs" class="hidden">
+                        <label for="yTable2">Table for Y-Axis 2 </label>
+                        <select id="yTable2" name="yTable2">
+                            <option value="">None</option>
+                        </select>
+
+                        <label for="yColumn2">Column for Y-Axis 2 </label>
+                        <select id="yColumn2" name="yColumn2">
+                            <option value="">None</option>
                         </select>
                     </div>
-                    <div class="form-group" id="yAxisGroup1">
-                        <label for="yAxis1">Y-Axis 1</label>
-                        <select id="yAxis1" name="yAxis1">
-                            <option value="None">None</option>
-                            <optgroup label="Orders">
-                                <option value="orders.OrderID">OrderID</option>
-                                <option value="orders.CustomerID">CustomerID</option>
-                                <option value="orders.StoreID">StoreID</option>
-                                <option value="orders.OrderDate">Order Date</option>
-                                <option value="orders.nItems">Number of Items</option>
-                                <option value="orders.total">Total</option>
-                            </optgroup>
-                            <optgroup label="Customers">
-                                <option value="customers.CustomerID">CustomerID</option>
-                                <option value="customers.Latitude">Latitude</option>
-                                <option value="customers.Longitude">Longitude</option>
-                            </optgroup>
-                            <optgroup label="Order Items">
-                                <option value="orderItems.SKU">SKU</option>
-                                <option value="orderItems.OrderID">OrderID</option>
-                            </optgroup>
-                            <optgroup label="Products">
-                                <option value="products.SKU">SKU</option>
-                                <option value="products.Name">Name</option>
-                                <option value="products.Price">Price</option>
-                                <option value="products.Category">Category</option>
-                                <option value="products.Size">Size</option>
-                                <option value="products.Ingredients">Ingredients</option>
-                                <option value="products.Launch">Launch</option>
-                            </optgroup>
-                            <optgroup label="Stores">
-                                <option value="stores.StoreID">StoreID</option>
-                                <option value="stores.Zipcode">Zipcode</option>
-                                <option value="stores.StateShort">StateShort</option>
-                                <option value="stores.Latitude">Latitude</option>
-                                <option value="stores.Longitude">Longitude</option>
-                            </optgroup>
-                        </select>
-                    </div>
-                    <button type="button" id="addGraphButton">Add another Graph</button>
+
                     <button type="submit" id="submitButton">Submit</button>
+                    <button type="button" id="addGraphButton">Add Another Graph</button>
                 </form>
             </section>
-            <section id="chart">
-            </section>
+            <section id="chart"></section>
         </main>
     </div>
     <script src="/static/JS/sidemenu.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
-        let graphCount = 1;
+        let myChart; 
         let darkMode = false;
         let decalPattern = false;
-        let myChart;
-
-        document.getElementById('addGraphButton').addEventListener('click', function() {
-            if (graphCount < 5) {
-                graphCount++;
-                const newYAxisGroup = document.createElement('div');
-                newYAxisGroup.classList.add('form-group');
-                newYAxisGroup.id = `yAxisGroup${graphCount}`;
-                newYAxisGroup.innerHTML = `
-                    <label for="yAxis${graphCount}">Y-Axis ${graphCount}</label>
-                    <select id="yAxis${graphCount}" name="yAxis${graphCount}">
-                        <option value="None">None</option>
-                        <optgroup label="Orders">
-                            <option value="orders.OrderID">OrderID</option>
-                            <option value="orders.CustomerID">CustomerID</option>
-                            <option value="orders.StoreID">StoreID</option>
-                            <option value="orders.OrderDate">Order Date</option>
-                            <option value="orders.nItems">Number of Items</option>
-                            <option value="orders.total">Total</option>
-                        </optgroup>
-                        <optgroup label="Customers">
-                            <option value="customers.CustomerID">CustomerID</option>
-                            <option value="customers.Latitude">Latitude</option>
-                            <option value="customers.Longitude">Longitude</option>
-                        </optgroup>
-                        <optgroup label="Order Items">
-                            <option value="orderItems.SKU">SKU</option>
-                            <option value="orderItems.OrderID">OrderID</option>
-                        </optgroup>
-                        <optgroup label="Products">
-                            <option value="products.SKU">SKU</option>
-                            <option value="products.Name">Name</option>
-                            <option value="products.Price">Price</option>
-                            <option value="products.Category">Category</option>
-                            <option value="products.Size">Size</option>
-                            <option value="products.Ingredients">Ingredients</option>
-                            <option value="products.Launch">Launch</option>
-                        </optgroup>
-                        <optgroup label="Stores">
-                            <option value="stores.StoreID">StoreID</option>
-                            <option value="stores.Zipcode">Zipcode</option>
-                            <option value="stores.StateShort">StateShort</option>
-                            <option value="stores.Latitude">Latitude</option>
-                            <option value="stores.Longitude">Longitude</option>
-                        </optgroup>
-                    </select>
-                `;
-                document.getElementById('dataForm').insertBefore(newYAxisGroup, document.getElementById('addGraphButton'));
-            }
-        });
 
         document.getElementById('dataForm').addEventListener('submit', function(event) {
             event.preventDefault();
-            const xAxis = document.getElementById('xAxis').value;
-            if (xAxis === "None") {
-                alert('Please select a value for the X-Axis.');
-                return;
-            }
+            const xTable = document.getElementById('xTable').value;
+            const xColumn = document.getElementById('xColumn').value;
+            const yTable1 = document.getElementById('yTable1').value;
+            const yColumn1 = document.getElementById('yColumn1').value;
+            const yTable2 = document.getElementById('yTable2').value;
+            const yColumn2 = document.getElementById('yColumn2').value;
 
-            const yAxisValues = [];
-            for (let i = 1; i <= graphCount; i++) {
-                const yAxisValue = document.getElementById(`yAxis${i}`).value;
-                if (yAxisValue !== "None") {
-                    yAxisValues.push(yAxisValue);
-                }
-            }
-
-            if (yAxisValues.length === 0) {
-                alert('Please select at least one Y-Axis value.');
+            if (!xTable || !xColumn || !yTable1 || !yColumn1) {
+                alert('Please select all mandatory values for the tables and columns.');
                 return;
             }
 
             const chartDom = document.getElementById('chart');
             myChart = echarts.init(chartDom);
-            const series = yAxisValues.map((yAxis, index) => ({
-                name: yAxis,
-                type: 'line',
-                stack: 'total',
-                areaStyle: {},
-                emphasis: { focus: 'series' },
-                itemStyle: decalPattern ? { decal: { symbol: 'path://M50 250 Q 150 50 250 250 T 450 250' } } : {},
-                data: [] 
-            }));
+            const series = [
+                {
+                    name: yColumn1,
+                    type: 'line',
+                    stack: 'total',
+                    areaStyle: {},
+                    emphasis: { focus: 'series' },
+                    data: []
+                }
+            ];
+
+            if (yTable2 && yColumn2) {
+                series.push({
+                    name: yColumn2,
+                    type: 'line',
+                    stack: 'total',
+                    areaStyle: {},
+                    emphasis: { focus: 'series' },
+                    data: []
+                });
+            }
 
             const option = {
                 title: { 
                     left: 'center',
-                    text: 'Stacked Area Chart' },
+                    text: 'Stacked Area Chart'
+                },
                 tooltip: { 
                     trigger: 'axis',
                     axisPointer: {
                         type: 'cross',
-                        label:{
+                        label: {
                             backgroundColor: '#6a7985'
                         }
-                    } 
-                
+                    }
                 },
                 legend: { 
-                    data: yAxisValues, top: '5%' 
+                    data: [yColumn1, yColumn2].filter(Boolean), 
+                    top: '5%' 
                 },
                 xAxis: { 
-                    type: 'category', boundaryGap: false, data: [] },
+                    type: 'category', 
+                    boundaryGap: false, 
+                    data: [] 
+                },
                 yAxis: { 
-                    type: 'value' },
+                    type: 'value' 
+                },
                 series: series,
                 backgroundColor: darkMode ? '#333' : '#fff',
                 textStyle: { color: darkMode ? '#fff' : '#000' },
                 toolbox: {
                     feature: {
-                        saveAsImage:{},
+                        saveAsImage: {},
                         myDarkMode: {
                             show: true,
                             title: 'Dark Mode',
@@ -301,36 +212,125 @@
             };
             myChart.setOption(option);
 
-            fetchData(xAxis, yAxisValues, series, myChart);
+            fetchData(xTable, xColumn, yTable1, yColumn1, yTable2, yColumn2, series, myChart);
         });
 
-        function fetchData(xAxis, yAxisValues, series, chartInstance) {
-            $.post('/getdata', { table: xAxis.split('.')[0], column: xAxis.split('.')[1] }, function(dataX) {
+        document.getElementById('addGraphButton').addEventListener('click', function() {
+            document.getElementById('additionalInputs').classList.toggle('hidden');
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const xTableSelect = document.getElementById('xTable');
+            const xColumnSelect = document.getElementById('xColumn');
+            const yTableSelect1 = document.getElementById('yTable1');
+            const yColumnSelect1 = document.getElementById('yColumn1');
+            const yTableSelect2 = document.getElementById('yTable2');
+            const yColumnSelect2 = document.getElementById('yColumn2');
+
+            fetch('/tables')
+                .then(response => response.json())
+                .then(data => {
+                    data.tables.forEach(table => {
+                        const optionX = document.createElement('option');
+                        optionX.value = table;
+                        optionX.textContent = table;
+                        xTableSelect.appendChild(optionX);
+
+                        const optionY1 = document.createElement('option');
+                        optionY1.value = table;
+                        optionY1.textContent = table;
+                        yTableSelect1.appendChild(optionY1);
+
+                        const optionY2 = document.createElement('option');
+                        optionY2.value = table;
+                        optionY2.textContent = table;
+                        yTableSelect2.appendChild(optionY2);
+                    });
+                });
+
+            xTableSelect.addEventListener('change', function() {
+                fetchColumns(this.value, xColumnSelect);
+            });
+
+            yTableSelect1.addEventListener('change', function() {
+                fetchColumns(this.value, yColumnSelect1);
+            });
+
+            yTableSelect2.addEventListener('change', function() {
+                fetchColumns(this.value, yColumnSelect2);
+            });
+        });
+
+        function fetchColumns(table, columnSelect) {
+            fetch(`/columns`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ table: table })
+            })
+            .then(response => response.json())
+            .then(data => {
+                columnSelect.innerHTML = '<option value="">None</option>';
+                data.columns.forEach(column => {
+                    const option = document.createElement('option');
+                    option.value = column;
+                    option.textContent = column;
+                    columnSelect.appendChild(option);
+                });
+            });
+        }
+
+        function fetchData(xTable, xColumn, yTable1, yColumn1, yTable2, yColumn2, series, chartInstance) {
+            $.post('/getdata', { table: xTable, column: xColumn }, function(dataX) {
                 if (dataX.data) {
-                    const xAxisData = dataX.data;
-                    let promises = [];
-                    yAxisValues.forEach((yAxis, index) => {
-                        const promise = $.post('/getdata', { table: yAxis.split('.')[0], column: yAxis.split('.')[1] });
-                        promises.push(promise);
+                    const xAxisData = [...new Set(dataX.data)]; 
+                    const xAxisDataIndexMap = {};
+                    xAxisData.forEach((item, index) => {
+                        xAxisDataIndexMap[item] = index;
                     });
 
-                    Promise.all(promises).then(responses => {
-                        responses.forEach((response, index) => {
-                            if (response.data) {
-                                series[index].data = response.data;
-                            }
-                        });
+                    $.post('/getdata', { table: yTable1, column: yColumn1 }, function(dataY1) {
+                        if (dataY1.data) {
+                            const yData1 = new Array(xAxisData.length).fill(null);
+                            dataX.data.forEach((item, index) => {
+                                yData1[xAxisDataIndexMap[item]] = dataY1.data[index];
+                            });
 
-                        var option = {
-                            xAxis: { data: xAxisData },
-                            series: series
-                        };
-                        chartInstance.setOption(option);
-                    }).catch(error => {
-                        console.error('Error fetching data:', error);
+                            series[0].data = yData1;
+
+                            if (yTable2 && yColumn2) {
+                                $.post('/getdata', { table: yTable2, column: yColumn2 }, function(dataY2) {
+                                    if (dataY2.data) {
+                                        const yData2 = new Array(xAxisData.length).fill(null);
+                                        dataX.data.forEach((item, index) => {
+                                            yData2[xAxisDataIndexMap[item]] = dataY2.data[index];
+                                        });
+
+                                        series[1].data = yData2;
+
+                                        const option = {
+                                            xAxis: { data: xAxisData },
+                                            series: series
+                                        };
+                                        chartInstance.setOption(option);
+                                    } else {
+                                        console.error('Error fetching data for Y-Axis 2:', dataY2);
+                                    }
+                                });
+                            } else {
+                                const option = {
+                                    xAxis: { data: xAxisData },
+                                    series: series
+                                };
+                                chartInstance.setOption(option);
+                            }
+                        } else {
+                            console.error('Error fetching data for Y-Axis 1:', dataY1);
+                        }
                     });
                 } else {
-                    console.error('Error fetching X-Axis data:', dataX);
+                    console.error('Error fetching data for X-Axis:', dataX);
                 }
             });
         }
