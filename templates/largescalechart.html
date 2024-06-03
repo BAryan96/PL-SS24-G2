@@ -250,11 +250,11 @@
         function fetchData(xTable, xColumn, yTable, yColumn, series, chartInstance) {
             $.post('/getdata', { table: xTable, column: xColumn }, function(dataX) {
                 if (dataX.data) {
-                    const xAxisData = [...new Set(dataX.data)];  // Einzigartigkeit nur für x-Achse
+                    const xAxisData = dataX.data;  // Alle Daten ohne Einzigartigkeit
 
                     $.post('/getdata', { table: yTable, column: yColumn }, function(dataY) {
                         if (dataY.data) {
-                            series[0].data = dataY.data;  // Keine Einzigartigkeit für y-Achse
+                            series[0].data = dataY.data;  
 
                             const option = {
                                 xAxis: { data: xAxisData },

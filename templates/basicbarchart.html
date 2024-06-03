@@ -12,14 +12,6 @@
         }
         #chart { width: 100%; height: 600px; margin-top: 20px; position: relative; }
         .chart { width: 100%; height: 600px; margin-top: 20px; }
-        .options-menu {
-            position: absolute;
-            z-index: 1000;
-            background: white;
-            border: 1px solid #ccc;
-            padding: 10px;
-            box-shadow: 0px 0px 10px rgba(0,0,0,0.5);
-        }
     </style>
 </head>
 <body>
@@ -82,6 +74,7 @@
                 window.availableTables = data.tables;
                 populateTableSelect('xTable');
                 populateTableSelect('yTable');
+                console.log("Available tables loaded:", data.tables);
             });
 
             $('#xTable').on('change', function() {
@@ -135,6 +128,7 @@
                         option.textContent = column;
                         columnSelect.appendChild(option);
                     });
+                    console.log(`Columns for table ${selectedTable} loaded:`, response.columns);
                 }
             });
         }
@@ -156,7 +150,9 @@
 
             if (xAxisTable !== "None" && xAxisColumn !== "None" && yAxisTable !== "None" && yAxisColumn !== "None") {
                 $.post("/getdata", { table: xAxisTable, column: xAxisColumn }, function(dataX) {
+                    console.log(`Data loaded for X-Axis (${xAxisTable} - ${xAxisColumn}):`, dataX);
                     $.post("/getdata", { table: yAxisTable, column: yAxisColumn }, function(dataY) {
+                        console.log(`Data loaded for Y-Axis (${yAxisTable} - ${yAxisColumn}):`, dataY);
                         if (dataX.data && dataY.data) {
                             const option = {
                                 xAxis: {
@@ -167,19 +163,20 @@
                                     type: 'value'
                                 },
                                 series: [{
-                                    data: dataY.data.map(value => ({ value, itemStyle: { color: '#5470c6' } })),
-                                    type: chartType
+                                    data: dataY.data,
+                                    type: chartType,
+                                    itemStyle: { color: '#5470c6' }
                                 }],
                                 backgroundColor: darkMode ? '#333' : '#fff',
                                 textStyle: { color: darkMode ? '#fff' : '#000' },
-                                tooltip: {
+                                tooltip: { 
                                     trigger: 'axis',
                                     axisPointer: {
                                         type: 'cross',
-                                        label: {
+                                        label:{
                                             backgroundColor: '#6a7985'
                                         }
-                                    }
+                                    } 
                                 },
                                 toolbox: {
                                     feature: {
@@ -254,7 +251,7 @@
             colorPicker.className = 'color-picker';
             colorPicker.addEventListener('input', function () {
                 const option = chartInstance.getOption();
-                option.series[0].data[dataIndex].itemStyle.color = colorPicker.value;
+                option.series[0].data[dataIndex].itemStyle = { color: colorPicker.value };
                 chartInstance.setOption(option);
             });
 
@@ -264,8 +261,10 @@
 
             optionsMenu.appendChild(colorPicker);
             document.body.appendChild(optionsMenu);
+            optionsMenu.style.position = 'absolute';
             optionsMenu.style.left = `${event.pageX}px`;
             optionsMenu.style.top = `${event.pageY}px`;
+            optionsMenu.style.zIndex = 1000; 
 
             document.addEventListener('click', function removeOptionsMenu(event) {
                 if (!optionsMenu.contains(event.target)) {
