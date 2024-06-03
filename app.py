@@ -200,5 +200,23 @@ def get_table():
     return render_template('index.html', data=json_data)
 
 
+#wichtig für heatmap, weitere relationen hinzufügen -> Aryan: Kann Raus
+@app.route("/store-orders", methods=["GET"])
+def get_store_orders():
+    query = """
+        SELECT stores.StoreID, COUNT(orders.OrderID) as orderCount
+        FROM stores
+        JOIN orders ON stores.StoreID = orders.StoreID
+        GROUP BY stores.StoreID
+    """
+    cur.execute(query)
+    results = cur.fetchall()
+    return jsonify(results)
+
+
+if __name__ == "__main__":
+    app.run(debug=True)
+
+
 if __name__ == "__main__":
     app.run(debug=True)
