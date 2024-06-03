@@ -101,67 +101,61 @@ def calculate_stats_details():
     table_name = request.form['table_name']
     column_name = request.form['column-choice']
 
+    query = ""
     if table_name == 'stores' and column_name == 'sum profit':
         query = """
         SELECT s.storeID, SUM(o.total) AS profit
-            FROM stores s
-            JOIN orders o ON s.storeID = o.storeID
-            GROUP BY s.storeID
-            ORDER BY profit;
+        FROM stores s
+        JOIN orders o ON s.storeID = o.storeID
+        GROUP BY s.storeID
+        ORDER BY profit;
         """
     
-        df = fetch_data(query)
-
     elif table_name == 'stores' and column_name == 'sum customers':
        query = """
        SELECT s.storeID, COUNT(DISTINCT o.customerID) AS num_customers
-            FROM stores s
-            JOIN orders o ON s.storeID = o.storeID
-            GROUP BY s.storeID
-            ORDER BY num_customers;
-        """
-       df = fetch_data(query)
+       FROM stores s
+       JOIN orders o ON s.storeID = o.storeID
+       GROUP BY s.storeID
+       ORDER BY num_customers;
+       """
 
     elif table_name == 'stores' and column_name == 'sum sales':
         query = """
         SELECT s.storeID, COUNT(o.orderID) AS num_orders
-            FROM stores s
-            JOIN orders o ON s.storeID = o.storeID
-            GROUP BY s.storeID
-            ORDER BY num_orders;
+        FROM stores s
+        JOIN orders o ON s.storeID = o.storeID
+        GROUP BY s.storeID
+        ORDER BY num_orders;
         """
-        df = fetch_data(query)
-
+    
     elif table_name == 'stores' and column_name == 'sum sold products':
         query = """
         SELECT s.storeID, SUM(o.nItems) AS total_sold_products
-            FROM stores s
-            JOIN orders o ON s.storeID = o.storeID
-            GROUP BY s.storeID
-            ORDER BY total_sold_products;
+        FROM stores s
+        JOIN orders o ON s.storeID = o.storeID
+        GROUP BY s.storeID
+        ORDER BY total_sold_products;
         """
-        df = fetch_data(query)
-
+    
     elif table_name == 'stores' and column_name == 'mean total':
         query = """
         SELECT s.storeID, AVG(o.total) AS average_total
-            FROM stores s
-            JOIN orders o ON s.storeID = o.storeID
-            GROUP BY s.storeID
-            ORDER BY average_total;
+        FROM stores s
+        JOIN orders o ON s.storeID = o.storeID
+        GROUP BY s.storeID
+        ORDER BY average_total;
         """
-        df = fetch_data(query)
-
+    
     elif table_name == 'stores' and column_name == 'mean products/order':
         query = """
         SELECT s.storeID, AVG(o.nItems) AS average_products_per_order
-            FROM stores s
-            JOIN orders o ON s.storeID = o.storeID
-            GROUP BY s.storeID
-            ORDER BY average_products_per_order;
+        FROM stores s
+        JOIN orders o ON s.storeID = o.storeID
+        GROUP BY s.storeID
+        ORDER BY average_products_per_order;
         """
-        df = fetch_data (query)
-
+    
     elif table_name == 'stores' and column_name == 'mean distance customer/store':
         query = """
         SELECT 
@@ -178,8 +172,7 @@ def calculate_stats_details():
         GROUP BY s.storeID
         ORDER BY average_distance;
         """
-        df = fetch_data (query)
-
+    
     elif table_name == 'stores' and column_name == 'mean reorder rate':
         query = """
         SELECT
@@ -195,10 +188,261 @@ def calculate_stats_details():
             GROUP BY o.storeID, o.customerID
         ) AS customer_orders ON s.storeID = customer_orders.storeID
         GROUP BY s.storeID
-        ORDER BY s.storeID;
-"""
-        df = fetch_data (query)
+        ORDER BY avg_reorder_rate;
+        """
+    
+    elif table_name == 'stores' and column_name == 'median total':
+        query = """
+        WITH ordered_totals AS (
+            SELECT 
+                s.storeID, 
+                o.total, 
+                ROW_NUMBER() OVER (PARTITION BY s.storeID ORDER BY o.total) AS row_num, 
+                COUNT(*) OVER (PARTITION BY s.storeID) AS total_count 
+            FROM stores s
+            JOIN orders o ON s.storeID = o.storeID
+        )
+        SELECT 
+            storeID, 
+            AVG(total) AS median_total 
+        FROM ordered_totals 
+        WHERE row_num IN (FLOOR((total_count + 1) / 2), FLOOR((total_count + 2) / 2))
+        GROUP BY storeID
+        ORDER BY median_total;
+        """
+    
+    elif table_name == 'stores' and column_name == 'median products/order':
+        query = """
+        WITH ordered_items AS (
+            SELECT 
+                s.storeID, 
+                o.nItems, 
+                ROW_NUMBER() OVER (PARTITION BY s.storeID ORDER BY o.nItems) AS row_num, 
+                COUNT(*) OVER (PARTITION BY s.storeID) AS total_count 
+            FROM stores s
+            JOIN orders o ON s.storeID = o.storeID
+        )
+        SELECT 
+            storeID, 
+            AVG(nItems) AS median_nItems 
+        FROM ordered_items 
+        WHERE row_num IN (FLOOR((total_count + 1) / 2), FLOOR((total_count + 2) / 2))
+        GROUP BY storeID
+        ORDER BY median_nItems;
+        """
+    
+    elif table_name == 'stores' and column_name == 'median distance customer/store':
+        query = """
+        WITH ordered_distances AS (
+            SELECT 
+                s.storeID, 
+                6371 * ACOS(
+                    COS(RADIANS(s.latitude)) * COS(RADIANS(c.latitude)) * COS(RADIANS(c.longitude) - RADIANS(s.longitude)) + 
+                    SIN(RADIANS(s.latitude)) * SIN(RADIANS(c.latitude))
+                ) AS distance, 
+                ROW_NUMBER() OVER (PARTITION BY s.storeID ORDER BY distance) AS row_num, 
+                COUNT(*) OVER (PARTITION BY s.storeID) AS total_count 
+            FROM stores s
+            JOIN orders o ON s.storeID = o.storeID
+            JOIN customers c ON o.customerID = c.customerID
+        )
+        SELECT 
+            storeID, 
+            AVG(distance) AS median_distance 
+        FROM ordered_distances 
+        WHERE row_num IN (FLOOR((total_count + 1) / 2), FLOOR((total_count + 2) / 2))
+        GROUP BY storeID
+        ORDER BY median_distance;
+        """
+    
+    elif table_name == 'stores' and column_name == 'median reorder rate':
+        query = """
+        WITH customer_orders AS (
+            SELECT 
+                o.storeID, 
+                o.customerID, 
+                COUNT(o.orderID) AS num_orders 
+            FROM orders o 
+            GROUP BY o.storeID, o.customerID
+        ), ordered_reorder_rates AS (
+            SELECT 
+                storeID, 
+                num_orders, 
+                ROW_NUMBER() OVER (PARTITION BY storeID ORDER BY num_orders) AS row_num, 
+                COUNT(*) OVER (PARTITION BY storeID) AS total_count 
+            FROM customer_orders
+        )
+        SELECT 
+            storeID, 
+            AVG(num_orders) AS median_reorder_rate 
+        FROM ordered_reorder_rates 
+        WHERE row_num IN (FLOOR((total_count + 1) / 2), FLOOR((total_count + 2) / 2))
+        GROUP BY storeID
+        ORDER BY median_reorder_rate;
+        """
+    elif table_name == 'stores' and column_name == 'range total':
+        query = """
+        SELECT 
+            s.storeID, 
+            MIN(o.total) AS min_total, 
+            MAX(o.total) AS max_total, 
+            (MAX(o.total) - MIN(o.total)) AS range_total
+        FROM 
+            stores s
+        JOIN 
+            orders o ON s.storeID = o.storeID
+        GROUP BY 
+            s.storeID
+        ORDER BY 
+            range_total;
+        """
+    
+    elif table_name == 'stores' and column_name == 'range products/order':
+        query = """
+        SELECT 
+            s.storeID, 
+            MIN(o.nItems) AS min_products, 
+            MAX(o.nItems) AS max_products, 
+            (MAX(o.nItems) - MIN(o.nItems)) AS range_products
+        FROM 
+            stores s
+        JOIN 
+            orders o ON s.storeID = o.storeID
+        GROUP BY 
+            s.storeID
+        ORDER BY 
+            range_products;
+        """
+    
+    elif table_name == 'stores' and column_name == 'range distance customer/store':
+        query = """
+        SELECT 
+            s.storeID, 
+            MIN(distance) AS min_distance, 
+            MAX(distance) AS max_distance, 
+            (MAX(distance) - MIN(distance)) AS range_distance
+        FROM (
+            SELECT 
+                s.storeID, 
+                6371 * ACOS(
+                    COS(RADIANS(s.latitude)) * COS(RADIANS(c.latitude)) * COS(RADIANS(c.longitude) - RADIANS(s.longitude)) + 
+                    SIN(RADIANS(s.latitude)) * SIN(RADIANS(c.latitude))
+                ) AS distance
+            FROM 
+                stores s
+            JOIN 
+                orders o ON s.storeID = o.storeID
+            JOIN 
+                customers c ON o.customerID = c.customerID
+        ) distances
+        GROUP BY 
+            storeID
+        ORDER BY 
+            range_distance;
+        """
+    
+    elif table_name == 'stores' and column_name == 'range reorder rate':
+        query = """
+        SELECT 
+            s.storeID, 
+            MIN(customer_orders.num_orders) AS min_reorder_rate, 
+            MAX(customer_orders.num_orders) AS max_reorder_rate, 
+            (MAX(customer_orders.num_orders) - MIN(customer_orders.num_orders)) AS range_reorder_rate
+        FROM 
+            stores s
+        JOIN (
+            SELECT 
+                o.storeID, 
+                o.customerID, 
+                COUNT(o.orderID) AS num_orders
+            FROM 
+                orders o
+            GROUP BY 
+                o.storeID, o.customerID
+        ) AS customer_orders ON s.storeID = customer_orders.storeID
+        GROUP BY 
+            s.storeID
+        ORDER BY 
+            range_reorder_rate;
+        """
 
+    elif table_name == 'stores' and column_name == 'standard deviation total':
+        query = """
+        SELECT 
+            s.storeID, 
+            STDDEV(o.total) AS stddev_total
+        FROM 
+            stores s
+        JOIN 
+            orders o ON s.storeID = o.storeID
+        GROUP BY 
+            s.storeID
+        ORDER BY 
+            stddev_total;
+        """
+    
+    elif table_name == 'stores' and column_name == 'standard deviation products/order':
+        query = """
+        SELECT 
+            s.storeID, 
+            STDDEV(o.nItems) AS stddev_products_per_order
+        FROM 
+            stores s
+        JOIN 
+            orders o ON s.storeID = o.storeID
+        GROUP BY 
+            s.storeID
+        ORDER BY 
+            stddev_products_per_order;
+        """
+    
+    elif table_name == 'stores' and column_name == 'standard deviation distance customer/store':
+        query = """
+        SELECT 
+            s.storeID, 
+            STDDEV(distance) AS stddev_distance
+        FROM (
+            SELECT 
+                s.storeID, 
+                6371 * ACOS(
+                    COS(RADIANS(s.latitude)) * COS(RADIANS(c.latitude)) * COS(RADIANS(c.longitude) - RADIANS(s.longitude)) + 
+                    SIN(RADIANS(s.latitude)) * SIN(RADIANS(c.latitude))
+                ) AS distance
+            FROM 
+                stores s
+            JOIN 
+                orders o ON s.storeID = o.storeID
+            JOIN 
+                customers c ON o.customerID = c.customerID
+        ) distances
+        GROUP BY 
+            storeID
+        ORDER BY 
+            stddev_distance;
+        """
+    
+    elif table_name == 'stores' and column_name == 'standard deviation reorder rate':
+        query = """
+    	SELECT 
+            s.storeID, 
+            STDDEV(customer_orders.num_orders) AS stddev_reorder_rate
+        FROM 
+            stores s
+        JOIN (
+            SELECT 
+                o.storeID, 
+                o.customerID, 
+                COUNT(o.orderID) AS num_orders
+            FROM 
+                orders o
+            GROUP BY 
+                o.storeID, o.customerID
+        ) AS customer_orders ON s.storeID = customer_orders.storeID
+        GROUP BY 
+            s.storeID
+        ORDER BY 
+            stddev_reorder_rate;
+        """
     else:
         # Falls eine andere Berechnung gewählt wird, hier einen Platzhalter für die allgemeine Statistikberechnung
         query = f"SELECT {column_name} FROM {table_name}"
@@ -206,7 +450,10 @@ def calculate_stats_details():
         desc_stats = calculate_descriptive_stats(df[column_name])
         return render_template('index.html', stats=desc_stats.to_dict(), table_name=table_name)
 
+    df = fetch_data(query)
     return render_template('result.html', data=df.to_dict(orient='records'), columns=df.columns)
+
+
 
 if __name__ == "__main__":
     app.run(debug=True)
