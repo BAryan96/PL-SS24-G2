@@ -8,7 +8,6 @@ let highlightedPoints = {};  // Globale Datenstruktur zum Speichern der hervorge
 let updateQueue = [];  // Warteschlange für die Diagrammaktualisierungen
 let updating = false;  // Flag, um anzuzeigen, ob eine Aktualisierung gerade durchgeführt wird
 
-// um tabellennamen rauszubekommen 
 $(document).ready(function() {
     // Lädt die verfügbaren Tabellen vom Backend beim Laden der Seite
     $.get("/tables", function(data) {
@@ -88,13 +87,18 @@ function addChart(chartType) {
     const aggregationSelect = document.createElement('select');
     aggregationSelect.className = 'aggregation-select';
     aggregationSelect.innerHTML = `
-        <option value="">Select for Y Axis Aggregation</option>
         <option value="">No Aggregation</option>
         <option value="Summe">Sum</option>
         <option value="Max">Max</option>
         <option value="Min">Min</option>
         <option value="Anzahl">Count</option>
         <option value="Diskrete Anzahl">Distinct Count</option>
+        <option value="Durchschnitt">Average</option>
+        <option value="Standardabweichung">Standard deviation</option>
+        <option value="Varianz">Variance</option>
+        <option value="Median">Median</option>
+        <option value="Erstes Quartil">Q1 Quartile</option>
+        <option value="Drittes Quartil">Q3 Quartile</option>
     `;
     chartDiv.appendChild(aggregationSelect);
 
@@ -109,8 +113,8 @@ function addChart(chartType) {
                 tables: [chartInstance.table1, chartInstance.table2], 
                 columns: [xAxisType, yAxisType],
                 chartType: chartInstance.chartType,
-                aggregationType: aggregationType,
-                filters: filter.filter(f => f.chartId !== chartInstance.id) // Exkludiere den Filter des aktuellen Diagramms
+                aggregations: ["", aggregationType], // X-Achse keine Aggregation
+                filters: filter.filter(f => f.chartId !== chartInstance.id)
             };
     
             $.ajax({
@@ -240,7 +244,7 @@ function addChart(chartType) {
             });
         }
     });
-//und hier auch
+
     tableSelect2.addEventListener('change', function() {
         // Lädt die Spalten für die Y-Achse basierend auf der ausgewählten Tabelle
         if (this.value) {
@@ -340,9 +344,6 @@ function addChart(chartType) {
 
             // Aktualisieren Sie alle anderen Diagramme
             updateAllCharts(chartInstance.id);
-
-            // Debugging-Ausgabe
-            console.log(filter);
         }
     });
 

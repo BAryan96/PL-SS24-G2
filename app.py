@@ -63,11 +63,7 @@ def get_tables():
 #wichtig
 @app.route("/columns", methods=["POST"])
 def get_columns():
-    data = request.get_json()
-    table = data.get('table')
-    if not table:
-        return jsonify({"error": "No table provided"}), 400
-
+    table = request.form['table']
     cur.execute(f"SHOW COLUMNS FROM {table}")
     columns = [row[0] for row in cur.fetchall()]
     return jsonify({"columns": columns})
@@ -80,15 +76,27 @@ def get_data():
     data = request.get_json()
     print("Received JSON data:", data)
 
-    tables = data.get('tables', [])
-    columns = data.get('columns', [])
-    chart_type = data.get('chartType')
-    aggregation_type = data.get('aggregationType', '')
+    # Check for required fields
+    required_fields = ['tables', 'columns', 'chartType', 'aggregations']
+    missing_fields = [field for field in required_fields if field not in data]
 
-    if not tables or not columns or not chart_type:
-        return jsonify({"error": "Missing required fields"}), 400
+    if missing_fields:
+        return jsonify({"error": f"Missing required fields: {', '.join(missing_fields)}"}), 400
 
+    tables = data['tables']
+    columns = data['columns']
+    chart_type = data['chartType']
+    aggregations = data['aggregations']
     filters = data.get('filters', [])
+
+    if not isinstance(tables, list) or not isinstance(columns, list) or not isinstance(aggregations, list):
+        return jsonify({"error": "Tables, columns, and aggregations must be lists"}), 400
+
+    if len(aggregations) < len(columns):
+        aggregations.extend([""] * (len(columns) - len(aggregations)))
+
+    if len(columns) < len(aggregations):
+        return jsonify({"error": "The length of aggregations cannot be greater than the length of columns"}), 400
 
     joins = {
         ('products', 'order_items'): ('SKU', 'SKU'),
@@ -97,43 +105,48 @@ def get_data():
         ('orders', 'stores'): ('storeID', 'storeID'),
     }
 
-    if aggregation_type == "Summe":
-        aggregation_function = "SUM("
-    elif aggregation_type == "Max":
-        aggregation_function = "MAX("
-    elif aggregation_type == "Min":
-        aggregation_function = "MIN("
-    elif aggregation_type == "Anzahl":
-        aggregation_function = "COUNT("
-    elif aggregation_type == "Diskrete Anzahl":
-        aggregation_function = "COUNT(DISTINCT "
-    else:
-        aggregation_function = None
+    aggregation_functions = {
+        "Summe": "SUM",
+        "Max": "MAX",
+        "Min": "MIN",
+        "Anzahl": "COUNT",
+        "Diskrete Anzahl": "COUNT(DISTINCT",
+        "Durchschnitt": "AVG",
+        "Varianz": "VARIANCE",
+        "Standardabweichung": "STDDEV",
+        "Median": "PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY",
+        "Erstes Quartil": "PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY",
+        "Drittes Quartil": "PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY"
+    }
 
+    # Construct filter query
     filter_query = ""
     if filters:
         filter_clauses = []
         for filter in filters:
-            filter_table = filter['filterTable']
-            filter_column = filter['filterColumn']
-            filter_value = filter['filterValue']
+            filter_table = filter.get('filterTable')
+            filter_column = filter.get('filterColumn')
+            filter_value = filter.get('filterValue')
+            if not filter_table or not filter_column or filter_value is None:
+                return jsonify({"error": "Each filter must have filterTable, filterColumn, and filterValue"}), 400
             filter_clauses.append(f"{filter_table}.{filter_column} = '{filter_value}'")
         filter_query = " WHERE " + " OR ".join(filter_clauses)
 
-    # Sicherstellen, dass die Filtertabelle in den Tabellen enthalten ist
+    # Ensure that the filter table is in the tables list
     for filter in filters:
         filter_table = filter['filterTable']
         if filter_table not in tables:
             tables.append(filter_table)
             columns.append('')
+            aggregations.append('')
 
-    # Entfernen doppelter Tabellennamen
+    # Remove duplicate table names
     unique_tables = []
     for table in tables:
         if table not in unique_tables:
             unique_tables.append(table)
 
-    # Generierung der Join-Bedingungen
+    # Generate join conditions
     join_conditions = []
     from_clause = unique_tables[0]
     for i in range(1, len(unique_tables)):
@@ -148,24 +161,40 @@ def get_data():
             else:
                 return jsonify({"error": f"No valid join path found between {table1} and {table2}"}), 400
         else:
-            from_clause = table1  # Nur die erste Tabelle in der FROM-Klausel behalten, wenn die Tabellen gleich sind
+            from_clause = table1  # Only keep the first table in the FROM clause if the tables are the same
 
     join_query = " ".join(join_conditions)
 
-    if aggregation_function:
-        select_columns = f"{columns[0]}, {aggregation_function}{columns[1]})"
-        group_by = f"GROUP BY {columns[0]}"
-    else:
-        select_columns = ", ".join([f"{table}.{column}" for table, column in zip(tables, columns) if column])
-        group_by = f"GROUP BY {', '.join([f'{table}.{column}' for table, column in zip(tables, columns) if column])}"
+    # Construct the select clause
+    select_columns = []
+    for col, agg in zip(columns, aggregations):
+        if col:
+            aggregation_function = aggregation_functions.get(agg, "")
+            if not aggregation_function:
+                if agg == "":
+                    select_columns.append(col)  # No aggregation
+                else:
+                    return jsonify({"error": f"Unsupported aggregation type: {agg}"}), 400
+            else:
+                if agg in ["Diskrete Anzahl", "Median", "Erstes Quartil", "Drittes Quartil"]:
+                    select_columns.append(f"{aggregation_function} {col})")
+                else:
+                    select_columns.append(f"{aggregation_function}({col})")
+
+    group_by_columns = [f"{table}.{column}" for table, column in zip(tables, columns) if column and not aggregation_functions.get(aggregations[columns.index(column)])]
+
+    select_query = ", ".join(select_columns)
+    group_by_query = ", ".join(group_by_columns)
 
     query = f"""
-    SELECT {select_columns}
+    SELECT {select_query}
     FROM {from_clause}
     {join_query}
     {filter_query}
-    {group_by}
     """
+
+    if group_by_query:
+        query += f" GROUP BY {group_by_query}"
 
     print("Generated SQL Query:", query)
     cur.execute(query)
@@ -218,5 +247,3 @@ if __name__ == "__main__":
     app.run(debug=True)
 
 
-if __name__ == "__main__":
-    app.run(debug=True)
