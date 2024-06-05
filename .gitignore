@@ -1,2 +1,4 @@
 DB.py
-DB.py
+CSV/
+__pychache__
+.vscode

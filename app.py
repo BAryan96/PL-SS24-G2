@@ -122,15 +122,36 @@ def get_data():
     # Construct filter query
     filter_query = ""
     if filters:
-        filter_clauses = []
+        chart_filters = {}
         for filter in filters:
-            filter_table = filter.get('filterTable')
-            filter_column = filter.get('filterColumn')
-            filter_value = filter.get('filterValue')
-            if not filter_table or not filter_column or filter_value is None:
-                return jsonify({"error": "Each filter must have filterTable, filterColumn, and filterValue"}), 400
-            filter_clauses.append(f"{filter_table}.{filter_column} = '{filter_value}'")
-        filter_query = " WHERE " + " OR ".join(filter_clauses)
+            chart_id = filter.get('chartId')
+            if chart_id not in chart_filters:
+                chart_filters[chart_id] = []
+            chart_filters[chart_id].append(filter)
+
+        filter_clauses = []
+        for chart_id, chart_filter_list in chart_filters.items():
+            if len(chart_filter_list) == 1:
+                filter = chart_filter_list[0]
+                filter_table = filter.get('filterTable')
+                filter_column = filter.get('filterColumn')
+                filter_value = filter.get('filterValue')
+                if not filter_table or not filter_column or filter_value is None:
+                    return jsonify({"error": "Each filter must have filterTable, filterColumn, and filterValue"}), 400
+                filter_clauses.append(f"{filter_table}.{filter_column} = '{filter_value}'")
+            else:
+                or_clauses = []
+                for filter in chart_filter_list:
+                    filter_table = filter.get('filterTable')
+                    filter_column = filter.get('filterColumn')
+                    filter_value = filter.get('filterValue')
+                    if not filter_table or not filter_column or filter_value is None:
+                        return jsonify({"error": "Each filter must have filterTable, filterColumn, and filterValue"}), 400
+                    or_clauses.append(f"{filter_table}.{filter_column} = '{filter_value}'")
+                filter_clauses.append(f"({' OR '.join(or_clauses)})")
+
+        if filter_clauses:
+            filter_query = " WHERE " + " AND ".join(filter_clauses)
 
     # Ensure that the filter table is in the tables list
     for filter in filters:
@@ -167,19 +188,20 @@ def get_data():
 
     # Construct the select clause
     select_columns = []
-    for col, agg in zip(columns, aggregations):
+    for table, col, agg in zip(tables, columns, aggregations):
         if col:
+            full_column_name = f"{table}.{col}"
             aggregation_function = aggregation_functions.get(agg, "")
             if not aggregation_function:
                 if agg == "":
-                    select_columns.append(col)  # No aggregation
+                    select_columns.append(full_column_name)  # No aggregation
                 else:
                     return jsonify({"error": f"Unsupported aggregation type: {agg}"}), 400
             else:
                 if agg in ["Diskrete Anzahl", "Median", "Erstes Quartil", "Drittes Quartil"]:
-                    select_columns.append(f"{aggregation_function} {col})")
+                    select_columns.append(f"{aggregation_function} {full_column_name})")
                 else:
-                    select_columns.append(f"{aggregation_function}({col})")
+                    select_columns.append(f"{aggregation_function}({full_column_name})")
 
     group_by_columns = [f"{table}.{column}" for table, column in zip(tables, columns) if column and not aggregation_functions.get(aggregations[columns.index(column)])]
 
@@ -211,6 +233,26 @@ def get_data():
     print(response)
     return jsonify(response)
 
+
+
+
+@app.route("/test")
+def test():
+    return render_template('test.html')
+
+@app.route("/get_table", methods=["POST"])
+def get_table():
+    data_choice = request.form['data-choice']
+    cur.execute(f"SELECT * FROM {data_choice}")
+    row_headers = [x[0] for x in cur.description]
+    results = cur.fetchall()
+
+    json_data = []
+    for result in results:
+        json_data.append(dict(zip(row_headers, result)))
+    return render_template('index.html', data=json_data)
+
+
 #wichtig für heatmap, weitere relationen hinzufügen -> Aryan: Kann Raus
 @app.route("/store-orders", methods=["GET"])
 def get_store_orders():
@@ -227,5 +269,3 @@ def get_store_orders():
 
 if __name__ == "__main__":
     app.run(debug=True)
-
-
