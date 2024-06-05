@@ -8,6 +8,7 @@ let highlightedPoints = {};  // Globale Datenstruktur zum Speichern der hervorge
 let updateQueue = [];  // Warteschlange für die Diagrammaktualisierungen
 let updating = false;  // Flag, um anzuzeigen, ob eine Aktualisierung gerade durchgeführt wird
 
+// um tabellennamen rauszubekommen 
 $(document).ready(function() {
     // Lädt die verfügbaren Tabellen vom Backend beim Laden der Seite
     $.get("/tables", function(data) {
@@ -22,6 +23,7 @@ document.getElementById('chartTypeSelect').addEventListener('change', function()
         if (chartCount < maxCharts) {
             addChart(chartType);
             this.value = ""; // Setzt das Auswahlfeld zurück
+            this.value = ""; // Reset the select box
         } else {
             alert('Maximum number of charts reached.');
         }
@@ -31,7 +33,7 @@ document.getElementById('chartTypeSelect').addEventListener('change', function()
 function addChart(chartType) {
     // Erstellt ein neues Diagramm und fügt es zur Seite hinzu
     const chartContainer = document.getElementById('chartContainer');
-    
+
     const chartDiv = document.createElement('div');
     chartDiv.className = 'chart';
     chartDiv.style.width = '600px';
@@ -45,17 +47,19 @@ function addChart(chartType) {
 
     const chartInstance = echarts.init(chartDiv);
     charts.push(chartInstance);
-
     const closeButton = document.createElement('button');
     closeButton.className = 'close-btn';
     closeButton.innerText = 'X';
     closeButton.addEventListener('click', function() {
         // Entfernt das Diagramm und verringert die Anzahl der Diagramme
+    closeButton.onclick = () => {
         chartContainer.removeChild(chartDiv);
         chartInstance.dispose();
         charts = charts.filter(chart => chart !== chartInstance);
         chartCount--;
     });
+        charts = charts.filter(chart => chart !== chartInstance);
+    };
     chartDiv.appendChild(closeButton);
 
     const tableSelect1 = document.createElement('select');
@@ -65,12 +69,10 @@ function addChart(chartType) {
         tableSelect1.innerHTML += `<option value="${table}">${table}</option>`;
     });
     chartDiv.appendChild(tableSelect1);
-
     const xAxisSelect = document.createElement('select');
     xAxisSelect.className = 'chart-select';
     xAxisSelect.innerHTML = `<option value="">Select X Axis</option>`;
     chartDiv.appendChild(xAxisSelect);
-
     const tableSelect2 = document.createElement('select');
     tableSelect2.className = 'table-select';
     tableSelect2.innerHTML = `<option value="">Select Table for Y Axis</option>`;
@@ -78,7 +80,6 @@ function addChart(chartType) {
         tableSelect2.innerHTML += `<option value="${table}">${table}</option>`;
     });
     chartDiv.appendChild(tableSelect2);
-
     const yAxisSelect = document.createElement('select');
     yAxisSelect.className = 'chart-select';
     yAxisSelect.innerHTML = `<option value="">Select Y Axis</option>`;
@@ -107,7 +108,7 @@ function addChart(chartType) {
         const xAxisType = chartInstance.xAxisType;
         const yAxisType = chartInstance.yAxisType;
         const aggregationType = chartInstance.aggregationType;
-    
+
         if (xAxisType && yAxisType) {
             let requestData = { 
                 tables: [chartInstance.table1, chartInstance.table2], 
@@ -116,7 +117,7 @@ function addChart(chartType) {
                 aggregations: ["", aggregationType], // X-Achse keine Aggregation
                 filters: filter.filter(f => f.chartId !== chartInstance.id)
             };
-    
+
             $.ajax({
                 url: "/getdata",
                 type: "POST",
@@ -154,7 +155,7 @@ function addChart(chartType) {
                             }
                         ]
                     };
-    
+
                     if (chartInstance.chartType === "pie") {
                         option.legend = {
                             top: '5%',
@@ -191,10 +192,35 @@ function addChart(chartType) {
                             }
                         ];
                     }
-                    
+
                     chartInstance.setOption(option);
                     // Nächste Aktualisierung aus der Warteschlange durchführen
                     processQueue();
+    let seriesData = [];
+    //Ändern zu x und y sowie jeweilige Konvertierung
+function updateChart() {
+    const xAxisType = xAxisSelect.value;
+    const yAxisType = yAxisSelect.value;
+
+    if (xAxisType && yAxisType) {
+        $.post("/getdata", { 
+            table1: tableSelect1.value, 
+            column1: xAxisType,
+            table2: tableSelect2.value, 
+            column2: yAxisType 
+        }, function(response) {
+            const dataX = response.dataX;
+            const dataY = response.dataY;
+
+            const seriesData = dataX.map((x, index) => ({
+                value: [x, dataY[index]],
+                itemStyle: { color: '#5470c6' }
+            }));
+
+            let option = {
+                xAxis: {
+                    type: 'category',
+                    data: dataX,
                 },
                 error: function(xhr, status, error) {
                     console.error("Error: ", status, error);
@@ -224,15 +250,38 @@ function addChart(chartType) {
             processQueue();
         }
     }
+                yAxis: {
+                    type: 'value'
+                },
+                series: [{
+                    data: seriesData,
+                    type: chartType
+                }]
+            };
 
     function updateAllCharts(excludeChartId) {
         charts.forEach(chart => {
             if (chart.id !== excludeChartId) {
                 queueUpdateChart(chart);
+            if (chartType === 'pie') {
+                option = {
+                    series: [{
+                        type: 'pie',
+                        data: seriesData.map(data => ({
+                            value: data.value[1],
+                            name: data.value[0],
+                            itemStyle: data.itemStyle
+                        }))
+                    }]
+                };
             }
+
+            chartInstance.setOption(option);
         });
     }
+}
 
+//hier noch
     tableSelect1.addEventListener('change', function() {
         // Lädt die Spalten für die X-Achse basierend auf der ausgewählten Tabelle
         if (this.value) {
@@ -245,6 +294,7 @@ function addChart(chartType) {
         }
     });
 
+//und hier auch
     tableSelect2.addEventListener('change', function() {
         // Lädt die Spalten für die Y-Achse basierend auf der ausgewählten Tabelle
         if (this.value) {
@@ -285,6 +335,8 @@ function addChart(chartType) {
     chartInstance.yAxisType = yAxisSelect.value;
     chartInstance.aggregationType = aggregationSelect.value;
     chartInstance.chartType = chartType;
+    xAxisSelect.addEventListener('change', updateChart);
+    yAxisSelect.addEventListener('change', updateChart);
 
     chartDiv.addEventListener('contextmenu', function(event) {
         // Verhindert das Standard-Kontextmenü
@@ -295,6 +347,12 @@ function addChart(chartType) {
         // Zeigt den Farbwähler für das angeklickte Diagramm an
         if (params.componentType === 'series') {
             showColorPicker(params.event.event, chartInstance, params.dataIndex);
+        }
+    });
+
+    chartInstance.on('click', function(params) {
+        if (params.componentType === 'series') {
+            handleFilter(params.data);
         }
     });
 
@@ -388,19 +446,20 @@ function showColorPicker(event, chartInstance, dataIndex) {
             borderColor: option.series[0].data[dataIndex].itemStyle.borderColor,
             borderWidth: option.series[0].data[dataIndex].itemStyle.borderWidth
         };
+        option.series[0].data[dataIndex].itemStyle = { color: colorPicker.value };
         chartInstance.setOption(option);
     });
 
     colorPicker.addEventListener('change', function () {
         document.body.removeChild(optionsMenu);
     });
-
     optionsMenu.appendChild(colorPicker);
     document.body.appendChild(optionsMenu);
     optionsMenu.style.position = 'absolute';
     optionsMenu.style.left = `${event.pageX}px`;
     optionsMenu.style.top = `${event.pageY}px`;
     optionsMenu.style.zIndex = 1000; // Stellt sicher, dass es im Vordergrund ist
+    optionsMenu.style.zIndex = 1000; // Ensure it's in the foreground
 
     document.addEventListener('click', function removeOptionsMenu(event) {
         // Entfernt das Farbauswahlmenü, wenn außerhalb geklickt wird
@@ -409,4 +468,18 @@ function showColorPicker(event, chartInstance, dataIndex) {
             document.removeEventListener('click', removeOptionsMenu);
         }
     }, { once: true });
+}
+
+function handleFilter(data) {
+    const [xValue] = data.value;
+    charts.forEach(chart => {
+        const options = chart.getOption();
+        const series = options.series[0];
+        const newData = series.data.filter(item => item.value[0] === xValue);
+        series.data = newData;
+        chart.setOption(options);
+
+        //anpassen
+        //reset filter doppelklick
+    });
 }
