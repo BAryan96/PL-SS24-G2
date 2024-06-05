@@ -322,7 +322,8 @@ function addChart(chartType) {
         // Handhabung des Linksklicks, um die Hervorhebung des Datenpunkts zu ändern und Filter anzuwenden
         if (params.componentType === 'series') {
             const key = `${chartInstance.id}-${params.dataIndex}`;
-            const value = params.value[0] || params.name;
+            const value = chartInstance.chartType === "scatter" ? params.value[0] : params.name;
+
 
             if (highlightedPoints[key]) {
                 delete highlightedPoints[key];
