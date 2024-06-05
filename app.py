@@ -211,24 +211,6 @@ def get_data():
     print(response)
     return jsonify(response)
 
-
-@app.route("/test")
-def test():
-    return render_template('test.html')
-
-@app.route("/get_table", methods=["POST"])
-def get_table():
-    data_choice = request.form['data-choice']
-    cur.execute(f"SELECT * FROM {data_choice}")
-    row_headers = [x[0] for x in cur.description]
-    results = cur.fetchall()
-
-    json_data = []
-    for result in results:
-        json_data.append(dict(zip(row_headers, result)))
-    return render_template('index.html', data=json_data)
-
-
 #wichtig für heatmap, weitere relationen hinzufügen -> Aryan: Kann Raus
 @app.route("/store-orders", methods=["GET"])
 def get_store_orders():
