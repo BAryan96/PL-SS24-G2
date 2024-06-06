@@ -5,9 +5,9 @@ app = Flask(__name__)
 conn = connect_to_database()
 cur = get_cursor(conn)
 
-#@app.route("//")
-#def test():
-#    return render_template('test.html')
+@app.route("/test")
+def test():
+    return render_template('test.html')
 
 @app.route("/")
 def landingpage():
