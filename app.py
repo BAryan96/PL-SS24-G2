@@ -1,5 +1,6 @@
-from flask import Flask, render_template, request, jsonify, send_from_directory
+from flask import Flask, render_template, request, jsonify
 from DB import connect_to_database, get_cursor
+import time
 
 app = Flask(__name__)
 conn = connect_to_database()
@@ -228,7 +229,6 @@ def get_data():
 
     print(response)
     return jsonify(response)
-
 
 @app.route("/test")
 def test():
