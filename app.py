@@ -230,8 +230,6 @@ def get_data():
     return jsonify(response)
 
 
-
-
 @app.route("/test")
 def test():
     return render_template('test.html')
@@ -248,7 +246,6 @@ def get_table():
         json_data.append(dict(zip(row_headers, result)))
     return render_template('index.html', data=json_data)
 
-
 #wichtig für heatmap, weitere relationen hinzufügen -> Aryan: Kann Raus
 @app.route("/store-orders", methods=["GET"])
 def get_store_orders():
@@ -261,7 +258,6 @@ def get_store_orders():
     cur.execute(query)
     results = cur.fetchall()
     return jsonify(results)
-
 
 if __name__ == "__main__":
     app.run(debug=True)

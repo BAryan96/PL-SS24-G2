@@ -21,6 +21,59 @@
         #submitButton:hover {
             background-color: #e57373;
         }
+        .close-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background-color: red;
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.3s ease;
+        }
+        .close-btn:hover {
+            background-color: darkred;
+        }
+        .options-menu {
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            padding: 20px;
+            z-index: 1000;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            max-width: 600px;
+            max-height: 80%;
+            overflow-y: auto;
+        }
+        .data-selection {
+            display: flex;
+            width: 100%;
+            justify-content: space-between;        
+        }
+        .form-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .form-container label, .form-container select, .form-container button {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        .chart-container #chart {
+            width: 100%;
+            height: 100%;
+        }
     </style>
 </head>
 <body>
@@ -44,411 +97,208 @@
         </div>
         <main class="main">
             <section class="data-selection">
-                <h2>Please Choose your Data</h2>
-                <form id="dataForm">
-                    <label for="xTable">Table for X-Axis</label>
-                    <select id="xTable" name="xTable">
-                        <option value="None">None</option>
-                    </select>
-                    <label for="xColumn">Column for X-Axis</label>
-                    <select id="xColumn" name="xColumn">
-                        <option value="None">None</option>
-                    </select>
-                    <label for="yTable">Table for Y-Axis</label>
-                    <select id="yTable" name="yTable">
-                        <option value="None">None</option>
-                    </select>
-                    <label for="yColumn">Column for Y-Axis</label>
-                    <select id="yColumn" name="yColumn">
-                        <option value="None">None</option>
-                    </select>
-                    <button type="submit" id="submitButton">Submit</button>
+                <form id="dataForm" class="form-container">
+                    <div>
+                        <h2>Please Choose your Data for a Map</h2>
+                        <label for="xTable">Table for X-Axis</label>
+                        <select id="xTable" name="xTable">
+                            <option value="">None</option>
+                        </select>
+                        <label for="xColumn">Column for X-Axis</label>
+                        <select id="xColumn" name="xColumn">
+                            <option value="">None</option>
+                        </select>
+                        <label for="yTable1">Table for Y-Axis</label>
+                        <select id="yTable1" name="yTable1">
+                            <option value="">None</option>
+                        </select>
+                        <label for="yColumn1">Column for Y-Axis</label>
+                        <select id="yColumn1" name="yColumn1">
+                            <option value="">None</option>
+                        </select>
+                        <label for="aggregationSelect">Aggregation</label>
+                        <select id="aggregationSelect" name="aggregationSelect">
+                            <option value="">No Aggregation</option>
+                            <option value="Summe">Sum</option>
+                            <option value="Max">Max</option>
+                            <option value="Min">Min</option>
+                            <option value="Anzahl">Count</option>
+                            <option value="Diskrete Anzahl">Distinct Count</option>
+                            <option value="Durchschnitt">Average</option>
+                            <option value="Standardabweichung">Standard deviation</option>
+                            <option value="Varianz">Variance</option>
+                            <option value="Median">Median</option>
+                            <option value="Erstes Quartil">Q1 Quartile</option>
+                            <option value="Drittes Quartil">Q3 Quartile</option>
+                        </select>
+                        <button type="submit" id="submitButton">Submit</button>
+                    </div>
                 </form>
+                <div class="chart-container">
+                    <div id="chart"></div>
+                </div>
             </section>
-            <section id="chart"></section>
         </main>
     </div>
-    <script src="/static/JS/sidemenu.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.3.2/echarts.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.3.2/core/echarts.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.3.2/components/visualMap/VisualMapComponent.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.3.2/components/geo/GeoComponent.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.3.2/charts/map/MapChart.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.3.2/components/universalTransition/UniversalTransition.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.3.2/renderers/CanvasRenderer.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
     <script>
-        var chartDom = document.getElementById('chart');
-        var myChart = echarts.init(chartDom);
-        var option;
+        let map;
+        let markers = [];
+        const filter = [];
+        const storeData = [
+            {"storeID":"S490972","latitude":41.328852,"longitude":-116.12251},
+            {"storeID":"S476770","latitude":37.593883,"longitude":-121.88281},
+            {"storeID":"S750231","latitude":38.744062,"longitude":-121.99929},
+            {"storeID":"S688745","latitude":33.326956,"longitude":-114.68562},
+            {"storeID":"S817950","latitude":38.004922,"longitude":-121.40022},
+            {"storeID":"S948821","latitude":38.97159,"longitude":-122.02725},
+            {"storeID":"S872983","latitude":37.388718,"longitude":-121.63845},
+            {"storeID":"S799887","latitude":41.890872,"longitude":-114.44545},
+            {"storeID":"S013343","latitude":40.489736,"longitude":-117.08692},
+            {"storeID":"S068548","latitude":34.639682,"longitude":-120.4471},
+            {"storeID":"S449313","latitude":35.262548,"longitude":-120.65196},
+            {"storeID":"S263879","latitude":39.748753,"longitude":-117.01152},
+            {"storeID":"S276746","latitude":39.663256,"longitude":-120.24835},
+            {"storeID":"S606312","latitude":35.664386,"longitude":-121.21965},
+            {"storeID":"S062214","latitude":41.782681,"longitude":-124.16703},
+            {"storeID":"S064089","latitude":39.717627,"longitude":-116.02944},
+            {"storeID":"S058118","latitude":37.571495,"longitude":-117.31507},
+            {"storeID":"S361257","latitude":34.639682,"longitude":-120.4471},
+            {"storeID":"S918734","latitude":41.736424,"longitude":-122.40008},
+            {"storeID":"S351225","latitude":41.208288,"longitude":-114.86098},
+            {"storeID":"S048150","latitude":34.31039,"longitude":-116.45012},
+            {"storeID":"S370494","latitude":37.237216,"longitude":-119.23304},
+            {"storeID":"S080157","latitude":38.966064,"longitude":-118.67848},
+            {"storeID":"S588444","latitude":41.596722,"longitude":-117.40232},
+            {"storeID":"S486166","latitude":41.890872,"longitude":-114.44545},
+            {"storeID":"S669665","latitude":40.700131,"longitude":-118.11473},
+            {"storeID":"S216043","latitude":38.898385,"longitude":-123.65746},
+            {"storeID":"S396799","latitude":38.654705,"longitude":-123.3999},
+            {"storeID":"S505400","latitude":38.944921,"longitude":-115.70749},
+            {"storeID":"S147185","latitude":38.835421,"longitude":-115.02628},
+            {"storeID":"S122017","latitude":39.285782,"longitude":-123.22064},
+            {"storeID":"S302800","latitude":40.105506,"longitude":-113.94372}
+        ];
 
-        document.addEventListener('DOMContentLoaded', function() {
-            const xTableSelect = document.getElementById('xTable');
-            const xColumnSelect = document.getElementById('xColumn');
-            const yTableSelect = document.getElementById('yTable');
-            const yColumnSelect = document.getElementById('yColumn');
-
-            fetch('/tables')
-                .then(response => response.json())
-                .then(data => {
+        $(document).ready(function() {
+            // Load available tables
+            $.get("/tables", function(data) {
+                window.availableTables = data.tables;
+                const tableSelects = [$('#xTable'), $('#yTable1')];
+                tableSelects.forEach(select => {
                     data.tables.forEach(table => {
-                        const optionXTable = document.createElement('option');
-                        optionXTable.value = table;
-                        optionXTable.textContent = table;
-                        xTableSelect.appendChild(optionXTable);
-
-                        const optionYTable = document.createElement('option');
-                        optionYTable.value = table;
-                        optionYTable.textContent = table;
-                        yTableSelect.appendChild(optionYTable);
+                        select.append(new Option(table, table));
                     });
-                })
-                .catch(error => console.error('Error fetching tables:', error));
-
-            xTableSelect.addEventListener('change', function() {
-                fetchColumns(this.value, xColumnSelect);
-            });
-
-            yTableSelect.addEventListener('change', function() {
-                fetchColumns(this.value, yColumnSelect);
-            });
-        });
-
-        function fetchColumns(table, columnSelect) {
-            fetch('/columns', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ table: table })
-            })
-            .then(response => response.json())
-            .then(data => {
-                columnSelect.innerHTML = '<option value="None">None</option>';
-                data.columns.forEach(column => {
-                    const option = document.createElement('option');
-                    option.value = column;
-                    option.textContent = column;
-                    columnSelect.appendChild(option);
                 });
-            })
-            .catch(error => console.error('Error fetching columns:', error));
-        }
+            });
 
-        document.getElementById('dataForm').addEventListener('submit', function(event) {
-            event.preventDefault();
-            const xTable = document.getElementById('xTable').value;
-            const xColumn = document.getElementById('xColumn').value;
-            const yTable = document.getElementById('yTable').value;
-            const yColumn = document.getElementById('yColumn').value;
-
-            if (xTable === "None" || xColumn === "None" || yTable === "None" || yColumn === "None") {
-                alert('Please select values for all required fields.');
-                return;
-            }
-
-            fetchData(xTable, xColumn, yTable, yColumn);
-        });
-
-        async function fetchData(xTable, xColumn, yTable, yColumn) {
-            try {
-                const dataX = await fetch('/getdata', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ table: xTable, column: xColumn })
-                }).then(response => response.json());
-
-                const dataY = await fetch('/getdata', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ table: yTable, column: yColumn })
-                }).then(response => response.json());
-
-                if (dataX.data && dataY.data) {
-                    const xAxisData = dataX.data.map(entry => entry[xColumn]);
-                    const yAxisData = dataY.data.map(entry => entry[yColumn]);
-
-                    const barOption = {
-                        xAxis: {
-                            type: 'category',
-                            data: xAxisData
-                        },
-                        yAxis: {
-                            type: 'value'
-                        },
-                        series: [{
-                            data: yAxisData,
-                            type: 'bar'
-                        }]
-                    };
-
-                    const chartDom = document.getElementById('chart');
-                    const myChart = echarts.init(chartDom);
-                    myChart.setOption(barOption, true);
-                } else {
-                    console.error('Error fetching data:', dataX.error || dataY.error);
+            $('#xTable').change(function() {
+                const table = $(this).val();
+                if (table) {
+                    $.post("/columns", { table: table }, function(data) {
+                        const xColumnSelect = $('#xColumn');
+                        xColumnSelect.empty().append(new Option('None', ''));
+                        data.columns.forEach(column => {
+                            xColumnSelect.append(new Option(column, column));
+                        });
+                    });
                 }
-            } catch (error) {
-                console.error('Error:', error);
-            }
-        }
-
-        var cityData = [
-            { name: "Tuscarora", state: "Nevada", latitude: 41.328852, longitude: -116.12251, zipcode: 89834 },
-            { name: "Sunol", state: "California", latitude: 37.593883, longitude: -121.88281, zipcode: 94586 },
-            { name: "Esparto", state: "California", latitude: 38.744062, longitude: -121.99929, zipcode: 95627 },
-            { name: "Cibola", state: "Arizona", latitude: 33.326956, longitude: -114.68562, zipcode: 85328 },
-            { name: "Stockton", state: "California", latitude: 38.004922, longitude: -121.40022, zipcode: 95219 },
-            { name: "Arbuckle", state: "California", latitude: 38.97159, longitude: -122.02725, zipcode: 95912 },
-            { name: "Mount Hamilton", state: "California", latitude: 37.388718, longitude: -121.63845, zipcode: 95140 },
-            { name: "Jackpot", state: "Nevada", latitude: 41.890872, longitude: -114.44545, zipcode: 89825 },
-            { name: "Battle Mountain", state: "Nevada", latitude: 40.489736, longitude: -117.08692, zipcode: 89820 },
-            { name: "Lompoc", state: "California", latitude: 34.639682, longitude: -120.4471, zipcode: 93436 },
-            { name: "San Luis Obispo", state: "California", latitude: 35.262548, longitude: -120.65196, zipcode: 93401 },
-            { name: "Austin", state: "Nevada", latitude: 39.748753, longitude: -117.01152, zipcode: 89310 },
-            { name: "Loyalton", state: "California", latitude: 39.663256, longitude: -120.24835, zipcode: 96118 },
-            { name: "San Simeon", state: "California", latitude: 35.664386, longitude: -121.21965, zipcode: 93452 },
-            { name: "Crescent City", state: "California", latitude: 41.782681, longitude: -124.16703, zipcode: 95531 },
-            { name: "Eureka", state: "Nevada", latitude: 39.717627, longitude: -116.02944, zipcode: 89316 },
-            { name: "Goldfield", state: "Nevada", latitude: 37.571495, longitude: -117.31507, zipcode: 89013 },
-            { name: "Montague", state: "California", latitude: 41.736424, longitude: -122.40008, zipcode: 96064 },
-            { name: "Wells", state: "Nevada", latitude: 41.208288, longitude: -114.86098, zipcode: 89835 },
-            { name: "Landers", state: "California", latitude: 34.31039, longitude: -116.45012, zipcode: 92285 },
-        ];
-
-        var stateData = [
-            { name: 'California' },
-            { name: 'Nevada'},
-           
-        ];
-        
-        stateData.sort(function (a, b) {
-            return a.value - b.value;
-        });
-
-        myChart.showLoading();
-        fetch('/static/data/USA.json')
-            .then(response => response.json())
-            .then(usaJson => {
-                myChart.hideLoading();
-                echarts.registerMap('USA', usaJson, {
-                    Alaska: {
-                        left: -131,
-                        top: 25,
-                        width: 15
-                    },
-                    Hawaii: {
-                        left: -110,
-                        top: 28,
-                        width: 5
-                    },
-                    'Puerto Rico': {
-                        left: -76,
-                        top: 26,
-                        width: 2
-                    }
-                });
-
-                const mapOption = {
-                    visualMap: {
-                        left: 'right',
-                        min: 500000,
-                        max: 38000000,
-                        inRange: {
-                            color: ['#313695', '#4575b4', '#74add1', '#abd9e9', '#e0f3f8', '#ffffbf', '#fee090', '#fdae61', '#f46d43', '#d73027', '#a50026']
-                        },
-                        text: ['High', 'Low'],
-                        calculable: true
-                    },
-                    series: [
-                        {
-                            id: 'population',
-                            type: 'map',
-                            roam: true,
-                            map: 'USA',
-                            itemStyle: {
-                                areaColor: '#ffffff', // Set map background to white
-                                borderColor: '#111' // Set border color
-                            },
-                            animationDurationUpdate: 1000,
-                            universalTransition: true,
-                            data: stateData,
-                            markPoint: {
-                                symbol: 'circle',
-                                symbolSize: 10,
-                                label: {
-                                    show: false,
-                                    formatter: '{b}',
-                                    fontSize: 12,
-                                    color: '#fff',
-                                    distance: 10 // Distance of the label from the point
-                                },
-                                itemStyle: {
-                                    color: '#FF5722', // Modern pin color
-                                    borderColor: '#fff',
-                                    borderWidth: 1,
-                                    shadowBlur: 10,
-                                    shadowColor: '#333'
-                                },
-                                emphasis: {
-                                    label: {
-                                        show: true // Show label on emphasis
-                                    }
-                                },
-                                data: cityData.map(function (item) {
-                                    return {
-                                        name: item.name,
-                                        coord: [item.longitude, item.latitude]
-                                    };
-                                })
-                            }
-                        }
-                    ],
-                    toolbox: {
-                        feature: {
-                            saveAsImage: {},
-                            myDarkMode: {
-                                show: true,
-                                title: 'Dark Mode',
-                                icon: 'path://M512 0C229.23072 0 0 229.23072 0 512s229.23072 512 512 512 512-229.23072 512-512S794.76928 0 512 0z m0 938.0864c-234.24 0-426.0864-191.8464-426.0864-426.0864S277.76 85.9136 512 85.9136c55.7312 0 111.4624 11.7248 163.6864 35.0208-32.768 56.32-87.04 94.72-151.0912 105.2672-78.4896 13.7216-147.2-12.288-199.7312-55.808 0 0-12.6976 80.9472-12.6976 119.296 0 136.3968 104.7552 247.9104 239.9232 261.8368 79.872 8.2944 152.576-24.7808 198.3488-80.64 28.2624 48.64 45.568 106.752 45.568 170.3424 0 234.24-191.8464 426.0864-426.0864 426.0864z',
-                                onclick: function() {
-                                    darkMode = !darkMode;
-                                    updateChartAppearance();
-                                }
-                            },
-                            myDecalPattern: {
-                                show: true,
-                                title: 'Decal Pattern',
-                                icon: 'path://M50 250 Q 150 50 250 250 T 450 250',
-                                onclick: function() {
-                                    decalPattern = !decalPattern;
-                                    updateChartAppearance();
-                                }
-                            },
-                            myShare: {
-                                show: true,
-                                title: 'Share',
-                                icon: 'path://M864 160h-192V96H352v64H160c-35.328 0-64 28.672-64 64v576c0 35.328 28.672 64 64 64h704c35.328 0 64-28.672 64-64V224c0-35.328-28.672-64-64-64z m0 640H160V224h192v64h320v-64h192v576z m-320-320h-64v192h-192V480h-64l160-160 160 160z',
-                                onclick: function() {
-                                    const url = window.location.href;
-                                    navigator.clipboard.writeText(url).then(function() {
-                                        alert('URL copied to clipboard');
-                                    }, function(err) {
-                                        console.error('Could not copy URL: ', err);
-                                    });
-                                }
-                            },
-                            myTool1: {
-                                show: true,
-                                title: 'Switch to Bar Chart',
-                                icon: 'path://M512 0C229.23072 0 0 229.23072 0 512s229.23072 512 512 512 512-229.23072 512-512S794.76928 0 512 0z m0 938.0864c-234.24 0-426.0864-191.8464-426.0864-426.0864S277.76 85.9136 512 85.9136c55.7312 0 111.4624 11.7248 163.6864 35.0208-32.768 56.32-87.04 94.72-151.0912 105.2672-78.4896 13.7216-147.2-12.288-199.7312-55.808 0 0-12.6976 80.9472-12.6976 119.296 0 136.3968 104.7552 247.9104 239.9232 261.8368 79.872 8.2944 152.576-24.7808 198.3488-80.64 28.2624 48.64 45.568 106.752 45.568 170.3424 0 234.24-191.8464 426.0864-426.0864 426.0864z',
-                                onclick: function () {
-                                    currentOption = barOption;
-                                    myChart.setOption(currentOption, true);
-                                }
-                            }
-                        }
-                    }
-                };
-
-                const barOption = {
-                    xAxis: {
-                        type: 'value'
-                    },
-                    yAxis: {
-                        type: 'category',
-                        axisLabel: {
-                            rotate: 30
-                        },
-                        data: cityData.map(function (item) {
-                            return item.name;
-                        })
-                    },
-                    animationDurationUpdate: 1000,
-                    series: {
-                        type: 'bar',
-                        id: 'population',
-                        data: cityData.map(function (item) {
-                            return item.zipcode; // Using zipcode as an example metric for the bar chart
-                        }),
-                        universalTransition: true
-                    },
-                    toolbox: {
-                        feature: {
-                            saveAsImage: {},
-                            myDarkMode: {
-                                show: true,
-                                title: 'Dark Mode',
-                                icon: 'path://M512 0C229.23072 0 0 229.23072 0 512s229.23072 512 512 512 512-229.23072 512-512S794.76928 0 512 0z m0 938.0864c-234.24 0-426.0864-191.8464-426.0864-426.0864S277.76 85.9136 512 85.9136c55.7312 0 111.4624 11.7248 163.6864 35.0208-32.768 56.32-87.04 94.72-151.0912 105.2672-78.4896 13.7216-147.2-12.288-199.7312-55.808 0 0-12.6976 80.9472-12.6976 119.296 0 136.3968 104.7552 247.9104 239.9232 261.8368 79.872 8.2944 152.576-24.7808 198.3488-80.64 28.2624 48.64 45.568 106.752 45.568 170.3424 0 234.24-191.8464 426.0864-426.0864 426.0864z',
-                                onclick: function() {
-                                    darkMode = !darkMode;
-                                    updateChartAppearance();
-                                }
-                            },
-                            myDecalPattern: {
-                                show: true,
-                                title: 'Decal Pattern',
-                                icon: 'path://M50 250 Q 150 50 250 250 T 450 250',
-                                onclick: function() {
-                                    decalPattern = !decalPattern;
-                                    updateChartAppearance();
-                                }
-                            },
-                            myShare: {
-                                show: true,
-                                title: 'Share',
-                                icon: 'path://M864 160h-192V96H352v64H160c-35.328 0-64 28.672-64 64v576c0 35.328 28.672 64 64 64h704c35.328 0 64-28.672 64-64V224c0-35.328-28.672-64-64-64z m0 640H160V224h192v64h320v-64h192v576z m-320-320h-64v192h-192V480h-64l160-160 160 160z',
-                                onclick: function() {
-                                    const url = window.location.href;
-                                    navigator.clipboard.writeText(url).then(function() {
-                                        alert('URL copied to clipboard');
-                                    }, function(err) {
-                                        console.error('Could not copy URL: ', err);
-                                    });
-                                }
-                            },
-                            myTool1: {
-                                show: true,
-                                title: 'Switch to Map',
-                                icon: 'path://M512 0C229.23072 0 0 229.23072 0 512s229.23072 512 512 512 512-229.23072 512-512S794.76928 0 512 0z m0 938.0864c-234.24 0-426.0864-191.8464-426.0864-426.0864S277.76 85.9136 512 85.9136c55.7312 0 111.4624 11.7248 163.6864 35.0208-32.768 56.32-87.04 94.72-151.0912 105.2672-78.4896 13.7216-147.2-12.288-199.7312-55.808 0 0-12.6976 80.9472-12.6976 119.296 0 136.3968 104.7552 247.9104 239.9232 261.8368 79.872 8.2944 152.576-24.7808 198.3488-80.64 28.2624 48.64 45.568 106.752 45.568 170.3424 0 234.24-191.8464 426.0864-426.0864 426.0864z',
-                                onclick: function () {
-                                    currentOption = mapOption;
-                                    myChart.setOption(currentOption, true);
-                                }
-                            }
-                        }
-                    }
-                };
-
-                let currentOption = mapOption;
-                myChart.setOption(mapOption);
-
-                document.getElementById('xAxis').addEventListener('change', function () {
-                    var selectedValue = this.value;
-                    // Adjust the data mapping logic as needed to fit your dataset structure
-                    barOption.series.data = cityData.map(function (item) {
-                        return item[selectedValue] || item.zipcode;
-                    });
-                    myChart.setOption(barOption, true);
-                });
             });
 
-        option && myChart.setOption(option);
+            $('#yTable1').change(function() {
+                const table = $(this).val();
+                if (table) {
+                    $.post("/columns", { table: table }, function(data) {
+                        const yColumnSelect = $('#yColumn1');
+                        yColumnSelect.empty().append(new Option('None', ''));
+                        data.columns.forEach(column => {
+                            yColumnSelect.append(new Option(column, column));
+                        });
+                    });
+                }
+            });
 
-        let darkMode = false;
-        let decalPattern = false;
+            // Initialize map
+            map = L.map('chart').setView([37.7749, -122.4194], 5);
 
-        function updateChartAppearance() {
-            if (myChart) {
-                const option = myChart.getOption();
-                option.backgroundColor = darkMode ? '#333' : '#fff';
-                option.textStyle = { color: darkMode ? '#fff' : '#000' };
-                option.series.forEach(series => {
-                    series.itemStyle = series.itemStyle || {};
-                    series.itemStyle.decal = decalPattern ? { symbol: 'path://M50 250 Q 150 50 250 250 T 450 250' } : null;
-                });
-                myChart.setOption(option);
-            }
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19
+            }).addTo(map);
+
+            // Add initial store markers
+            storeData.forEach(store => {
+                const marker = L.circleMarker([store.latitude, store.longitude], {
+                    radius: 8,
+                    color: 'blue'
+                }).addTo(map);
+                markers.push(marker);
+            });
+
+            const latLngs = storeData.map(store => [store.latitude, store.longitude]);
+            const bounds = L.latLngBounds(latLngs);
+            map.fitBounds(bounds);
+        });
+
+        function updateMap(data) {
+            // Clear existing markers
+            markers.forEach(marker => map.removeLayer(marker));
+            markers = [];
+
+            // Add new markers with updated size and color
+            const latLngs = storeData.map(item => {
+                const store = storeData.find(store => store.storeID === item.storeID);
+                const value = data.find(d => d.storeID === item.storeID) || {};
+                const marker = L.circleMarker([item.latitude, item.longitude], {
+                    radius: value.radius || 8,
+                    color: value.color || 'blue'
+                }).addTo(map);
+
+                markers.push(marker);
+                return [item.latitude, item.longitude];
+            });
+
+            // Fit map to markers
+            const bounds = L.latLngBounds(latLngs);
+            map.fitBounds(bounds);
         }
+
+        $('#dataForm').submit(function(event) {
+            event.preventDefault();
+            const xTable = $('#xTable').val();
+            const xColumn = $('#xColumn').val();
+            const yTable1 = $('#yTable1').val();
+            const yColumn1 = $('#yColumn1').val();
+            const aggregation = $('#aggregationSelect').val();
+
+            const requestData = {
+                tables: [xTable, yTable1],
+                columns: [xColumn, yColumn1],
+                chartType: 'map',
+                aggregations: ['', aggregation],
+                filters: filter
+            };
+
+            $.ajax({
+                url: "/getdata",
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify(requestData),
+                success: function(response) {
+                    const data = storeData.map(store => {
+                        const value = response.data.find(d => d.storeID === store.storeID) || {};
+                        return {
+                            ...store,
+                            radius: (value.value || 10) / 10, // Adjust as needed
+                            color: `hsl(${(value.value || 10) * 10}, 100%, 50%)` // Adjust color based on value
+                        };
+                    });
+
+                    updateMap(data);
+                }
+            });
+        });
     </script>
 </body>
 </html>
