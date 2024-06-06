@@ -171,7 +171,7 @@
     <div id="popup" class="options-menu hidden">
         <button class="close-btn" onclick="togglePopup()">X</button>
         <h2>Add Additional Graphs</h2>
-        <form class="popup-form-container">
+        <form class="popup-form-container" id="popupForm">
             <label for="yTable3">Table for Y-Axis 3</label>
             <select id="yTable3" name="yTable3">
                 <option value="">None</option>
@@ -313,10 +313,6 @@
                 loadColumns($(this).val(), '#yColumn1');
             });
 
-            $('#yTable2').on('change', function() {
-                loadColumns($(this).val(), '#yColumn2');
-            });
-
             $('#addGraphButton').on('click', function() {
                 togglePopup();
             });
@@ -326,8 +322,12 @@
                 togglePopup();
             });
 
-            $('#yTable3, #yTable4, #yTable5, #yTable6').on('change', function() {
-                loadColumns($(this).val(), `#${$(this).attr('id').replace('Table', 'Column')}`);
+            $('#popupForm').on('change', 'select', function() {
+                const id = $(this).attr('id');
+                if (id.startsWith('yTable')) {
+                    const columnSelectId = '#' + id.replace('Table', 'Column');
+                    loadColumns($(this).val(), columnSelectId);
+                }
             });
         });
 
@@ -337,7 +337,7 @@
 
         function populateSelectOptions() {
             availableTables.forEach(table => {
-                $('#xTable, #yTable1, #yTable2, #yTable3, #yTable4, #yTable5, #yTable6').append(`<option value="${table}">${table}</option>`);
+                $('#xTable, #yTable1, #yTable3, #yTable4, #yTable5, #yTable6').append(`<option value="${table}">${table}</option>`);
             });
         }
 
@@ -370,8 +370,8 @@
             const aggregationType = $('#aggregationSelect').val();
 
             const requestData = {
-                tables: [table2, table1], 
-                columns: [column2, column1], 
+                tables: [table2, table1],
+                columns: [column2, column1],
                 chartType: 'stacked',
                 aggregations: ["", aggregationType],
                 filters: filter
@@ -391,7 +391,7 @@
                         stack: 'total',
                         areaStyle: decalPattern ? { decal: { symbol: 'rect' } } : {},
                         itemStyle: {
-                            color: colorPalette[0]  // Set color for the first series
+                            color: colorPalette[0]
                         },
                         data: response.dataY.map((y, index) => {
                             const xValue = response.dataX[index];
@@ -409,7 +409,7 @@
                     }];
 
                     const option = {
-                        color: colorPalette, // Use the color palette for the chart
+                        color: colorPalette,
                         title: {
                             left: 'center',
                             text: 'Stacked Area Chart'
@@ -431,13 +431,13 @@
                         },
                         xAxis: {
                             type: 'category',
-                            name: column2, 
+                            name: column2,
                             boundaryGap: false,
                             data: response.dataX
                         },
                         yAxis: {
                             type: 'value',
-                            name: column1 
+                            name: column1
                         },
                         series: series,
                         backgroundColor: darkMode ? '#333' : '#fff',
@@ -532,7 +532,7 @@
                                 stack: 'total',
                                 areaStyle: decalPattern ? { decal: { symbol: 'rect' } } : {},
                                 itemStyle: {
-                                    color: colorPalette[(index + 1) % colorPalette.length]  // Set color for the new series
+                                    color: colorPalette[(index + 1) % colorPalette.length]
                                 },
                                 data: response.dataY.map((y, index) => {
                                     const xValue = response.dataX[index];
@@ -552,7 +552,7 @@
                             const option = chartInstance.getOption();
                             option.series.push(newSeries);
                             option.legend[0].data.push(graph.column);
-                            chartInstance.setOption(option, true); // true to merge with the existing options
+                            chartInstance.setOption(option, true);
                         },
                         error: function(xhr, status, error) {
                             console.error("Error: ", status, error);
