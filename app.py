@@ -37,9 +37,9 @@ def donutchart():
 def basicscatterchart():
     return render_template('basicscatterchart.html')
 
-@app.route("/morphingmap")
+@app.route("/map")
 def morphingmap():
-    return render_template('morphingmap.html')
+    return render_template('map.html')
 
 @app.route("/basicbarchart")
 def basicbarchart():
@@ -49,12 +49,17 @@ def basicbarchart():
 def heatmap():
     return render_template('heatmap.html')
 
+@app.route('/static/data/USA.json')
+def serve_usa_json():
+    return send_from_directory('static/data', 'USA.json')
+
 #wichtig 
 @app.route("/tables")
 def get_tables():
     cur.execute("SHOW TABLES")
     tables = [row[0] for row in cur.fetchall()]
     return jsonify({"tables": tables})
+
 
 #wichtig
 @app.route("/columns", methods=["POST"])
@@ -184,6 +189,9 @@ def get_data():
 
     # Construct the select clause
     select_columns = []
+    has_aggregation = False  # Flag to check if any aggregation is present
+
+    # Iterate over all tables, columns, and aggregations
     for table, col, agg in zip(tables, columns, aggregations):
         if col:
             full_column_name = f"{table}.{col}"
@@ -194,16 +202,25 @@ def get_data():
                 else:
                     return jsonify({"error": f"Unsupported aggregation type: {agg}"}), 400
             else:
+                has_aggregation = True  # Set the flag if there is any aggregation
                 if agg in ["Diskrete Anzahl", "Median", "Erstes Quartil", "Drittes Quartil"]:
-                    select_columns.append(f"{aggregation_function} {full_column_name})")
+                    select_columns.append(f"{aggregation_function} {full_column_name}) AS {col}_{agg}")
                 else:
-                    select_columns.append(f"{aggregation_function}({full_column_name})")
+                    select_columns.append(f"{aggregation_function}({full_column_name}) AS {col}_{agg}")
 
-    group_by_columns = [f"{table}.{column}" for table, column in zip(tables, columns) if column and not aggregation_functions.get(aggregations[columns.index(column)])]
+    # Ensure every column is included
+    if not all(columns):
+        return jsonify({"error": "Each table must have at least one column specified"}), 400
 
     select_query = ", ".join(select_columns)
-    group_by_query = ", ".join(group_by_columns)
 
+    # Only create group_by_columns if there is an aggregation
+    group_by_query = ""
+    if has_aggregation:
+        group_by_columns = [f"{table}.{column}" for table, column, agg in zip(tables, columns, aggregations) if column and not aggregation_functions.get(agg, "")]
+        group_by_query = ", ".join(group_by_columns)
+
+    # Construct the final SQL query
     query = f"""
     SELECT {select_query}
     FROM {from_clause}
