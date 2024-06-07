@@ -116,9 +116,9 @@ def get_data():
         "Durchschnitt": "AVG",
         "Varianz": "VARIANCE",
         "Standardabweichung": "STDDEV",
-        "Median": "PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY",
-        "Erstes Quartil": "PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY",
-        "Drittes Quartil": "PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY"
+        "Median": "PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY", #deffekt
+        "Erstes Quartil": "PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY", #deffekt
+        "Drittes Quartil": "PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY" #deffekt
     }
 
     # Construct filter query
@@ -190,7 +190,7 @@ def get_data():
 
     # Construct the select clause
     select_columns = []
-    has_aggregation = False  # Flag to check if any aggregation is present
+    group_by_columns = []
 
     # Iterate over all tables, columns, and aggregations
     for table, col, agg in zip(tables, columns, aggregations):
@@ -198,12 +198,10 @@ def get_data():
             full_column_name = f"{table}.{col}"
             aggregation_function = aggregation_functions.get(agg, "")
             if not aggregation_function:
-                if agg == "":
-                    select_columns.append(full_column_name)  # No aggregation
-                else:
-                    return jsonify({"error": f"Unsupported aggregation type: {agg}"}), 400
+                select_columns.append(full_column_name)  # No aggregation
+                if agg != "X":
+                    group_by_columns.append(full_column_name)  # Add to GROUP BY if no aggregation and not "X"
             else:
-                has_aggregation = True  # Set the flag if there is any aggregation
                 if agg in ["Diskrete Anzahl", "Median", "Erstes Quartil", "Drittes Quartil"]:
                     select_columns.append(f"{aggregation_function} {full_column_name})")
                 else:
@@ -214,12 +212,7 @@ def get_data():
         return jsonify({"error": "Each table must have at least one column specified"}), 400
 
     select_query = ", ".join(select_columns)
-
-    # Only create group_by_columns if there is an aggregation
-    group_by_query = ""
-    if has_aggregation:
-        group_by_columns = [f"{table}.{column}" for table, column, agg in zip(tables, columns, aggregations) if column and not aggregation_functions.get(agg, "")]
-        group_by_query = ", ".join(group_by_columns)
+    group_by_query = ", ".join(group_by_columns)
 
     # Construct the final SQL query
     query = f"""
@@ -229,7 +222,7 @@ def get_data():
     {filter_query}
     """
 
-    if group_by_query:
+    if group_by_columns:
         query += f" GROUP BY {group_by_query}"
 
     print("Generated SQL Query:", query)
@@ -242,7 +235,10 @@ def get_data():
 
     for idx, col in enumerate(columns):
         if col:
-            response[f"data{chr(88 + idx)}"] = [row[idx] for row in data]
+            if idx == 0:
+                response["x"] = [row[idx] for row in data]
+            else:
+                response[f"y{idx-1}"] = [row[idx] for row in data]
 
     print(response)
     return jsonify(response)
