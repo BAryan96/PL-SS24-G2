@@ -204,9 +204,9 @@ def get_data():
             else:
                 has_aggregation = True  # Set the flag if there is any aggregation
                 if agg in ["Diskrete Anzahl", "Median", "Erstes Quartil", "Drittes Quartil"]:
-                    select_columns.append(f"{aggregation_function} {full_column_name}) AS {col}_{agg}")
+                    select_columns.append(f"{aggregation_function} {full_column_name})")
                 else:
-                    select_columns.append(f"{aggregation_function}({full_column_name}) AS {col}_{agg}")
+                    select_columns.append(f"{aggregation_function}({full_column_name})")
 
     # Ensure every column is included
     if not all(columns):
