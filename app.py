@@ -81,10 +81,9 @@ def perform_stats():
             'Q3': ['Q3 total', 'Q3 products/order']
         },
         'products': {
-            'Sum': ['sum sales', 'sum customers'],
+            'Sum': ['sum sales', 'sum customers', 'sum total'],
             'Mean': ['mean order location'],
             'Median': ['median order location'],
-            'Range': ['range order location'],
             'Standard Deviation': ['standard deviation order location'],
             'Q1': ['Q1 order location'],
             'Q2': ['Q2 order location'],
@@ -191,7 +190,7 @@ def calculate_stats_details():
         ORDER BY avg_reorder_rate;
         """
     
-    elif table_name == 'stores' and column_name == 'median total':
+    elif table_name == 'stores' and (column_name == 'median total' or column_name == 'Q2 total'):
         query = """
         WITH ordered_totals AS (
             SELECT 
@@ -211,7 +210,7 @@ def calculate_stats_details():
         ORDER BY median_total;
         """
     
-    elif table_name == 'stores' and column_name == 'median products/order':
+    elif table_name == 'stores' and (column_name == 'median products/order' or column_name == 'Q2 products/order'):
         query = """
         WITH ordered_items AS (
             SELECT 
@@ -231,7 +230,7 @@ def calculate_stats_details():
         ORDER BY median_nItems;
         """
     
-    elif table_name == 'stores' and column_name == 'median distance customer/store':
+    elif table_name == 'stores' and (column_name == 'median distance customer/store' or column_name == 'Q2 distance customer/store'):
         query = """
         WITH ordered_distances AS (
             SELECT 
@@ -255,7 +254,7 @@ def calculate_stats_details():
         ORDER BY median_distance;
         """
     
-    elif table_name == 'stores' and column_name == 'median reorder rate':
+    elif table_name == 'stores' and (column_name == 'median reorder rate' or column_name == 'Q2 reorder rate'):
         query = """
         WITH customer_orders AS (
             SELECT 
@@ -443,6 +442,570 @@ def calculate_stats_details():
         ORDER BY 
             stddev_reorder_rate;
         """
+
+    elif table_name == 'stores' and column_name == 'Q1 total':
+        query = """
+        SELECT storeID, 
+        SUBSTRING_INDEX(
+            SUBSTRING_INDEX(
+                GROUP_CONCAT(total ORDER BY total), 
+                ',', 
+                ROUND(0.25 * COUNT(*) + 0.5)
+            ), 
+            ',', 
+            -1
+        ) AS Q1_total
+        FROM orders
+        GROUP BY storeID
+        ORDER BY Q1_total;
+        """
+    
+    elif table_name == 'stores' and column_name == 'Q1 products/order':
+        query = """
+        SELECT storeID, 
+        SUBSTRING_INDEX(
+            SUBSTRING_INDEX(
+                GROUP_CONCAT(nItems ORDER BY nItems), 
+                ',', 
+                ROUND(0.25 * COUNT(*) + 0.5)
+            ), 
+            ',', 
+            -1
+        ) AS Q1_products_per_order
+        FROM orders
+        GROUP BY storeID
+        ORDER BY Q1_products_per_order;
+        """
+    
+    elif table_name == 'stores' and column_name == 'Q1 distance customer/store':
+        query = """
+        SELECT storeID, 
+        SUBSTRING_INDEX(
+            SUBSTRING_INDEX(
+                GROUP_CONCAT(distance ORDER BY distance), 
+                ',', 
+                ROUND(0.25 * COUNT(*) + 0.5)
+            ), 
+            ',', 
+            -1
+        ) AS Q1_distance
+        FROM (
+            SELECT 
+                s.storeID, 
+                6371 * ACOS(
+                    COS(RADIANS(s.latitude)) * COS(RADIANS(c.latitude)) * COS(RADIANS(c.longitude) - RADIANS(s.longitude)) + 
+                    SIN(RADIANS(s.latitude)) * SIN(RADIANS(c.latitude))
+                ) AS distance
+            FROM stores s
+            JOIN orders o ON s.storeID = o.storeID
+            JOIN customers c ON o.customerID = c.customerID
+        ) distances
+        GROUP BY storeID
+        ORDER BY Q1_distance;
+        """
+    
+    elif table_name == 'stores' and column_name == 'Q1 reorder rate':
+        query = """
+    	SELECT storeID, 
+        SUBSTRING_INDEX(
+            SUBSTRING_INDEX(
+                GROUP_CONCAT(num_orders ORDER BY num_orders), 
+                ',', 
+                ROUND(0.25 * COUNT(*) + 0.5)
+            ), 
+            ',', 
+            -1
+        ) AS Q1_reorder_rate
+        FROM (
+            SELECT 
+                o.storeID, 
+                o.customerID, 
+                COUNT(o.orderID) AS num_orders
+            FROM orders o 
+            GROUP BY o.storeID, o.customerID
+        ) customer_orders
+        GROUP BY storeID
+        ORDER BY Q1_reorder_rate;
+        """
+
+    elif table_name == 'stores' and column_name == 'Q3 total':
+        query = """
+        SELECT storeID, 
+       SUBSTRING_INDEX(
+           SUBSTRING_INDEX(
+               GROUP_CONCAT(total ORDER BY total), 
+               ',', 
+               ROUND(0.75 * COUNT(*) + 0.5)
+           ), 
+           ',', 
+           -1
+       ) AS Q3_total
+        FROM orders
+        GROUP BY storeID
+        ORDER BY Q3_total;
+        """
+    
+    elif table_name == 'stores' and column_name == 'Q3 products/order':
+        query = """
+        SELECT storeID, 
+        SUBSTRING_INDEX(
+            SUBSTRING_INDEX(
+                GROUP_CONCAT(nItems ORDER BY nItems), 
+                ',', 
+                ROUND(0.75 * COUNT(*) + 0.5)
+            ), 
+            ',', 
+            -1
+        ) AS Q3_products_per_order
+        FROM orders
+        GROUP BY storeID
+        ORDER BY Q3_products_per_order;
+        """
+    
+    elif table_name == 'stores' and column_name == 'Q3 distance customer/store':
+        query = """
+        SELECT storeID, 
+        SUBSTRING_INDEX(
+            SUBSTRING_INDEX(
+                GROUP_CONCAT(distance ORDER BY distance), 
+                ',', 
+                ROUND(0.75 * COUNT(*) + 0.5)
+            ), 
+            ',', 
+            -1
+        ) AS Q3_distance
+    FROM (
+        SELECT 
+            s.storeID, 
+            6371 * ACOS(
+                COS(RADIANS(s.latitude)) * COS(RADIANS(c.latitude)) * COS(RADIANS(c.longitude) - RADIANS(s.longitude)) + 
+                SIN(RADIANS(s.latitude)) * SIN(RADIANS(c.latitude))
+            ) AS distance
+            FROM stores s
+            JOIN orders o ON s.storeID = o.storeID
+            JOIN customers c ON o.customerID = c.customerID
+        ) distances
+        GROUP BY storeID
+        ORDER BY Q3_distance;
+        """
+    
+    elif table_name == 'stores' and column_name == 'Q3 reorder rate':
+        query = """
+    	SELECT storeID, 
+        SUBSTRING_INDEX(
+            SUBSTRING_INDEX(
+                GROUP_CONCAT(num_orders ORDER BY num_orders), 
+                ',', 
+                ROUND(0.75 * COUNT(*) + 0.5)
+            ), 
+            ',', 
+            -1
+        ) AS Q3_reorder_rate
+        FROM (
+            SELECT 
+                o.storeID, 
+                o.customerID, 
+                COUNT(o.orderID) AS num_orders
+            FROM orders o 
+            GROUP BY o.storeID, o.customerID
+        ) customer_orders
+        GROUP BY storeID
+        ORDER BY Q3_reorder_rate;
+        """
+
+    elif table_name == 'products' and column_name == 'sum sales':
+        query = """
+        SELECT p.SKU, COUNT(oi.SKU) AS total_sales
+        FROM products p
+        JOIN orderitems oi ON p.SKU = oi.SKU
+        GROUP BY p.SKU
+        ORDER BY total_sales DESC;
+        """
+    
+    elif table_name == 'products' and column_name == 'sum customers':
+        query = """
+        SELECT p.SKU, COUNT(DISTINCT o.customerID) AS total_customers
+        FROM products p
+        JOIN orderitems oi ON p.SKU = oi.SKU
+        JOIN orders o ON oi.orderID = o.orderID
+        GROUP BY p.SKU
+        ORDER BY total_customers DESC;
+        """
+    
+    elif table_name == 'products' and column_name == 'sum total':
+        query = """
+        SELECT p.SKU, SUM(o.total) AS total_money
+        FROM products p
+        JOIN orderitems oi ON p.SKU = oi.SKU
+        JOIN orders o ON oi.orderID = o.orderID
+        GROUP BY p.SKU
+        ORDER BY total_money DESC;
+        """
+    
+    elif table_name == 'products' and column_name == 'mean order location':
+        query = """
+        SELECT 
+            p.SKU, 
+            AVG(c.latitude) AS avg_latitude, 
+            AVG(c.longitude) AS avg_longitude
+        FROM 
+            products p
+        JOIN 
+            orderitems oi ON p.SKU = oi.SKU
+        JOIN 
+            orders o ON oi.orderID = o.orderID
+        JOIN 
+            customers c ON o.customerID = c.customerID
+        GROUP BY 
+            p.SKU
+        ORDER BY avg_latitude;
+    """
+    
+    elif table_name == 'products' and (column_name == 'median order location' or column_name == 'Q2'):
+        query = """
+    	WITH ordered_latitudes AS (
+        SELECT 
+            p.SKU, 
+            c.latitude, 
+            ROW_NUMBER() OVER (PARTITION BY p.SKU ORDER BY c.latitude) AS row_num, 
+            COUNT(*) OVER (PARTITION BY p.SKU) AS total_count 
+        FROM products p
+        JOIN orderitems oi ON p.SKU = oi.SKU
+        JOIN orders o ON oi.orderID = o.orderID
+        JOIN customers c ON o.customerID = c.customerID
+            ),
+        ordered_longitudes AS (
+            SELECT 
+                p.SKU, 
+                c.longitude, 
+                ROW_NUMBER() OVER (PARTITION BY p.SKU ORDER BY c.longitude) AS row_num, 
+                COUNT(*) OVER (PARTITION BY p.SKU) AS total_count 
+        FROM products p
+        JOIN orderitems oi ON p.SKU = oi.SKU
+        JOIN orders o ON oi.orderID = o.orderID
+        JOIN customers c ON o.customerID = c.customerID
+        )
+        SELECT 
+            latitudes.SKU, 
+            AVG(latitudes.latitude) AS median_latitude, 
+            AVG(longitudes.longitude) AS median_longitude
+        FROM 
+            ordered_latitudes latitudes
+        JOIN 
+            ordered_longitudes longitudes ON latitudes.SKU = longitudes.SKU AND latitudes.row_num = longitudes.row_num
+        WHERE 
+            latitudes.row_num IN (FLOOR((latitudes.total_count + 1) / 2), FLOOR((latitudes.total_count + 2) / 2))
+            AND longitudes.row_num IN (FLOOR((longitudes.total_count + 1) / 2), FLOOR((longitudes.total_count + 2) / 2))
+        GROUP BY 
+            latitudes.SKU
+        ORDER BY 
+            median_latitude;
+        """
+    
+    elif table_name == 'products' and column_name == 'standard deviation order location':
+        query = """
+    	SELECT 
+            p.SKU, 
+            STDDEV(c.latitude) AS stddev_latitude, 
+            STDDEV(c.longitude) AS stddev_longitude
+        FROM 
+            products p
+        JOIN 
+            orderitems oi ON p.SKU = oi.SKU
+        JOIN 
+            orders o ON oi.orderID = o.orderID
+        JOIN 
+            customers c ON o.customerID = c.customerID
+        GROUP BY 
+            p.SKU
+        ORDER BY 
+            p.SKU;
+        """
+
+    elif table_name == 'products' and column_name == 'Q1 order location':
+        query = """
+        SELECT 
+        p.SKU, 
+        SUBSTRING_INDEX(
+            SUBSTRING_INDEX(
+                GROUP_CONCAT(c.latitude ORDER BY c.latitude), 
+                ',', 
+                ROUND(0.25 * COUNT(*) + 0.5)
+            ), 
+            ',', 
+            -1
+        ) AS Q1_latitude,
+        SUBSTRING_INDEX(
+            SUBSTRING_INDEX(
+                GROUP_CONCAT(c.longitude ORDER BY c.longitude), 
+                ',', 
+                ROUND(0.25 * COUNT(*) + 0.5)
+            ), 
+            ',', 
+            -1
+        ) AS Q1_longitude
+        FROM 
+            products p
+        JOIN 
+            orderitems oi ON p.SKU = oi.SKU
+        JOIN 
+            orders o ON oi.orderID = o.orderID
+        JOIN 
+            customers c ON o.customerID = c.customerID
+        GROUP BY 
+            p.SKU
+        ORDER BY 
+            Q1_latitude, Q1_longitude;
+        """
+    
+    elif table_name == 'products' and column_name == 'Q3 order location':
+        query = """
+    	SELECT 
+        p.SKU, 
+        SUBSTRING_INDEX(
+            SUBSTRING_INDEX(
+                GROUP_CONCAT(c.latitude ORDER BY c.latitude), 
+                ',', 
+                ROUND(0.75 * COUNT(*) + 0.5)
+            ), 
+            ',', 
+            -1
+        ) AS Q3_latitude,
+        SUBSTRING_INDEX(
+            SUBSTRING_INDEX(
+                GROUP_CONCAT(c.longitude ORDER BY c.longitude), 
+                ',', 
+                ROUND(0.75 * COUNT(*) + 0.5)
+            ), 
+            ',', 
+            -1
+        ) AS Q3_longitude
+        FROM 
+            products p
+        JOIN 
+            orderitems oi ON p.SKU = oi.SKU
+        JOIN 
+            orders o ON oi.orderID = o.orderID
+        JOIN 
+            customers c ON o.customerID = c.customerID
+        GROUP BY 
+            p.SKU
+        ORDER BY 
+            Q3_latitude, Q3_longitude;
+        """
+
+    elif table_name == 'customers' and column_name == 'sum total':
+        query = """
+        SELECT customerID, SUM(total) AS total_spent
+        FROM orders
+        GROUP BY customerID
+        ORDER BY total_spent DESC;
+        """
+    
+    elif table_name == 'customers' and column_name == 'sum orders':
+        query = """
+        SELECT customerID, COUNT(orderid) AS order_amount
+        FROM orders
+        GROUP BY customerID
+        ORDER BY order_amount DESC;
+        """
+    
+    elif table_name == 'customers' and column_name == 'sum products':
+        query = """
+        SELECT customerID, SUM(nItems) AS sum_customer_products
+        FROM orders
+        GROUP BY customerID
+        ORDER BY sum_customer_products DESC;
+        """
+    
+    elif table_name == 'customers' and column_name == 'mean total':
+        query = """
+    	SELECT customerID, AVG(total) AS average_total_price
+        FROM orders
+        GROUP BY customerID
+        ORDER BY average_total_price DESC;
+        """
+
+    elif table_name == 'customers' and column_name == 'mean products/order':
+        query = """
+    	SELECT customerID, AVG(nItems) AS average_products_per_order
+        FROM orders
+        GROUP BY customerID
+        ORDER BY average_products_per_order DESC;
+        """
+
+    elif table_name == 'customers' and (column_name == 'median total' or column_name == 'Q2 total'):
+        query = """
+    	WITH ordered_totals AS (
+        SELECT 
+            customerID,
+            total,
+            ROW_NUMBER() OVER (PARTITION BY customerID ORDER BY total) AS row_num,
+            COUNT(*) OVER (PARTITION BY customerID) AS total_count
+        FROM orders
+    )
+        SELECT 
+            customerID,
+            AVG(total) AS median_total
+        FROM ordered_totals
+        WHERE row_num IN (FLOOR((total_count + 1) / 2), FLOOR((total_count + 2) / 2))
+        GROUP BY customerID
+        ORDER BY median_total;
+        """
+
+    elif table_name == 'customers' and (column_name == 'median products/order' or column_name == 'Q2 products/order'):
+        query = """
+    	WITH ordered_products AS (
+        SELECT 
+            c.customerID,
+            o.orderID,
+            o.nItems,
+            ROW_NUMBER() OVER (PARTITION BY c.customerID ORDER BY o.nItems) AS row_num,
+            COUNT(*) OVER (PARTITION BY c.customerID) AS total_count
+        FROM 
+            customers c
+        JOIN 
+            orders o ON c.customerID = o.customerID
+        )
+        SELECT 
+            customerID,
+            AVG(nItems) AS median_nItems
+        FROM 
+            ordered_products
+        WHERE 
+            row_num IN (FLOOR((total_count + 1) / 2), CEIL((total_count + 1) / 2))
+        GROUP BY 
+            customerID
+        ORDER BY 
+            customerID;
+        """
+
+    elif table_name == 'customers' and column_name == 'range total':
+        query = """
+    	SELECT 
+            customerID, 
+            MAX(total) AS max_total, 
+            MIN(total) AS min_total, 
+            (MAX(total) - MIN(total)) AS range_total
+        FROM 
+            orders
+        GROUP BY 
+            customerID
+        ORDER BY range_total DESC;
+        """
+
+    elif table_name == 'customers' and column_name == 'range products/order':
+        query = """
+    	SELECT
+            customerID,
+            MAX(nItems) AS max_products_per_order,
+            MIN(nItems) AS min_products_per_order,
+            (MAX(nItems) - MIN (nItems)) AS range_products_per_order
+        FROM
+            orders
+        GROUP BY 
+            customerID
+        ORDER BY range_products_per_order DESC;
+        """
+
+    elif table_name == 'customers' and column_name == 'standard deviation total':
+        query = """
+    	SELECT 
+            customerID, 
+            STDDEV(total) AS stddev_total
+        FROM 
+            orders
+        GROUP BY 
+            customerID
+        ORDER BY 
+            stddev_total;
+        """
+
+    elif table_name == 'customers' and column_name == 'standard deviation products/order':
+        query = """
+    	SELECT 
+            o.customerID, 
+            STDDEV(o.nItems) AS stddev_products_per_order
+        FROM 
+            orders o
+        GROUP BY 
+            o.customerID
+        ORDER BY 
+            stddev_products_per_order;
+        """
+
+    elif table_name == 'customers' and column_name == 'Q1 total':
+        query = """
+    	SELECT customerID, 
+            SUBSTRING_INDEX(
+                SUBSTRING_INDEX(
+                    GROUP_CONCAT(total ORDER BY total), 
+                    ',', 
+                    ROUND(0.25 * COUNT(*) + 0.5)
+                ), 
+                ',', 
+                -1
+            ) AS Q1_total
+        FROM orders
+        GROUP BY customerID
+        ORDER BY Q1_total DESC;
+        """
+
+    elif table_name == 'customers' and column_name == 'Q1 products/order':
+        query = """
+    	WITH ordered_nItems AS (
+        SELECT 
+            o.customerID, 
+            o.nItems, 
+            ROW_NUMBER() OVER (PARTITION BY o.customerID ORDER BY o.nItems) AS row_num, 
+            COUNT(*) OVER (PARTITION BY o.customerID) AS total_count 
+        FROM orders o
+        )
+        SELECT 
+            customerID, 
+            AVG(nItems) AS Q1_nItems 
+        FROM ordered_nItems 
+        WHERE row_num IN (FLOOR(0.25 * total_count) + 1, CEIL(0.25 * total_count))
+        GROUP BY customerID
+        ORDER BY Q1_nItems DESC;
+        """
+
+    elif table_name == 'customers' and column_name == 'Q3 total':
+        query = """
+    	SELECT customerID, 
+            SUBSTRING_INDEX(
+                SUBSTRING_INDEX(
+                    GROUP_CONCAT(total ORDER BY total), 
+                    ',', 
+                    ROUND(0.75 * COUNT(*) + 0.5)
+                ), 
+                ',', 
+                -1
+            ) AS Q3_total
+        FROM orders
+        GROUP BY customerID
+        ORDER BY Q3_total DESC;
+        """
+
+    elif table_name == 'customers' and column_name == 'Q3 products/order':
+        query = """
+    	WITH ordered_nItems AS (
+        SELECT 
+            o.customerID, 
+            o.nItems, 
+            ROW_NUMBER() OVER (PARTITION BY o.customerID ORDER BY o.nItems) AS row_num, 
+            COUNT(*) OVER (PARTITION BY o.customerID) AS total_count 
+        FROM orders o
+        )
+        SELECT 
+            customerID, 
+            AVG(nItems) AS Q3_nItems 
+        FROM ordered_nItems 
+        WHERE row_num IN (FLOOR(0.75 * total_count) + 1, CEIL(0.75 * total_count))
+        GROUP BY customerID
+        ORDER BY Q3_nItems DESC;
+        """
+
     else:
         # Falls eine andere Berechnung gewählt wird, hier einen Platzhalter für die allgemeine Statistikberechnung
         query = f"SELECT {column_name} FROM {table_name}"
