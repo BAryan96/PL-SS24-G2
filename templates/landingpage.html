@@ -6,6 +6,25 @@
     <title>Data Visualisation - DV</title>
     <link rel="stylesheet" href="/static/CSS/landingpage.css">
     <link rel="stylesheet" href="/static/CSS/all.css">
+    <style>
+        .submenu {
+            display: none;
+            padding-left: 20px;
+        }
+
+        .submenu a {
+            display: block;
+        }
+
+        .menu-item.has-submenu > span::after {
+            content: ' ▼';
+            font-size: 0.8em;
+        }
+
+        .menu-item.has-submenu.open > span::after {
+            content: ' ▲';
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -22,13 +41,22 @@
         </header>
         <div class="side-menu" id="sideMenu">
             <button class="close-button">X</button>
-            <h1>What would you like to See?</h1>
             <a href="/charts">Chart Overview</a>
             <a href="#">Edit/Clear Data</a>
             <a href="#">Forecast</a>
             <a href="#">My Profile</a>
             <a href="/login">Sign In</a>
             <a href="/">Log Out</a>
+            <div class="menu-item has-submenu">
+                <span>Customer Dashboard</span>
+                <div class="submenu">
+                    <a href="/salesperformancedash">Sales Performance Dashboard</a>
+                    <a href="#">Customer Insights Dashboard</a>
+                    <a href="#">Product Performance Dashboard</a>
+                    <a href="#">Store Performance Dashboard</a>
+                    <a href="#">Order Details Dashboard</a>
+                </div>
+            </div>
         </div>
         <main>
             <div class="content-section">
@@ -49,6 +77,24 @@
         </footer>
     </div>
     <script src="/static/JS/sidemenu.js"></script>
-
+    <script>
+        window.onload = function() {
+            // JavaScript zur Steuerung des Submenus
+            document.querySelectorAll('.menu-item.has-submenu > span').forEach(function(element) {
+                element.addEventListener('click', function(event) {
+                    event.preventDefault();
+                    var parent = this.parentElement;
+                    var submenu = parent.querySelector('.submenu');
+                    if (parent.classList.contains('open')) {
+                        submenu.style.display = 'none';
+                        parent.classList.remove('open');
+                    } else {
+                        submenu.style.display = 'block';
+                        parent.classList.add('open');
+                    }
+                });
+            });
+        };
+    </script>
 </body>
 </html>

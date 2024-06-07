@@ -9,10 +9,13 @@
     <link rel="stylesheet" href="/static/CSS/stacked_chart_type.css">
     <link rel="stylesheet" href="/static/CSS/charts.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
     <style>
-     .color-picker {
+        .color-picker {
             margin: 10px 0;
         }
+
         #submitButton {
             margin-top: 10px;
             padding: 10px 20px;
@@ -24,28 +27,11 @@
             cursor: pointer;
             transition: background-color 0.3s ease;
         }
+
         #submitButton:hover {
-            background-color: #ff6f61; 
+            background-color: #ff6f61;
         }
-        .close-btn {
-            position: absolute;
-            top: 5px;
-            right: 5px;
-            background-color: red;
-            color: #fff;
-            border: none;
-            border-radius: 50%;
-            width: 25px;
-            height: 25px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background-color 0.3s ease;
-        }
-        .close-btn:hover {
-            background-color: darkred;
-        }
+
         .options-menu {
             background-color: #fff;
             border: 1px solid #ccc;
@@ -62,23 +48,29 @@
             max-height: 80%;
             overflow-y: auto;
         }
+
         .data-selection {
             display: flex;
             width: 100%;
-            justify-content: space-between;        
+            justify-content: space-between;
         }
+
         .form-container {
             flex: 1;
             display: flex;
             flex-direction: column;
         }
-        .form-container label, .form-container select, .form-container button {
+
+        .form-container label,
+        .form-container select,
+        .form-container button {
             width: 100%;
             margin-bottom: 10px;
         }
-        .chart-container #chart {
+
+        .chart-container #map {
             width: 100%;
-            height: 100%;
+            height: 600px;
         }
     </style>
 </head>
@@ -96,7 +88,12 @@
             <section class="data-selection">
                 <form id="dataForm" class="form-container">
                     <div>
-                        <h2>Please Choose your Data for a Heatmap</h2>
+                        <h2>Please Choose your Data for Markers</h2>
+                        <label for="markerTypeSelect">Marker Based On</label>
+                        <select id="markerTypeSelect" name="markerTypeSelect">
+                            <option value="stores">Store Locations</option>
+                            <option value="customers">Customer Locations</option>
+                        </select>
                         <label for="tableSelect">Table</label>
                         <select id="tableSelect" name="tableSelect">
                             <option value="">None</option>
@@ -124,32 +121,48 @@
                     </div>
                 </form>
                 <div class="chart-container">
-                    <div id="chart"></div>
+                    <div id="map"></div>
                 </div>
             </section>
         </main>
     </div>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
     <script src="https://unpkg.com/heatmap.js"></script>
     <script src="https://unpkg.com/leaflet-heatmap/leaflet-heatmap.js"></script>
     <script>
-        let chart;
-
         $(document).ready(function () {
-            // Load available tables from backend
-            $.get("/tables", function (data) {
-                const availableTables = data.tables;
-                availableTables.forEach(table => {
+            var map = L.map('map').setView([51.505, -0.09], 2); // Weltkarte initialisieren
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            var markers = L.markerClusterGroup();
+
+            var circleMarkerOptions = {
+                radius: 5,
+                fillColor: "#ff7800",
+                color: "#000",
+                weight: 1,
+                opacity: 1,
+                fillOpacity: 0.8
+            };
+
+            // Laden der verfügbaren Tabellen
+            $.get("/tables", function(data) {
+                data.tables.forEach(table => {
                     $('#tableSelect').append(`<option value="${table}">${table}</option>`);
                 });
             });
 
-            $('#tableSelect').change(function () {
-                const table = $(this).val();
+            // Laden der verfügbaren Spalten, wenn eine Tabelle ausgewählt wird
+            $('#tableSelect').change(function() {
+                var table = $(this).val();
                 if (table) {
-                    $.post("/columns", { table: table }, function (data) {
-                        $('#columnSelect').empty().append(`<option value="">None</option>`);
+                    $.post("/columns", { table: table }, function(data) {
+                        $('#columnSelect').empty().append('<option value="">None</option>');
                         data.columns.forEach(column => {
                             $('#columnSelect').append(`<option value="${column}">${column}</option>`);
                         });
@@ -157,61 +170,48 @@
                 }
             });
 
-            $('#dataForm').submit(function (e) {
-                e.preventDefault();
-                const table = $('#tableSelect').val();
-                const column = $('#columnSelect').val();
-                const aggregation = $('#aggregationSelect').val();
+            $('#dataForm').submit(function (event) {
+                event.preventDefault();
+                var markerType = $('#markerTypeSelect').val();
+                var table = $('#tableSelect').val();
+                var column = $('#columnSelect').val();
+                var aggregation = $('#aggregationSelect').val();
 
-                if (table && column && aggregation) {
-                    const requestData = {
-                        tables: [table, 'stores'],
-                        columns: [column, 'storeID'],
-                        chartType: "heatmap",
-                        aggregations: [aggregation, ""]
-                    };
+                $.ajax({
+                    url: '/get_geodata',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ type: markerType, table: table, column: column, aggregation: aggregation }),
+                    success: function (data) {
+                        markers.clearLayers();
+                        var bounds = [];
+                        var heatmapPoints = [];
 
-                    $.ajax({
-                        url: "/getdata",
-                        type: "POST",
-                        contentType: "application/json",
-                        data: JSON.stringify(requestData),
-                        success: function (response) {
-                            // Assuming response has store locations with counts of order IDs
-                            const data = response.dataX.map((store, index) => [
-                                store.latitude, 
-                                store.longitude, 
-                                response.dataY[index]
-                            ]);
-                            createHeatmap(data);
-                        },
-                        error: function (xhr, status, error) {
-                            console.error("Error: ", status, error);
+                        data.forEach(function (point) {
+                            var marker = L.circleMarker([point.latitude, point.longitude], circleMarkerOptions);
+                            markers.addLayer(marker);
+                            bounds.push([point.latitude, point.longitude]);
+
+                            // Für die Heatmap
+                            heatmapPoints.push([point.latitude, point.longitude, point.intensity]); // Intensity from the data
+                        });
+
+                        map.addLayer(markers);
+                        if (bounds.length > 0) {
+                            map.fitBounds(bounds); // Zoomt auf den Bereich, in dem sich die Punkte befinden
                         }
-                    });
-                } else {
-                    alert('Please select Table, Column, and Aggregation.');
-                }
+
+                        // Hinzufügen der Heatmap
+                        var heat = L.heatLayer(heatmapPoints, { radius: 25 }).addTo(map);
+                    },
+                    error: function (error) {
+                        console.log('Error:', error);
+                    }
+                });
             });
         });
 
-        function createHeatmap(data) {
-            if (chart) {
-                chart.remove();
-            }
-            chart = L.map('chart').setView([20.0, 0.0], 2); // Set view to show the whole world
-
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            }).addTo(chart);
-
-            const heat = L.heatLayer(data, { 
-                radius: 25, 
-                blur: 15, 
-                maxZoom: 17, 
-                gradient: {0.4: 'blue', 0.65: 'lime', 1: 'red'} // Customize the gradient colors if needed
-            }).addTo(chart);
-        }
+        
     </script>
 </body>
 

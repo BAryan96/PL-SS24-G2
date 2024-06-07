@@ -50,6 +50,10 @@ def basicbarchart():
 def heatmap():
     return render_template('heatmap.html')
 
+@app.route ("/salesperformancedash")
+def salesperformancedash():
+    return render_template ('salesperformancedash.html')
+
 #wichtig 
 @app.route("/tables")
 def get_tables():
@@ -245,6 +249,29 @@ def get_table():
     for result in results:
         json_data.append(dict(zip(row_headers, result)))
     return render_template('index.html', data=json_data)
+
+@app.route("/get_geodata", methods=["POST"])
+def get_geodata():
+    data = request.get_json()
+    if 'type' not in data:
+        return jsonify({"error": "Missing required field: type"}), 400
+
+    data_type = data['type']
+    if data_type == 'stores':
+        query = "SELECT latitude, longitude FROM stores"
+    elif data_type == 'customers':
+        query = "SELECT latitude, longitude FROM customers"
+    else:
+        return jsonify({"error": "Invalid type"}), 400
+
+    cur.execute(query)
+    results = cur.fetchall()
+
+    # Convert results to the format expected by Leaflet markers
+    geodata = [{'latitude': row[0], 'longitude': row[1]} for row in results]
+
+    return jsonify(geodata)
+
 
 
 if __name__ == "__main__":
