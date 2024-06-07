@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Visualisation - DV</title>
+    <link rel="stylesheet" href="/static/CSS/all.css">
+    <style>
+        #submitButton {
+            margin-top: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            color: #fff;
+            background-color: coral;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        #submitButton:hover {
+            background-color: #e57373;
+        }
+        #chart {
+            height: 500px;
+        }
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .logo-area {
+            display: flex;
+            align-items: center;
+            padding: 20px 0;
+        }
+        .logo-circle {
+            width: 40px;
+            height: 40px;
+            background-color: coral;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        .logo-text {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .data-selection {
+            padding: 20px 0;
+        }
+        .data-selection h2 {
+            margin-bottom: 10px;
+        }
+    </style>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo-area">
+                <span class="logo-circle"></span>
+                <span class="logo-text">Data Visualisation - DV</span>
+            </div>
+        </header>
+        <main class="main">
+            <section class="data-selection">
+                <h2>Select Data Type</h2>
+                <form id="dataForm">
+                    <div>
+                        <input type="checkbox" id="customerCheckbox" name="dataType" value="customers"> Customer
+                        <div id="customerOptions" style="display: none;">
+                            <select id="customerTable"></select>
+                            <select id="customerColumn"></select>
+                            <select id="customerAggregation">
+                                <option value="">None</option>
+                                <option value="Summe">Sum</option>
+                                <option value="Max">Max</option>
+                                <option value="Min">Min</option>
+                                <option value="Anzahl">Count</option>
+                                <option value="Diskrete Anzahl">Distinct Count</option>
+                                <option value="Durchschnitt">Average</option>
+                                <option value="Varianz">Variance</option>
+                                <option value="Standardabweichung">Standard Deviation</option>
+                                <option value="Median">Median</option>
+                                <option value="Erstes Quartil">First Quartile</option>
+                                <option value="Drittes Quartil">Third Quartile</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <input type="checkbox" id="storeCheckbox" name="dataType" value="stores"> Store
+                        <div id="storeOptions" style="display: none;">
+                            <select id="storeTable"></select>
+                            <select id="storeColumn"></select>
+                            <select id="storeAggregation">
+                                <option value="">None</option>
+                                <option value="Summe">Sum</option>
+                                <option value="Max">Max</option>
+                                <option value="Min">Min</option>
+                                <option value="Anzahl">Count</option>
+                                <option value="Diskrete Anzahl">Distinct Count</option>
+                                <option value="Durchschnitt">Average</option>
+                                <option value="Varianz">Variance</option>
+                                <option value="Standardabweichung">Standard Deviation</option>
+                                <option value="Median">Median</option>
+                                <option value="Erstes Quartil">First Quartile</option>
+                                <option value="Drittes Quartil">Third Quartile</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="submit" id="submitButton">Submit</button>
+                </form>
+            </section>
+            <section id="chart"></section>
+        </main>
+    </div>
+    <!-- Using online ECharts files -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <!-- ECharts-Leaflet Plugin -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts-leaflet/dist/echarts-leaflet.min.js"></script>
+    <script>
+        let myChart;
+
+        function initChart() {
+            const chartDom = document.getElementById('chart');
+            myChart = echarts.init(chartDom);
+
+            const option = {
+                leaflet: {
+                    center: [37.5, -119], // Coordinates for the center of California, Nevada, and Utah
+                    zoom: 5, // Adjust zoom level to fit California, Nevada, and Utah
+                    roam: true,
+                    tileLayer: {
+                        urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+                        options: {
+                            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                        }
+                    }
+                },
+                series: []
+            };
+
+            myChart.setOption(option);
+        }
+
+        document.getElementById('customerCheckbox').addEventListener('change', function() {
+            document.getElementById('customerOptions').style.display = this.checked ? 'block' : 'none';
+            if (this.checked) {
+                fetchCustomerTables();
+            }
+        });
+
+        document.getElementById('storeCheckbox').addEventListener('change', function() {
+            document.getElementById('storeOptions').style.display = this.checked ? 'block' : 'none';
+            if (this.checked) {
+                fetchStoreTables();
+            }
+        });
+
+        async function fetchCustomerTables() {
+            const response = await fetch('/tables');
+            const data = await response.json();
+            const customerTableSelect = document.getElementById('customerTable');
+
+            customerTableSelect.innerHTML = '<option value="">Select Table</option>';
+
+            data.tables.forEach(table => {
+                const option = document.createElement('option');
+                option.value = table;
+                option.text = table;
+                customerTableSelect.appendChild(option);
+            });
+        }
+
+        async function fetchStoreTables() {
+            const response = await fetch('/tables');
+            const data = await response.json();
+            const storeTableSelect = document.getElementById('storeTable');
+
+            storeTableSelect.innerHTML = '<option value="">Select Table</option>';
+
+            data.tables.forEach(table => {
+                const option = document.createElement('option');
+                option.value = table;
+                option.text = table;
+                storeTableSelect.appendChild(option);
+            });
+        }
+
+        async function fetchColumns(table, selectElement) {
+            if (!table) {
+                selectElement.innerHTML = '<option value="">Select Column</option>';
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('table', table);
+            const response = await fetch('/columns', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+
+            selectElement.innerHTML = '<option value="">Select Column</option>';
+            data.columns.forEach(column => {
+                const option = document.createElement('option');
+                option.value = column;
+                option.text = column;
+                selectElement.appendChild(option);
+            });
+        }
+
+        document.getElementById('customerTable').addEventListener('change', function() {
+            fetchColumns(this.value, document.getElementById('customerColumn'));
+        });
+
+        document.getElementById('storeTable').addEventListener('change', function() {
+            fetchColumns(this.value, document.getElementById('storeColumn'));
+        });
+
+        document.getElementById('dataForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const customerCheckbox = document.getElementById('customerCheckbox').checked;
+            const storeCheckbox = document.getElementById('storeCheckbox').checked;
+
+            if (!customerCheckbox && !storeCheckbox) {
+                alert('Please select at least one data type.');
+                return;
+            }
+
+            if (customerCheckbox) {
+                await fetchData('customers');
+            }
+            if (storeCheckbox) {
+                await fetchData('stores');
+            }
+        });
+
+        async function fetchData(type) {
+            let tables = [];
+            let columns = [];
+            let aggregations = [];
+
+            if (type === 'customers') {
+                const customerTable = document.getElementById('customerTable').value;
+                const customerColumn = document.getElementById('customerColumn').value;
+                const customerAggregation = document.getElementById('customerAggregation').value;
+                tables.push('customers', 'customers', 'customers');
+                columns.push('customerID', 'longitude', 'latitude');
+                aggregations.push('', '', '');
+                if (customerColumn) {
+                    tables.push(customerTable);
+                    columns.push(customerColumn);
+                    aggregations.push(customerAggregation);
+                }
+            }
+
+            if (type === 'stores') {
+                const storeTable = document.getElementById('storeTable').value;
+                const storeColumn = document.getElementById('storeColumn').value;
+                const storeAggregation = document.getElementById('storeAggregation').value;
+                tables.push('stores', 'stores', 'stores');
+                columns.push('storeID', 'longitude', 'latitude');
+                aggregations.push('', '', '');
+                if (storeColumn) {
+                    tables.push(storeTable);
+                    columns.push(storeColumn);
+                    aggregations.push(storeAggregation);
+                }
+            }
+
+            try {
+                const data = await fetch('/getdata', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tables, columns, chartType: 'map', aggregations, filters: [] })
+                }).then(response => response.json());
+
+                if (data.chartType === 'map' && data.dataX && data.dataY && data.dataZ) {
+                    const seriesData = [];
+
+                    // Limit data points for performance
+                    const limit = 1000;
+                    for (let i = 0; i < Math.min(data.dataX.length, limit); i++) {
+                        const item = {
+                            name: data.dataX[i],
+                            value: [parseFloat(data.dataY[i]), parseFloat(data.dataZ[i]), data.dataA ? parseFloat(data.dataA[i]) : 10],
+                            aggregation: data.dataA ? parseFloat(data.dataA[i]) : 'N/A'
+                        };
+                        seriesData.push(item);
+                    }
+
+                    const seriesOption = {
+                        name: type.charAt(0).toUpperCase() + type.slice(1),
+                        type: 'effectScatter',
+                        coordinateSystem: 'leaflet',
+                        data: seriesData,
+                        symbolSize: function(val) {
+                            return val[2] || 10; // Use aggregation value for radius
+                        },
+                        showEffectOn: 'render',
+                        rippleEffect: {
+                            brushType: 'stroke'
+                        },
+                        hoverAnimation: true,
+                        label: {
+                            normal: {
+                                formatter: '{b}',
+                                position: 'right',
+                                show: true
+                            }
+                        },
+                        itemStyle: {
+                            normal: {
+                                color: type === 'customers' ? 'blue' : 'red',
+                                shadowBlur: 10,
+                                shadowColor: '#333'
+                            }
+                        },
+                        zlevel: 1
+                    };
+
+                    let option = myChart.getOption();
+                    if (!option.series) {
+                        option.series = [];
+                    }
+                    option.series.push(seriesOption);
+                    myChart.setOption(option);
+
+                    myChart.on('click', { seriesIndex: option.series.length - 1 }, function(params) {
+                        const data = params.data;
+                        myChart.dispatchAction({
+                            type: 'showTip',
+                            seriesIndex: params.seriesIndex,
+                            dataIndex: params.dataIndex
+                        });
+                    });
+
+                    myChart.setOption({
+                        tooltip: {
+                            trigger: 'item',
+                            formatter: function(params) {
+                                return `
+                                    <strong>ID:</strong> ${params.name}<br>
+                                    <strong>Longitude:</strong> ${params.value[0]}<br>
+                                    <strong>Latitude:</strong> ${params.value[1]}<br>
+                                    <strong>Aggregation:</strong> ${params.data.aggregation}
+                                `;
+                            }
+                        }
+                    });
+
+                } else {
+                    console.error('Error fetching data:', data.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initChart();
+        });
+    </script>
+</body>
+</html>

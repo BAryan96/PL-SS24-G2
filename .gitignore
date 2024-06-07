@@ -1,4 +1,6 @@
 DB.py
 CSV/
-__pychache__
+__pychache__/
 .vscode
+__pychache__/DB.cpython-312.pyc
+__pychache__/DB.cpython-310.pyc
