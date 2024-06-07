@@ -249,7 +249,7 @@
                 const customerAggregation = document.getElementById('customerAggregation').value;
                 tables.push('customers', 'customers', 'customers');
                 columns.push('customerID', 'longitude', 'latitude');
-                aggregations.push('', '', '');
+                aggregations.push('', 'X', 'X');
                 if (customerColumn) {
                     tables.push(customerTable);
                     columns.push(customerColumn);
@@ -263,7 +263,7 @@
                 const storeAggregation = document.getElementById('storeAggregation').value;
                 tables.push('stores', 'stores', 'stores');
                 columns.push('storeID', 'longitude', 'latitude');
-                aggregations.push('', '', '');
+                aggregations.push('', 'X', 'X');
                 if (storeColumn) {
                     tables.push(storeTable);
                     columns.push(storeColumn);
@@ -278,16 +278,16 @@
                     body: JSON.stringify({ tables, columns, chartType: 'map', aggregations, filters: [] })
                 }).then(response => response.json());
 
-                if (data.chartType === 'map' && data.dataX && data.dataY && data.dataZ) {
+                if (data.chartType === 'map' && data.x && data.y0 && data.y1) {
                     const seriesData = [];
 
                     // Limit data points for performance
                     const limit = 1000;
-                    for (let i = 0; i < Math.min(data.dataX.length, limit); i++) {
+                    for (let i = 0; i < Math.min(data.x.length, limit); i++) {
                         const item = {
-                            name: data.dataX[i],
-                            value: [parseFloat(data.dataY[i]), parseFloat(data.dataZ[i]), data.dataA ? parseFloat(data.dataA[i]) : 10],
-                            aggregation: data.dataA ? parseFloat(data.dataA[i]) : 'N/A'
+                            name: data.x[i],
+                            value: [parseFloat(data.y0[i]), parseFloat(data.y1[i]), data.y2 ? Math.min(parseFloat(data.y2[i]), 10) : 10],
+                            aggregation: data.y2 ? parseFloat(data.y2[i]) : 'N/A'
                         };
                         seriesData.push(item);
                     }
@@ -298,7 +298,7 @@
                         coordinateSystem: 'leaflet',
                         data: seriesData,
                         symbolSize: function(val) {
-                            return val[2] || 10; // Use aggregation value for radius
+                            return Math.min(val[2], 10); // Use aggregation value for radius, max size 10
                         },
                         showEffectOn: 'render',
                         rippleEffect: {
@@ -322,14 +322,13 @@
                         zlevel: 1
                     };
 
+                    // Clear existing series and add new one
                     let option = myChart.getOption();
-                    if (!option.series) {
-                        option.series = [];
-                    }
-                    option.series.push(seriesOption);
+                    option.series = [seriesOption];
                     myChart.setOption(option);
 
-                    myChart.on('click', { seriesIndex: option.series.length - 1 }, function(params) {
+                    myChart.off('click');
+                    myChart.on('click', { seriesIndex: 0 }, function(params) {
                         const data = params.data;
                         myChart.dispatchAction({
                             type: 'showTip',

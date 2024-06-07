@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Data Visualisation - DV</title>
+    <title>Stacked Area Chart</title>
     <link rel="stylesheet" href="/static/CSS/all.css">
     <link rel="stylesheet" href="/static/CSS/charts.css">
     <style>
-        #submitButton, #addGraphButton, #applyGraphsButton {
+        #submitButton, #addGraphButton {
             margin-top: 10px;
             padding: 12px 24px;
             font-size: 16px;
@@ -19,7 +19,7 @@
             transition: background-color 0.3s ease, box-shadow 0.3s ease;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
-        #submitButton:hover, #addGraphButton:hover, #applyGraphsButton:hover {
+        #submitButton:hover, #addGraphButton:hover {
             background-color: #ff704d;
             box-shadow: 0 6px 8px rgba(0, 0, 0, 0.2);
         }
@@ -95,6 +95,7 @@
         .popup-form-container label, .popup-form-container select {
             width: 100%;
         }
+
     </style>
 </head>
 <body>
@@ -102,7 +103,7 @@
         <header>
             <div class="logo-area">
                 <span class="logo-circle"></span>
-                <span class="logo-text">Data Visualisation - DV</span>
+                <span class="logo-text">Stacked Area Chart</span>
             </div>
             <button class="menu-button">☰</button>
         </header>
@@ -131,13 +132,13 @@
                             <option value="">None</option>
                         </select>
 
-                        <label for="yTable1">Table for Y-Axis 1</label>
-                        <select id="yTable1" name="yTable1">
+                        <label for="yTable">Table for Y-Axis</label>
+                        <select id="yTable" name="yTable">
                             <option value="">None</option>
                         </select>
 
-                        <label for="yColumn1">Column for Y-Axis 1</label>
-                        <select id="yColumn1" name="yColumn1">
+                        <label for="yColumn">Column for Y-Axis</label>
+                        <select id="yColumn" name="yColumn">
                             <option value="">None</option>
                         </select>
 
@@ -158,7 +159,7 @@
                         </select>
 
                         <button type="submit" id="submitButton">Submit</button>
-                        <button type="button" id="addGraphButton">Add Graph</button>
+                        <button type="button" id="addGraphButton" onclick="togglePopup()">Add Lines</button>
                     </div>
                 </form>
                 <div class="chart-container">
@@ -167,21 +168,46 @@
             </section>
         </main>
     </div>
-
     <div id="popup" class="options-menu hidden">
         <button class="close-btn" onclick="togglePopup()">X</button>
-        <h2>Add Additional Graphs</h2>
+        <h2>Add Additional Lines</h2>
         <form class="popup-form-container" id="popupForm">
+            <label for="yTable2">Table for Y-Axis 2</label>
+            <select id="yTable2" name="yTable2">
+                <option value="">None</option>
+            </select>
+    
+            <label for="yColumn2">Column for Y-Axis 2</label>
+            <select id="yColumn2" name="yColumn2">
+                <option value="">None</option>
+            </select>
+    
+            <label for="aggregationSelect2">Aggregation 2</label>
+            <select id="aggregationSelect2" name="aggregationSelect2">
+                <option value="">No Aggregation</option>
+                <option value="Summe">Sum</option>
+                <option value="Max">Max</option>
+                <option value="Min">Min</option>
+                <option value="Anzahl">Count</option>
+                <option value="Diskrete Anzahl">Distinct Count</option>
+                <option value="Durchschnitt">Average</option>
+                <option value="Standardabweichung">Standard deviation</option>
+                <option value="Varianz">Variance</option>
+                <option value="Median">Median</option>
+                <option value="Erstes Quartil">Q1 Quartile</option>
+                <option value="Drittes Quartil">Q3 Quartile</option>
+            </select>
+    
             <label for="yTable3">Table for Y-Axis 3</label>
             <select id="yTable3" name="yTable3">
                 <option value="">None</option>
             </select>
-
+    
             <label for="yColumn3">Column for Y-Axis 3</label>
             <select id="yColumn3" name="yColumn3">
                 <option value="">None</option>
             </select>
-
+    
             <label for="aggregationSelect3">Aggregation 3</label>
             <select id="aggregationSelect3" name="aggregationSelect3">
                 <option value="">No Aggregation</option>
@@ -197,187 +223,179 @@
                 <option value="Erstes Quartil">Q1 Quartile</option>
                 <option value="Drittes Quartil">Q3 Quartile</option>
             </select>
-
-            <label for="yTable4">Table for Y-Axis 4</label>
-            <select id="yTable4" name="yTable4">
-                <option value="">None</option>
-            </select>
-
-            <label for="yColumn4">Column for Y-Axis 4</label>
-            <select id="yColumn4" name="yColumn4">
-                <option value="">None</option>
-            </select>
-
-            <label for="aggregationSelect4">Aggregation 4</label>
-            <select id="aggregationSelect4" name="aggregationSelect4">
-                <option value="">No Aggregation</option>
-                <option value="Summe">Sum</option>
-                <option value="Max">Max</option>
-                <option value="Min">Min</option>
-                <option value="Anzahl">Count</option>
-                <option value="Diskrete Anzahl">Distinct Count</option>
-                <option value="Durchschnitt">Average</option>
-                <option value="Standardabweichung">Standard deviation</option>
-                <option value="Varianz">Variance</option>
-                <option value="Median">Median</option>
-                <option value="Erstes Quartil">Q1 Quartile</option>
-                <option value="Drittes Quartil">Q3 Quartile</option>
-            </select>
-
-            <label for="yTable5">Table for Y-Axis 5</label>
-            <select id="yTable5" name="yTable5">
-                <option value="">None</option>
-            </select>
-
-            <label for="yColumn5">Column for Y-Axis 5</label>
-            <select id="yColumn5" name="yColumn5">
-                <option value="">None</option>
-            </select>
-
-            <label for="aggregationSelect5">Aggregation 5</label>
-            <select id="aggregationSelect5" name="aggregationSelect5">
-                <option value="">No Aggregation</option>
-                <option value="Summe">Sum</option>
-                <option value="Max">Max</option>
-                <option value="Min">Min</option>
-                <option value="Anzahl">Count</option>
-                <option value="Diskrete Anzahl">Distinct Count</option>
-                <option value="Durchschnitt">Average</option>
-                <option value="Standardabweichung">Standard deviation</option>
-                <option value="Varianz">Variance</option>
-                <option value="Median">Median</option>
-                <option value="Erstes Quartil">Q1 Quartile</option>
-                <option value="Drittes Quartil">Q3 Quartile</option>
-            </select>
-
-            <label for="yTable6">Table for Y-Axis 6</label>
-            <select id="yTable6" name="yTable6">
-                <option value="">None</option>
-            </select>
-
-            <label for="yColumn6">Column for Y-Axis 6</label>
-            <select id="yColumn6" name="yColumn6">
-                <option value="">None</option>
-            </select>
-
-            <label for="aggregationSelect6">Aggregation 6</label>
-            <select id="aggregationSelect6" name="aggregationSelect6">
-                <option value="">No Aggregation</option>
-                <option value="Summe">Sum</option>
-                <option value="Max">Max</option>
-                <option value="Min">Min</option>
-                <option value="Anzahl">Count</option>
-                <option value="Diskrete Anzahl">Distinct Count</option>
-                <option value="Durchschnitt">Average</option>
-                <option value="Standardabweichung">Standard deviation</option>
-                <option value="Varianz">Variance</option>
-                <option value="Median">Median</option>
-                <option value="Erstes Quartil">Q1 Quartile</option>
-                <option value="Drittes Quartil">Q3 Quartile</option>
-            </select>
-
-            <button type="button" id="applyGraphsButton">Apply Graphs</button>
+    
+            <button type="button" onclick="addLines()">Add Lines</button>
         </form>
     </div>
 
-    <script src="/static/JS/sidemenu.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
-        let chartInstance = null;
-        let darkMode = false;
-        let decalPattern = false;
-        let filter = [];
-        let highlightedPoints = {};
-        let updateQueue = [];
+        let charts = [];
         let updating = false;
-        const colorPalette = ['#5470C6', '#91CC75', '#EE6666', '#73C0DE', '#FAC858', '#3BA272', '#FC8452', '#9A60B4', '#EA7CCC'];
-        const seriesInfo = [];
+        let updateQueue = [];
+        let chartInstance = echarts.init(document.getElementById('chart'));
 
         $(document).ready(function() {
+            // Lädt die verfügbaren Tabellen vom Backend beim Laden der Seite
             $.get("/tables", function(data) {
-                window.availableTables = data.tables;
-                populateSelectOptions();
+                if (data.tables) {
+                    const tableOptions = data.tables.map(table => `<option value="${table}">${table}</option>`).join('');
+                    $('#xTable, #yTable, #yTable2, #yTable3').append(tableOptions);
+                }
             });
 
-            $('#dataForm').on('submit', function(event) {
-                event.preventDefault();
-                addChart();
-            });
-
-            $('#xTable').on('change', function() {
+            $('#xTable').change(function() {
                 loadColumns($(this).val(), '#xColumn');
             });
 
-            $('#yTable1').on('change', function() {
-                loadColumns($(this).val(), '#yColumn1');
+            $('#yTable').change(function() {
+                loadColumns($(this).val(), '#yColumn');
             });
 
-            $('#addGraphButton').on('click', function() {
-                togglePopup();
+            $('#yTable2').change(function() {
+                loadColumns($(this).val(), '#yColumn2');
             });
 
-            $('#applyGraphsButton').on('click', function() {
-                addAdditionalGraphs();
-                togglePopup();
+            $('#yTable3').change(function() {
+                loadColumns($(this).val(), '#yColumn3');
             });
 
-            $('#popupForm').on('change', 'select', function() {
-                const id = $(this).attr('id');
-                if (id.startsWith('yTable')) {
-                    const columnSelectId = '#' + id.replace('Table', 'Column');
-                    loadColumns($(this).val(), columnSelectId);
-                }
+            $('#dataForm').submit(function(event) {
+                event.preventDefault();
+                let xTable = $('#xTable').val();
+                let xColumn = $('#xColumn').val();
+                let yTable = $('#yTable').val();
+                let yColumn = $('#yColumn').val();
+                let aggregation = $('#aggregationSelect').val();
+
+                let requestData = {
+                    tables: [xTable, yTable].filter(value => value !== ""),
+                    columns: [xColumn, yColumn].filter(value => value !== ""),
+                    chartType: 'stackedArea',
+                    aggregations: ["", aggregation].filter((value, index) => (value !== "")),
+                    filters: []
+                };
+
+                $.ajax({
+                    url: "/getdata",
+                    type: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify(requestData),
+                    success: function(response) {
+                        const stackedAreaData = {
+                            categories: response.x,
+                            series: [{ name: 'Series 1', data: response.y0 }]
+                        };
+                        renderChart(stackedAreaData);
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("Error: ", status, error);
+                    }
+                });
             });
         });
 
-        function togglePopup() {
-            $('#popup').toggleClass('hidden');
-        }
-
-        function populateSelectOptions() {
-            availableTables.forEach(table => {
-                $('#xTable, #yTable1, #yTable3, #yTable4, #yTable5, #yTable6').append(`<option value="${table}">${table}</option>`);
-            });
-        }
-
-        function loadColumns(table, columnSelect) {
+        function loadColumns(table, columnSelectId) {
             if (table) {
                 $.post("/columns", { table: table }, function(data) {
-                    const columnDropdown = $(columnSelect);
-                    columnDropdown.html('<option value="">None</option>');
-                    data.columns.forEach(column => {
-                        columnDropdown.append(`<option value="${column}">${column}</option>`);
-                    });
+                    const columnOptions = data.columns.map(column => `<option value="${column}">${column}</option>`).join('');
+                    $(columnSelectId).empty().append(`<option value="">None</option>${columnOptions}`);
                 });
             }
         }
 
-        function addChart() {
-            if (chartInstance) {
-                chartInstance.dispose();
-            }
-
-            const chartContainer = document.getElementById('chart');
-            chartContainer.innerHTML = '';
-
-            chartInstance = echarts.init(chartContainer);
-
-            const table1 = $('#yTable1').val();
-            const column1 = $('#yColumn1').val();
-            const table2 = $('#xTable').val();
-            const column2 = $('#xColumn').val();
-            const aggregationType = $('#aggregationSelect').val();
-
-            const requestData = {
-                tables: [table2, table1],
-                columns: [column2, column1],
-                chartType: 'stacked',
-                aggregations: ["", aggregationType],
-                filters: filter
+        function renderChart(stackedAreaData) {
+            let option = {
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: {
+                        type: 'cross',
+                        label: { backgroundColor: '#6a7985' }
+                    }
+                },
+                legend: { data: stackedAreaData.series.map(series => series.name) },
+                toolbox: {
+                    feature: {
+                        saveAsImage: {},
+                        myTool1: {
+                            show: true,
+                            title: 'Copy URL',
+                            icon: 'path://M576 0v512h-320V320h-64v192h-192V480h-64l160-160 160 160z',
+                            onclick: function () {
+                                const url = window.location.href;
+                                navigator.clipboard.writeText(url).then(function () {
+                                    alert('URL copied to clipboard');
+                                }, function (err) {
+                                    console.error('Could not copy URL: ', err);
+                                });
+                            }
+                        },
+                        myCloseChart: {
+                            show: true,
+                            title: 'Close Chart',
+                            icon: 'path://M512 512l212.48-212.48a32 32 0 0 0-45.248-45.248L512 421.504 299.52 209.024a32 32 0 1 0-45.248 45.248L466.752 512 254.272 724.48a32 32 0 1 0 45.248 45.248L512 602.496l212.48 212.48a32 32 0 0 0 45.248-45.248L557.248 512z',
+                            onclick: function () {
+                                chartInstance.dispose();
+                            }
+                        }
+                    }
+                },
+                xAxis: {
+                    type: 'category',
+                    boundaryGap: false,
+                    data: stackedAreaData.categories
+                },
+                yAxis: {
+                    type: 'value'
+                },
+                series: stackedAreaData.series.map(series => ({
+                    name: series.name,
+                    type: 'line',
+                    stack: 'Total',
+                    areaStyle: {},
+                    emphasis: { focus: 'series' },
+                    data: series.data
+                })),
             };
 
-            seriesInfo.push({ column: column1, aggregation: aggregationType });
+            chartInstance.setOption(option);
+        }
+
+        function togglePopup() {
+            const popup = document.getElementById('popup');
+            popup.classList.toggle('hidden');
+        }
+
+        function addLines() {
+            let xTable = $('#xTable').val();
+            let xColumn = $('#xColumn').val();
+            let yTable = $('#yTable').val();
+            let yColumn = $('#yColumn').val();
+            let aggregation = $('#aggregationSelect').val();
+
+            let yTable2 = $('#yTable2').val();
+            let yColumn2 = $('#yColumn2').val();
+            let aggregation2 = $('#aggregationSelect2').val();
+
+            let yTable3 = $('#yTable3').val();
+            let yColumn3 = $('#yColumn3').val();
+            let aggregation3 = $('#aggregationSelect3').val();
+
+            let tables = [xTable, yTable, yTable2, yTable3].filter(value => value !== "");
+            let columns = [xColumn, yColumn, yColumn2, yColumn3].filter(value => value !== "");
+            let aggregations = ["", aggregation, aggregation2, aggregation3];
+
+            // Ensure that the first aggregation is always empty
+            aggregations = aggregations.filter((value, index) => (index !== 0 || value !== ""));
+
+            let requestData = {
+                tables: tables,
+                columns: columns,
+                chartType: 'stackedArea',
+                aggregations: aggregations,
+                filters: []
+            };
 
             $.ajax({
                 url: "/getdata",
@@ -385,195 +403,26 @@
                 contentType: "application/json",
                 data: JSON.stringify(requestData),
                 success: function(response) {
-                    const series = [{
-                        name: column1,
-                        type: 'line',
-                        stack: 'total',
-                        areaStyle: decalPattern ? { decal: { symbol: 'rect' } } : {},
-                        itemStyle: {
-                            color: colorPalette[0]
-                        },
-                        data: response.dataY.map((y, index) => {
-                            const xValue = response.dataX[index];
-                            const key = `${chartInstance.id}-${xValue}`;
-                            const isHighlighted = highlightedPoints[key];
-                            return {
-                                value: y,
-                                itemStyle: {
-                                    borderColor: isHighlighted ? 'black' : null,
-                                    borderWidth: isHighlighted ? 2 : 0,
-                                    color: response.colors ? response.colors[index] : null
-                                }
-                            };
-                        })
-                    }];
+                    const newSeries = [
+                        { name: 'Series 1', data: response.y0 },
+                        { name: 'Series 2', data: response.y1 },
+                        { name: 'Series 3', data: response.y2 }
+                    ].filter(series => series.data);
 
-                    const option = {
-                        color: colorPalette,
-                        title: {
-                            left: 'center',
-                            text: 'Stacked Area Chart'
-                        },
-                        tooltip: {
-                            trigger: 'axis',
-                            formatter: function(params) {
-                                let result = `${params[0].name}<br/>`;
-                                params.forEach((item, index) => {
-                                    const seriesInfoItem = seriesInfo[index];
-                                    result += `${item.marker} ${item.seriesName}: ${item.value} (Y Column: ${seriesInfoItem.column}, Aggregation: ${seriesInfoItem.aggregation})<br/>`;
-                                });
-                                return result;
-                            }
-                        },
-                        legend: {
-                            data: [column1],
-                            top: '5%'
-                        },
-                        xAxis: {
-                            type: 'category',
-                            name: column2,
-                            boundaryGap: false,
-                            data: response.dataX
-                        },
-                        yAxis: {
-                            type: 'value',
-                            name: column1
-                        },
-                        series: series,
-                        backgroundColor: darkMode ? '#333' : '#fff',
-                        textStyle: { color: darkMode ? '#fff' : '#000' },
-                        toolbox: {
-                            feature: {
-                                saveAsImage: {},
-                                myDarkMode: {
-                                    show: true,
-                                    title: 'Dark Mode',
-                                    icon: 'path://M512 0C229.23072 0 0 229.23072 0 512s229.23072 512 512 512 512-229.23072 512-512S794.76928 0 512 0z m0 938.0864c-234.24 0-426.0864-191.8464-426.0864-426.0864S277.76 85.9136 512 85.9136c55.7312 0 111.4624 11.7248 163.6864 35.0208-32.768 56.32-87.04 94.72-151.0912 105.2672-78.4896 13.7216-147.2-12.288-199.7312-55.808 0 0-12.6976 80.9472-12.6976 119.296 0 136.3968 104.7552 247.9104 239.9232 261.8368 79.872 8.2944 152.576-24.7808 198.3488-80.64 28.2624 48.64 45.568 106.752 45.568 170.3424 0 234.24-191.8464 426.0864-426.0864 426.0864z',
-                                    onclick: function() {
-                                        darkMode = !darkMode;
-                                        updateChartAppearance();
-                                    }
-                                },
-                                myDecalPattern: {
-                                    show: true,
-                                    title: 'Decal Pattern',
-                                    icon: 'path://M50 250 Q 150 50 250 250 T 450 250',
-                                    onclick: function() {
-                                        decalPattern = !decalPattern;
-                                        updateChartAppearance();
-                                    }
-                                },
-                                myCloseChart: {
-                                    show: true,
-                                    title: 'Close Chart',
-                                    icon: 'path://M512 512l212.48-212.48a32 32 0 0 0-45.248-45.248L512 421.504 299.52 209.024a32 32 0 1 0-45.248 45.248L466.752 512 254.272 724.48a32 32 0 1 0 45.248 45.248L512 602.496l212.48 212.48a32 32 0 0 0 45.248-45.248L557.248 512z',
-                                    onclick: function() {
-                                        chartInstance.dispose();
-                                    }
-                                }
-                            }
-                        },
-                        dataZoom: [
-                            {
-                                type: 'inside',
-                                start: 0,
-                                end: 100
-                            },
-                            {
-                                start: 0,
-                                end: 100
-                            }
-                        ]
+                    const stackedAreaData = {
+                        categories: response.x,
+                        series: newSeries
                     };
 
-                    chartInstance.setOption(option);
-                    processQueue();
+                    renderChart(stackedAreaData);
+                    togglePopup();
                 },
                 error: function(xhr, status, error) {
                     console.error("Error: ", status, error);
-                    processQueue();
                 }
             });
-
-            chartContainer.addEventListener('contextmenu', function(event) {
-                event.preventDefault();
-            });
-        }
-
-        function addAdditionalGraphs() {
-            const additionalGraphs = [
-                { table: $('#yTable3').val(), column: $('#yColumn3').val(), aggregation: $('#aggregationSelect3').val() },
-                { table: $('#yTable4').val(), column: $('#yColumn4').val(), aggregation: $('#aggregationSelect4').val() },
-                { table: $('#yTable5').val(), column: $('#yColumn5').val(), aggregation: $('#aggregationSelect5').val() },
-                { table: $('#yTable6').val(), column: $('#yColumn6').val(), aggregation: $('#aggregationSelect6').val() }
-            ];
-
-            additionalGraphs.forEach((graph, index) => {
-                if (graph.table && graph.column) {
-                    const requestData = {
-                        tables: [$('#xTable').val(), graph.table],
-                        columns: [$('#xColumn').val(), graph.column],
-                        chartType: 'stacked',
-                        aggregations: ["", graph.aggregation],
-                        filters: filter
-                    };
-
-                    seriesInfo.push({ column: graph.column, aggregation: graph.aggregation });
-
-                    $.ajax({
-                        url: "/getdata",
-                        type: "POST",
-                        contentType: "application/json",
-                        data: JSON.stringify(requestData),
-                        success: function(response) {
-                            const newSeries = {
-                                name: graph.column,
-                                type: 'line',
-                                stack: 'total',
-                                areaStyle: decalPattern ? { decal: { symbol: 'rect' } } : {},
-                                itemStyle: {
-                                    color: colorPalette[(index + 1) % colorPalette.length]
-                                },
-                                data: response.dataY.map((y, index) => {
-                                    const xValue = response.dataX[index];
-                                    const key = `${chartInstance.id}-${xValue}`;
-                                    const isHighlighted = highlightedPoints[key];
-                                    return {
-                                        value: y,
-                                        itemStyle: {
-                                            borderColor: isHighlighted ? 'black' : null,
-                                            borderWidth: isHighlighted ? 2 : 0,
-                                            color: response.colors ? response.colors[index] : null
-                                        }
-                                    };
-                                })
-                            };
-
-                            const option = chartInstance.getOption();
-                            option.series.push(newSeries);
-                            option.legend[0].data.push(graph.column);
-                            chartInstance.setOption(option, true);
-                        },
-                        error: function(xhr, status, error) {
-                            console.error("Error: ", status, error);
-                        }
-                    });
-                }
-            });
-        }
-
-        function updateChartAppearance() {
-            if (chartInstance) {
-                chartInstance.setOption({
-                    backgroundColor: darkMode ? '#333' : '#fff',
-                    textStyle: { color: darkMode ? '#fff' : '#000' },
-                    series: chartInstance.getOption().series.map(serie => ({
-                        ...serie,
-                        areaStyle: decalPattern ? { decal: { symbol: 'rect' } } : {}
-                    }))
-                });
-            }
         }
     </script>
+    <script src="/static/JS/sidemenu.js"></script>
 </body>
 </html>
