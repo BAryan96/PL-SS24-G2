@@ -175,9 +175,9 @@
         }
 
         async function fetchStoreTables() {
-            const response = await fetch('/storeTables');
+            const response = await fetch('/tables');
             const data = await response.json();
-            const storeTableSelect = document.getElementById('storeTable');
+            const storeTableSelect = document.getElementById('table');
 
             storeTableSelect.innerHTML = '<option value="">Select Table</option>';
 
