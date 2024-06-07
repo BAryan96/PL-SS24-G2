@@ -129,19 +129,19 @@ function addChart(chartType) {
                         },
                         xAxis: {
                             type: chartInstance.chartType === "scatter" ? 'value' : 'category',
-                            data: chartInstance.chartType === "scatter" ? null : response.dataX
+                            data: chartInstance.chartType === "scatter" ? null : response.x
                         },
                         yAxis: {
                             type: 'value'
                         },
                         series: [
                             {
-                                data: response.dataY.map((y, index) => {
-                                    const xValue = chartInstance.chartType === "scatter" ? response.dataX[index] : index;
+                                data: response.y0.map((y, index) => {
+                                    const xValue = chartInstance.chartType === "scatter" ? response.x[index] : index;
                                     const key = `${chartInstance.id}-${xValue}`;
                                     const isHighlighted = highlightedPoints[key];
                                     return {
-                                        value: chartInstance.chartType === "scatter" ? [response.dataX[index], y] : y,
+                                        value: chartInstance.chartType === "scatter" ? [response.x[index], y] : y,
                                         itemStyle: {
                                             borderColor: isHighlighted ? 'black' : null,
                                             borderWidth: isHighlighted ? 2 : 0,
@@ -180,8 +180,8 @@ function addChart(chartType) {
                                 labelLine: {
                                     show: false
                                 },
-                                data: response.dataX.map((x, index) => ({
-                                    value: response.dataY[index],
+                                data: response.x.map((x, index) => ({
+                                    value: response.y0[index],
                                     name: x,
                                     itemStyle: {
                                         borderColor: highlightedPoints[`${chartInstance.id}-${index}`] ? 'black' : null,

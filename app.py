@@ -44,7 +44,7 @@ def morphingmap():
 
 @app.route("/basicbarchart")
 def basicbarchart():
-    return render_template('basicbarcharttest.html')
+    return render_template('basicbarchart.html')
 
 @app.route("/heatmap")
 def heatmap():
