@@ -160,7 +160,7 @@
         });
 
         async function fetchCustomerTables() {
-            const response = await fetch('/customerTables');
+            const response = await fetch('/tables');
             const data = await response.json();
             const customerTableSelect = document.getElementById('customerTable');
 
