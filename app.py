@@ -1,5 +1,6 @@
-from flask import Flask, render_template, request, jsonify, send_from_directory
+from flask import Flask, render_template, request, jsonify
 from DB import connect_to_database, get_cursor
+import time
 
 app = Flask(__name__)
 conn = connect_to_database()
@@ -49,9 +50,9 @@ def basicbarchart():
 def heatmap():
     return render_template('heatmap.html')
 
-@app.route('/static/data/USA.json')
-def serve_usa_json():
-    return send_from_directory('static/data', 'USA.json')
+@app.route ("/salesperformancedash")
+def salesperformancedash():
+    return render_template ('salesperformancedash.html')
 
 #wichtig 
 @app.route("/tables")
@@ -246,9 +247,6 @@ def get_data():
     print(response)
     return jsonify(response)
 
-
-
-
 @app.route("/test")
 def test():
     return render_template('test.html')
@@ -265,19 +263,28 @@ def get_table():
         json_data.append(dict(zip(row_headers, result)))
     return render_template('index.html', data=json_data)
 
+@app.route("/get_geodata", methods=["POST"])
+def get_geodata():
+    data = request.get_json()
+    if 'type' not in data:
+        return jsonify({"error": "Missing required field: type"}), 400
 
-#wichtig für heatmap, weitere relationen hinzufügen -> Aryan: Kann Raus
-@app.route("/store-orders", methods=["GET"])
-def get_store_orders():
-    query = """
-        SELECT stores.StoreID, COUNT(orders.OrderID) as orderCount
-        FROM stores
-        JOIN orders ON stores.StoreID = orders.StoreID
-        GROUP BY stores.StoreID
-    """
+    data_type = data['type']
+    if data_type == 'stores':
+        query = "SELECT latitude, longitude FROM stores"
+    elif data_type == 'customers':
+        query = "SELECT latitude, longitude FROM customers"
+    else:
+        return jsonify({"error": "Invalid type"}), 400
+
     cur.execute(query)
     results = cur.fetchall()
-    return jsonify(results)
+
+    # Convert results to the format expected by Leaflet markers
+    geodata = [{'latitude': row[0], 'longitude': row[1]} for row in results]
+
+    return jsonify(geodata)
+
 
 
 if __name__ == "__main__":

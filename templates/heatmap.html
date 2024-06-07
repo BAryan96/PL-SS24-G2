@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="de">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,9 +9,72 @@
     <link rel="stylesheet" href="/static/CSS/stacked_chart_type.css">
     <link rel="stylesheet" href="/static/CSS/charts.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
     <style>
+        .color-picker {
+            margin: 10px 0;
+        }
+
+        #submitButton {
+            margin-top: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            color: #fff;
+            background-color: coral;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        #submitButton:hover {
+            background-color: #ff6f61;
+        }
+
+        .options-menu {
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            padding: 20px;
+            z-index: 1000;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            max-width: 600px;
+            max-height: 80%;
+            overflow-y: auto;
+        }
+
+        .data-selection {
+            display: flex;
+            width: 100%;
+            justify-content: space-between;
+        }
+
+        .form-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-container label,
+        .form-container select,
+        .form-container button {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .chart-container #map {
+            width: 100%;
+            height: 600px;
+        }
     </style>
 </head>
+
 <body>
     <div class="container">
         <header>
@@ -20,121 +84,135 @@
             </div>
             <button class="menu-button">☰</button>
         </header>
-        <div class="side-menu" id="sideMenu">
-            <button class="close-button">X</button>
-            <h1>What would you like to See?</h1>
-            <a href="/charts">Chart Overview</a>
-            <a href="#">Edit/Clear Data</a>
-            <a href="#">Forecast</a>
-            <a href="#">My Profile</a>
-            <a href="/login">Sign In</a>
-            <a href="/">Log Out</a>
-        </div>
         <main class="main">
             <section class="data-selection">
-                <h2>Please Choose your Data</h2>
-                <form id="dataForm">
-                    <label for="relation">Relation</label>
-                    <select id="relation" name="relation">
-                        <option value="">None</option>
-                        <option value="store-orders">Store Orders</option>
-                        
-                        <!-- Weitere Optionen für andere Relationen können hier hinzugefügt werden -->
-                    </select>
-                    <button type="submit">Submit</button>
+                <form id="dataForm" class="form-container">
+                    <div>
+                        <h2>Please Choose your Data for Markers</h2>
+                        <label for="markerTypeSelect">Marker Based On</label>
+                        <select id="markerTypeSelect" name="markerTypeSelect">
+                            <option value="stores">Store Locations</option>
+                            <option value="customers">Customer Locations</option>
+                        </select>
+                        <label for="tableSelect">Table</label>
+                        <select id="tableSelect" name="tableSelect">
+                            <option value="">None</option>
+                        </select>
+                        <label for="columnSelect">Column</label>
+                        <select id="columnSelect" name="columnSelect">
+                            <option value="">None</option>
+                        </select>
+                        <label for="aggregationSelect">Aggregation</label>
+                        <select id="aggregationSelect" name="aggregationSelect">
+                            <option value="">No Aggregation</option>
+                            <option value="Summe">Sum</option>
+                            <option value="Max">Max</option>
+                            <option value="Min">Min</option>
+                            <option value="Anzahl">Count</option>
+                            <option value="Diskrete Anzahl">Distinct Count</option>
+                            <option value="Durchschnitt">Average</option>
+                            <option value="Standardabweichung">Standard deviation</option>
+                            <option value="Varianz">Variance</option>
+                            <option value="Median">Median</option>
+                            <option value="Erstes Quartil">Q1 Quartile</option>
+                            <option value="Drittes Quartil">Q3 Quartile</option>
+                        </select>
+                        <button type="submit" id="submitButton">Submit</button>
+                    </div>
                 </form>
+                <div class="chart-container">
+                    <div id="map"></div>
+                </div>
             </section>
-            <section id="chart" style="width: 100%; height: 600px;"></section>
         </main>
     </div>
-    <script src="/static/JS/sidemenu.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+    <script src="https://unpkg.com/heatmap.js"></script>
+    <script src="https://unpkg.com/leaflet-heatmap/leaflet-heatmap.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('dataForm').addEventListener('submit', function(event) {
-                event.preventDefault();
-                const relation = document.getElementById('relation').value;
-                if (!relation) {
-                    alert('Please select a relation');
-                    return;
-                }
-                fetch(`/${relation}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        const chartDom = document.getElementById('chart');
-                        const myChart = echarts.init(chartDom);
+        $(document).ready(function () {
+            var map = L.map('map').setView([51.505, -0.09], 2); // Weltkarte initialisieren
 
-                        // Bereiten Sie die Daten für die Heatmap vor
-                        const xAxisData = data.map(item => item[0]);
-                        const yAxisData = ['Order Count'];
-                        const heatmapData = data.map((item, index) => [index, 0, item[1]]);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
 
-                        const option = {
-                            tooltip: {
-                                position: 'top'
-                            },
-                            grid: {
-                                height: '50%',
-                                top: '10%',
-                                left: '10%',
-                                right: '10%'
-                            },
-                            xAxis: {
-                                type: 'category',
-                                data: xAxisData,
-                                splitArea: {
-                                    show: true
-                                },
-                                axisLabel: {
-                                    interval: 0,
-                                    rotate: 30,
-                                    margin: 8,
-                                    formatter: function (value) {
-                                        return value.length > 5 ? value.substr(0, 5) + '...' : value;
-                                    }
-                                }
-                            },
-                            yAxis: {
-                                type: 'category',
-                                data: yAxisData,
-                                splitArea: {
-                                    show: true
-                                }
-                            },
-                            visualMap: {
-                                min: 0,
-                                max: Math.max(...data.map(item => item[1])),
-                                calculable: true,
-                                orient: 'horizontal',
-                                left: 'center',
-                                bottom: '15%'
-                            },
-                            series: [{
-                                name: 'Order Count',
-                                type: 'heatmap',
-                                data: heatmapData,
-                                label: {
-                                    show: false,
-                                    formatter: function (params) {
-                                        return params.value[2];
-                                    }
-                                },
-                                itemStyle: {
-                                    emphasis: {
-                                        shadowBlur: 10,
-                                        shadowColor: 'rgba(0, 0, 0, 0.5)'
-                                    }
-                                }
-                            }]
-                        };
+            var markers = L.markerClusterGroup();
 
-                        myChart.setOption(option);
-                    })
-                    .catch(error => {
-                        console.error('Error fetching data:', error);
+            var circleMarkerOptions = {
+                radius: 5,
+                fillColor: "#ff7800",
+                color: "#000",
+                weight: 1,
+                opacity: 1,
+                fillOpacity: 0.8
+            };
+
+            // Laden der verfügbaren Tabellen
+            $.get("/tables", function(data) {
+                data.tables.forEach(table => {
+                    $('#tableSelect').append(`<option value="${table}">${table}</option>`);
+                });
+            });
+
+            // Laden der verfügbaren Spalten, wenn eine Tabelle ausgewählt wird
+            $('#tableSelect').change(function() {
+                var table = $(this).val();
+                if (table) {
+                    $.post("/columns", { table: table }, function(data) {
+                        $('#columnSelect').empty().append('<option value="">None</option>');
+                        data.columns.forEach(column => {
+                            $('#columnSelect').append(`<option value="${column}">${column}</option>`);
+                        });
                     });
+                }
+            });
+
+            $('#dataForm').submit(function (event) {
+                event.preventDefault();
+                var markerType = $('#markerTypeSelect').val();
+                var table = $('#tableSelect').val();
+                var column = $('#columnSelect').val();
+                var aggregation = $('#aggregationSelect').val();
+
+                $.ajax({
+                    url: '/get_geodata',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ type: markerType, table: table, column: column, aggregation: aggregation }),
+                    success: function (data) {
+                        markers.clearLayers();
+                        var bounds = [];
+                        var heatmapPoints = [];
+
+                        data.forEach(function (point) {
+                            var marker = L.circleMarker([point.latitude, point.longitude], circleMarkerOptions);
+                            markers.addLayer(marker);
+                            bounds.push([point.latitude, point.longitude]);
+
+                            // Für die Heatmap
+                            heatmapPoints.push([point.latitude, point.longitude, point.intensity]); // Intensity from the data
+                        });
+
+                        map.addLayer(markers);
+                        if (bounds.length > 0) {
+                            map.fitBounds(bounds); // Zoomt auf den Bereich, in dem sich die Punkte befinden
+                        }
+
+                        // Hinzufügen der Heatmap
+                        var heat = L.heatLayer(heatmapPoints, { radius: 25 }).addTo(map);
+                    },
+                    error: function (error) {
+                        console.log('Error:', error);
+                    }
+                });
             });
         });
+
+        
     </script>
 </body>
+
 </html>
