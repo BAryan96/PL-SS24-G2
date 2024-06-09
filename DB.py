@@ -18,3 +18,15 @@ def connect_to_database():
 
 def get_cursor(conn):
     return conn.cursor()
+
+
+def fetch_data(query):
+    conn = connect_to_database()
+    cursor = get_cursor(conn)
+    cursor.execute(query)
+    rows = cursor.fetchall()
+    col_names = [desc[0] for desc in cursor.description]
+    df = pd.DataFrame(rows, columns=col_names)
+    cursor.close()
+    conn.close()
+    return df
