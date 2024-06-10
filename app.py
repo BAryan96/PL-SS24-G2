@@ -101,8 +101,8 @@ def get_data():
         return jsonify({"error": "The length of aggregations cannot be greater than the length of columns"}), 400
 
     joins = {
-        ('products', 'order_items'): ('SKU', 'SKU'),
-        ('order_items', 'orders'): ('orderID', 'orderID'),
+        ('products', 'orderitems'): ('SKU', 'SKU'),
+        ('orderitems', 'orders'): ('orderID', 'orderID'),
         ('orders', 'customers'): ('customerID', 'customerID'),
         ('orders', 'stores'): ('storeID', 'storeID'),
     }
@@ -172,19 +172,38 @@ def get_data():
     # Generate join conditions
     join_conditions = []
     from_clause = unique_tables[0]
+
+    def find_join_path(start_table, end_table, joins):
+        paths = {start_table: []}
+        visited = {start_table}
+        queue = [start_table]
+        while queue:
+            current_table = queue.pop(0)
+            if current_table == end_table:
+                return paths[current_table]
+            for (table1, table2), (join_col1, join_col2) in joins.items():
+                if table1 == current_table and table2 not in visited:
+                    paths[table2] = paths[current_table] + [(table1, table2, join_col1, join_col2)]
+                    visited.add(table2)
+                    queue.append(table2)
+                elif table2 == current_table and table1 not in visited:
+                    paths[table1] = paths[current_table] + [(table2, table1, join_col2, join_col1)]
+                    visited.add(table1)
+                    queue.append(table1)
+        return None
+
+    join_paths = {}
     for i in range(1, len(unique_tables)):
         table1, table2 = unique_tables[i - 1], unique_tables[i]
-        if table1 != table2:
-            if (table1, table2) in joins:
-                join_column1, join_column2 = joins[(table1, table2)]
-                join_conditions.append(f"JOIN {table2} ON {table1}.{join_column1} = {table2}.{join_column2}")
-            elif (table2, table1) in joins:
-                join_column1, join_column2 = joins[(table2, table1)]
-                join_conditions.append(f"JOIN {table2} ON {table1}.{join_column2} = {table2}.{join_column1}")
-            else:
-                return jsonify({"error": f"No valid join path found between {table1} and {table2}"}), 400
+        join_path = find_join_path(table1, table2, joins)
+        if join_path:
+            join_paths[(table1, table2)] = join_path
         else:
-            from_clause = table1  # Only keep the first table in the FROM clause if the tables are the same
+            return jsonify({"error": f"No valid join path found between {table1} and {table2}"}), 400
+
+    for (table1, table2), path in join_paths.items():
+        for join in path:
+            join_conditions.append(f"JOIN {join[1]} ON {join[0]}.{join[2]} = {join[1]}.{join[3]}")
 
     join_query = " ".join(join_conditions)
 
@@ -209,6 +228,7 @@ def get_data():
 
     # Ensure every column is included
     if not all(columns):
+        print("Each table must have at least one column specified")
         return jsonify({"error": "Each table must have at least one column specified"}), 400
 
     select_query = ", ".join(select_columns)

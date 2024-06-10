@@ -386,9 +386,6 @@
             let columns = [xColumn, yColumn, yColumn2, yColumn3].filter(value => value !== "");
             let aggregations = ["", aggregation, aggregation2, aggregation3];
 
-            // Ensure that the first aggregation is always empty
-            aggregations = aggregations.filter((value, index) => (index !== 0 || value !== ""));
-
             let requestData = {
                 tables: tables,
                 columns: columns,

@@ -254,25 +254,55 @@
                 }
             });
 
-            $('#dataForm').submit(function (event) {
+            $('#dataForm').submit(function(event) {
                 event.preventDefault();
                 var markerType = $('#markerTypeSelect').val();
                 var table = $('#tableSelect').val();
                 var column = $('#columnSelect').val();
                 var aggregation = $('#aggregationSelect').val();
 
+                var tables = (markerType === "stores") ? ["stores" , "stores" , "stores"] : ["customers" , "customers", "customers"];
+                var columns = (markerType === "stores") ? ["storeId", "longitude", "latitude"] : ["customerId", "longitude", "latitude"];
+                tables.push(table);
+                columns.push(column);
+
+                var requestData = {
+                    tables: tables,
+                    columns: columns,
+                    chartType: 'heatmap',
+                    aggregations: ["", "X", "X", aggregation],
+                    filters: []
+                };
+
                 $.ajax({
-                    url: '/get_geodata',
+                    url: '/getdata',
                     method: 'POST',
                     contentType: 'application/json',
-                    data: JSON.stringify({ type: markerType, table: table, column: column, aggregation: aggregation }),
-                    success: function (data) {
+                    data: JSON.stringify(requestData),
+                    success: function(responseData) {
+                        if (!responseData.hasOwnProperty('x') || !responseData.hasOwnProperty('y0') || !responseData.hasOwnProperty('y1') || !responseData.hasOwnProperty('y2')) {
+                            console.error('Data does not have the required properties:', responseData);
+                            return;
+                        }
+
+                        // Daten in das benötigte Format umwandeln
+                        var data = [];
+                        for (var i = 0; i < responseData.x.length; i++) {
+                            data.push({
+                                id: responseData.x[i],
+                                longitude: parseFloat(responseData.y0[i]),
+                                latitude: parseFloat(responseData.y1[i]),
+                                intensity: parseFloat(responseData.y2[i])
+                            });
+                        }
+
                         markers.clearLayers();
                         var bounds = [];
                         var heatmapPoints = [];
 
-                        data.forEach(function (point) {
+                        data.forEach(function(point) {
                             var marker = L.circleMarker([point.latitude, point.longitude], circleMarkerOptions);
+                            marker.bindPopup(`<b>ID:</b> ${point.id}<br><b>Longitude:</b> ${point.longitude}<br><b>Latitude:</b> ${point.latitude}<br><b>Intensity:</b> ${point.intensity}`);
                             markers.addLayer(marker);
                             bounds.push([point.latitude, point.longitude]);
 
@@ -295,7 +325,7 @@
                             data: heatmapPoints
                         });
                     },
-                    error: function (error) {
+                    error: function(error) {
                         console.log('Error:', error);
                     }
                 });
