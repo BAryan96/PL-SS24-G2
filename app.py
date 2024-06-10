@@ -262,26 +262,81 @@ def get_table():
 @app.route("/get_geodata", methods=["POST"])
 def get_geodata():
     data = request.get_json()
-    if 'type' not in data:
-        return jsonify({"error": "Missing required field: type"}), 400
+    print("Empfangene Daten:", data)
+
+    required_fields = ['type', 'table', 'column', 'aggregation']
+    missing_fields = [field for field in required_fields if field not in data]
+
+    if missing_fields:
+        return jsonify({"error": f"Missing required fields: {', '.join(missing_fields)}"}), 400
 
     data_type = data['type']
-    if data_type == 'stores':
-        query = "SELECT latitude, longitude FROM stores"
-    elif data_type == 'customers':
-        query = "SELECT latitude, longitude FROM customers"
-    else:
+    table = data['table']
+    column = data['column']
+    aggregation = data['aggregation']
+
+    if data_type not in ['stores', 'customers']:
         return jsonify({"error": "Invalid type"}), 400
 
-    cur.execute(query)
-    results = cur.fetchall()
+    # Mapping der Aggregationsfunktionen zu SQL-Funktionen
+    aggregation_functions = {
+        "Summe": "SUM",
+        "Max": "MAX",
+        "Min": "MIN",
+        "Anzahl": "COUNT",
+        "Diskrete Anzahl": "COUNT(DISTINCT",
+        "Durchschnitt": "AVG",
+        "Varianz": "VARIANCE",
+        "Standardabweichung": "STDDEV",
+        "Median": "PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY",
+        "Erstes Quartil": "PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY",
+        "Drittes Quartil": "PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY"
+    }
 
-    # Convert results to the format expected by Leaflet markers
-    geodata = [{'latitude': row[0], 'longitude': row[1]} for row in results]
+    # Validierung der Aggregation
+    if aggregation not in aggregation_functions:
+        return jsonify({"error": "Invalid aggregation"}), 400
+
+    agg_function = aggregation_functions[aggregation]
+    if aggregation in ["Diskrete Anzahl", "Median", "Erstes Quartil", "Drittes Quartil"]:
+        agg_query = f"{agg_function} {column})"
+    else:
+        agg_query = f"{agg_function}({column})"
+
+    # Dynamische Erstellung der SQL-Abfrage basierend auf der Auswahl
+    if data_type == 'stores':
+        join_condition = "o.storeID = s.storeID"
+        lat_field = "s.latitude"
+        lng_field = "s.longitude"
+        join_table = "stores s"
+    elif data_type == 'customers':
+        join_condition = "o.customerID = c.customerID"
+        lat_field = "c.latitude"
+        lng_field = "c.longitude"
+        join_table = "customers c"
+
+    query = f"""
+        SELECT {lat_field}, {lng_field}, {agg_query} as intensity
+        FROM {table} o
+        JOIN {join_table} ON {join_condition}
+        GROUP BY {lat_field}, {lng_field}
+    """
+
+    # Debugging: Ausgabe der erstellten SQL-Abfrage
+    print("SQL-Abfrage:", query)
+
+    try:
+        cur.execute(query)
+        results = cur.fetchall()
+        # Debugging: Ausgabe der Ergebnisse
+        print("Abfrageergebnisse:", results)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+    # Konvertieren der Ergebnisse in das erwartete Format
+    geodata = [{'latitude': row[0], 'longitude': row[1], 'intensity': row[2]} for row in results]
 
     return jsonify(geodata)
-
-
 
 if __name__ == "__main__":
     app.run(debug=True)

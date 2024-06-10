@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Data Visualisation - DV</title>
+    <title>Geodaten Visualisierung</title>
     <link rel="stylesheet" href="/static/CSS/all.css">
     <link rel="stylesheet" href="/static/CSS/charts.css">
     <script src="/static/JS/sidemenu.js"></script>
@@ -80,7 +80,7 @@
         <header>
             <div class="logo-area">
                 <span class="logo-circle"></span>
-                <span class="logo-text">Data Visualisation - DV</span>
+                <span class="logo-text">Geodaten Visualisierung</span>
             </div>
             <button class="menu-button">☰</button>
         </header>
@@ -96,15 +96,14 @@
                         </select>
                         <label for="tableSelect">Table</label>
                         <select id="tableSelect" name="tableSelect">
-                            <option value="">None</option>
+                            <!-- Dynamisch gefüllte Optionen -->
                         </select>
                         <label for="columnSelect">Column</label>
                         <select id="columnSelect" name="columnSelect">
-                            <option value="">None</option>
+                            <!-- Dynamisch gefüllte Optionen -->
                         </select>
                         <label for="aggregationSelect">Aggregation</label>
                         <select id="aggregationSelect" name="aggregationSelect">
-                            <option value="">No Aggregation</option>
                             <option value="Summe">Sum</option>
                             <option value="Max">Max</option>
                             <option value="Min">Min</option>
@@ -132,7 +131,6 @@
     <script src="https://unpkg.com/heatmap.js"></script>
     <script src="https://unpkg.com/leaflet-heatmap/leaflet-heatmap.js"></script>
 
-
     <script>
         $(document).ready(function () {
             var baseLayer = L.tileLayer(
@@ -143,7 +141,7 @@
             );
 
             var cfg = {
-                "radius": 0.4, // Sehr kleiner Radius für feine Details
+                "radius": 0.2, // Sehr kleiner Radius für feine Details
                 "maxOpacity": .8,
                 "scaleRadius": true,
                 "useLocalExtrema": true,
@@ -170,12 +168,12 @@
 
             var markers = L.markerClusterGroup();
             var circleMarkerOptions = {
-                radius: 5,
+                radius: 3,
                 fillColor: "#ff7800",
                 color: "#000",
                 weight: 1,
                 opacity: 1,
-                fillOpacity: 0.8
+                fillOpacity: 0.6
             };
 
             // Laden der verfügbaren Tabellen
