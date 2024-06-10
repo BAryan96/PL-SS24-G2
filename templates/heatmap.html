@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html lang="de">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Data Visualisation - DV</title>
     <link rel="stylesheet" href="/static/CSS/all.css">
-    <link rel="stylesheet" href="/static/CSS/stacked_chart_type.css">
     <link rel="stylesheet" href="/static/CSS/charts.css">
+    <script src="/static/JS/sidemenu.js"></script>
+
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
@@ -131,16 +131,44 @@
     <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
     <script src="https://unpkg.com/heatmap.js"></script>
     <script src="https://unpkg.com/leaflet-heatmap/leaflet-heatmap.js"></script>
+
+
     <script>
         $(document).ready(function () {
-            var map = L.map('map').setView([51.505, -0.09], 2); // Weltkarte initialisieren
+            var baseLayer = L.tileLayer(
+                'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+                    attribution: '© OpenStreetMap contributors',
+                    maxZoom: 18
+                }
+            );
 
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors'
-            }).addTo(map);
+            var cfg = {
+                "radius": 0.4, // Sehr kleiner Radius für feine Details
+                "maxOpacity": .8,
+                "scaleRadius": true,
+                "useLocalExtrema": true,
+                latField: 'lat',
+                lngField: 'lng',
+                valueField: 'count',
+                gradient: {
+                    0.1: 'blue',
+                    0.2: 'lime',
+                    0.4: 'yellow',
+                    0.6: 'orange',
+                    0.8: 'red',
+                    1.0: 'purple'
+                }
+            };
+
+            var heatmapLayer = new HeatmapOverlay(cfg);
+
+            var map = new L.Map('map', {
+                center: new L.LatLng(37.5, -117), // Zentrum von Kalifornien, Nevada und Utah
+                zoom: 6, // Angepasste Zoomstufe
+                layers: [baseLayer, heatmapLayer]
+            });
 
             var markers = L.markerClusterGroup();
-
             var circleMarkerOptions = {
                 radius: 5,
                 fillColor: "#ff7800",
@@ -193,7 +221,11 @@
                             bounds.push([point.latitude, point.longitude]);
 
                             // Für die Heatmap
-                            heatmapPoints.push([point.latitude, point.longitude, point.intensity]); // Intensity from the data
+                            heatmapPoints.push({
+                                lat: point.latitude,
+                                lng: point.longitude,
+                                count: point.intensity // Intensity from the data
+                            });
                         });
 
                         map.addLayer(markers);
@@ -201,8 +233,11 @@
                             map.fitBounds(bounds); // Zoomt auf den Bereich, in dem sich die Punkte befinden
                         }
 
-                        // Hinzufügen der Heatmap
-                        var heat = L.heatLayer(heatmapPoints, { radius: 25 }).addTo(map);
+                        // Setzen der Heatmap-Daten
+                        heatmapLayer.setData({
+                            max: Math.max(...data.map(point => point.intensity)), // Dynamische Anpassung des maximalen Werts
+                            data: heatmapPoints
+                        });
                     },
                     error: function (error) {
                         console.log('Error:', error);
@@ -210,9 +245,7 @@
                 });
             });
         });
-
-        
     </script>
-</body>
 
+</body>
 </html>
