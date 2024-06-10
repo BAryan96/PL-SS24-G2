@@ -116,9 +116,12 @@ def get_data():
         "Durchschnitt": "AVG",
         "Varianz": "VARIANCE",
         "Standardabweichung": "STDDEV",
-        "Median": "PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY", #deffekt
-        "Erstes Quartil": "PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY", #deffekt
-        "Drittes Quartil": "PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY" #deffekt
+        "Median": ("SUBSTRING_INDEX(SUBSTRING_INDEX(GROUP_CONCAT({column} ORDER BY {column}), ',', "
+               "ROUND(0.5 * COUNT(*) + 0.5)), ',', -1)"),
+        "Erstes Quartil": ("SUBSTRING_INDEX(SUBSTRING_INDEX(GROUP_CONCAT({column} ORDER BY {column}), ',', "
+                           "ROUND(0.25 * COUNT(*) + 0.5)), ',', -1)"),
+        "Drittes Quartil": ("SUBSTRING_INDEX(SUBSTRING_INDEX(GROUP_CONCAT({column} ORDER BY {column}), ',', "
+                            "ROUND(0.75 * COUNT(*) + 0.5)), ',', -1)")
     }
 
     # Construct filter query

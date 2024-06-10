@@ -1,5 +1,6 @@
 import mariadb
 import sys
+import pandas as pd
 
 def connect_to_database():
     try:
