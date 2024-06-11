@@ -292,7 +292,7 @@
                                 id: responseData.x[i],
                                 longitude: parseFloat(responseData.y0[i]),
                                 latitude: parseFloat(responseData.y1[i]),
-                                intensity: parseFloat(responseData.y2[i])
+                                Aggregation: parseFloat(responseData.y2[i])
                             });
                         }
 
@@ -302,7 +302,7 @@
 
                         data.forEach(function(point) {
                             var marker = L.circleMarker([point.latitude, point.longitude], circleMarkerOptions);
-                            marker.bindPopup(`<b>ID:</b> ${point.id}<br><b>Longitude:</b> ${point.longitude}<br><b>Latitude:</b> ${point.latitude}<br><b>Intensity:</b> ${point.intensity}`);
+                            marker.bindPopup(`<b>ID:</b> ${point.id}<br><b>Longitude:</b> ${point.longitude}<br><b>Latitude:</b> ${point.latitude}<br><b>Aggregation:</b> ${point.Aggregation}`);
                             markers.addLayer(marker);
                             bounds.push([point.latitude, point.longitude]);
 
@@ -310,7 +310,7 @@
                             heatmapPoints.push({
                                 lat: point.latitude,
                                 lng: point.longitude,
-                                count: point.intensity // Intensity from the data
+                                count: point.Aggregation // Aggregation from the data
                             });
                         });
 
@@ -321,7 +321,7 @@
 
                         // Setzen der Heatmap-Daten
                         heatmapLayer.setData({
-                            max: Math.max(...data.map(point => point.intensity)), // Dynamische Anpassung des maximalen Werts
+                            max: Math.max(...data.map(point => point.Aggregation)), // Dynamische Anpassung des maximalen Werts
                             data: heatmapPoints
                         });
                     },
