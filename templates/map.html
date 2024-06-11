@@ -1,11 +1,20 @@
 <!DOCTYPE html>
 <html lang="de">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Data Visualisation - DV</title>
+    <title>Geodaten Visualisierung</title>
     <link rel="stylesheet" href="/static/CSS/all.css">
+    <link rel="stylesheet" href="/static/CSS/charts.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
     <style>
+        .color-picker {
+            margin: 10px 0;
+        }
+
         #submitButton {
             margin-top: 10px;
             padding: 10px 20px;
@@ -17,353 +26,286 @@
             cursor: pointer;
             transition: background-color 0.3s ease;
         }
+
         #submitButton:hover {
-            background-color: #e57373;
+            background-color: #ff6f61;
         }
-        #chart {
-            height: 500px;
+
+        .options-menu {
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            padding: 20px;
+            z-index: 1000;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            max-width: 600px;
+            max-height: 80%;
+            overflow-y: auto;
         }
-        .container {
-            width: 100%;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        .logo-area {
-            display: flex;
-            align-items: center;
-            padding: 20px 0;
-        }
-        .logo-circle {
-            width: 40px;
-            height: 40px;
-            background-color: coral;
-            border-radius: 50%;
-            margin-right: 10px;
-        }
-        .logo-text {
-            font-size: 24px;
-            font-weight: bold;
-        }
+
         .data-selection {
-            padding: 20px 0;
+            display: flex;
+            width: 100%;
+            justify-content: space-between;
         }
-        .data-selection h2 {
+
+        .form-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-container label,
+        .form-container select,
+        .form-container button {
+            width: 100%;
             margin-bottom: 10px;
         }
+
+        .chart-container #map {
+            width: 100%;
+            height: 600px;
+            position: relative;
+        }
     </style>
-    <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
 </head>
+
 <body>
     <div class="container">
         <header>
             <div class="logo-area">
                 <span class="logo-circle"></span>
-                <span class="logo-text">Data Visualisation - DV</span>
+                <span class="logo-text">Geodaten Visualisierung</span>
             </div>
+            <button class="menu-button">☰</button>
         </header>
+        <div class="side-menu" id="sideMenu">
+            <button class="close-button">X</button>
+            <h1>What would you like to See?</h1>
+            <a href="/charts">Chart Overview</a>
+            <a href="#">Edit/Clear Data</a>
+            <a href="#">Forecast</a>
+            <a href="#">My Profile</a>
+            <a href="/login">Sign In</a>
+            <a href="/">Log Out</a>
+        </div>
         <main class="main">
             <section class="data-selection">
-                <h2>Select Data Type</h2>
-                <form id="dataForm">
+                <form id="dataForm" class="form-container">
                     <div>
-                        <input type="checkbox" id="customerCheckbox" name="dataType" value="customers"> Customer
-                        <div id="customerOptions" style="display: none;">
-                            <select id="customerTable"></select>
-                            <select id="customerColumn"></select>
-                            <select id="customerAggregation">
-                                <option value="">None</option>
-                                <option value="Summe">Sum</option>
-                                <option value="Max">Max</option>
-                                <option value="Min">Min</option>
-                                <option value="Anzahl">Count</option>
-                                <option value="Diskrete Anzahl">Distinct Count</option>
-                                <option value="Durchschnitt">Average</option>
-                                <option value="Varianz">Variance</option>
-                                <option value="Standardabweichung">Standard Deviation</option>
-                                <option value="Median">Median</option>
-                                <option value="Erstes Quartil">First Quartile</option>
-                                <option value="Drittes Quartil">Third Quartile</option>
-                            </select>
-                        </div>
+                        <h2>Please Choose your Data for Markers</h2>
+                        <label>
+                            <input type="checkbox" id="markerStores" name="markerType" value="stores"> Store Locations
+                        </label>
+                        <label>
+                            <input type="checkbox" id="markerCustomers" name="markerType" value="customers"> Customer Locations
+                        </label>
+                        <label for="tableSelect">Table</label>
+                        <select id="tableSelect" name="tableSelect">
+                            <option value="">None</option>
+                            <!-- Dynamisch gefüllte Optionen -->
+                        </select>
+                        <label for="columnSelect">Column</label>
+                        <select id="columnSelect" name="columnSelect">
+                            <option value="">None</option>
+                            <!-- Dynamisch gefüllte Optionen -->
+                        </select>
+                        <label for="aggregationSelect">Aggregation</label>
+                        <select id="aggregationSelect" name="aggregationSelect">
+                            <option value="">None</option>
+                            <option value="Summe">Sum</option>
+                            <option value="Max">Max</option>
+                            <option value="Min">Min</option>
+                            <option value="Anzahl">Count</option>
+                            <option value="Diskrete Anzahl">Distinct Count</option>
+                            <option value="Durchschnitt">Average</option>
+                            <option value="Standardabweichung">Standard deviation</option>
+                            <option value="Varianz">Variance</option>
+                            <option value="Median">Median</option>
+                            <option value="Erstes Quartil">Q1 Quartile</option>
+                            <option value="Drittes Quartil">Q3 Quartile</option>
+                        </select>
+                        <button type="submit" id="submitButton">Submit</button>
                     </div>
-                    <div>
-                        <input type="checkbox" id="storeCheckbox" name="dataType" value="stores"> Store
-                        <div id="storeOptions" style="display: none;">
-                            <select id="storeTable"></select>
-                            <select id="storeColumn"></select>
-                            <select id="storeAggregation">
-                                <option value="">None</option>
-                                <option value="Summe">Sum</option>
-                                <option value="Max">Max</option>
-                                <option value="Min">Min</option>
-                                <option value="Anzahl">Count</option>
-                                <option value="Diskrete Anzahl">Distinct Count</option>
-                                <option value="Durchschnitt">Average</option>
-                                <option value="Varianz">Variance</option>
-                                <option value="Standardabweichung">Standard Deviation</option>
-                                <option value="Median">Median</option>
-                                <option value="Erstes Quartil">First Quartile</option>
-                                <option value="Drittes Quartil">Third Quartile</option>
-                            </select>
-                        </div>
-                    </div>
-                    <button type="submit" id="submitButton">Submit</button>
                 </form>
+                <div class="chart-container">
+                    <div id="map"></div>
+                </div>
             </section>
-            <section id="chart"></section>
         </main>
     </div>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="/static/JS/sidemenu.js"></script>
 
-    <!-- Using online ECharts files -->
-    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
-    <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
-    <!-- ECharts-Leaflet Plugin -->
-    <script src="https://cdn.jsdelivr.net/npm/echarts-leaflet/dist/echarts-leaflet.min.js"></script>
     <script>
-        let myChart;
-
-        function initChart() {
-            const chartDom = document.getElementById('chart');
-            myChart = echarts.init(chartDom);
-
-            const option = {
-                leaflet: {
-                    center: [37.5, -119], // Coordinates for the center of California, Nevada, and Utah
-                    zoom: 5, // Adjust zoom level to fit California, Nevada, and Utah
-                    roam: true,
-                    tileLayer: {
-                        urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                        options: {
-                            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                        }
-                    }
-                },
-                series: []
-            };
-
-            myChart.setOption(option);
-        }
-
-        document.getElementById('customerCheckbox').addEventListener('change', function() {
-            document.getElementById('customerOptions').style.display = this.checked ? 'block' : 'none';
-            if (this.checked) {
-                fetchCustomerTables();
-            }
-        });
-
-        document.getElementById('storeCheckbox').addEventListener('change', function() {
-            document.getElementById('storeOptions').style.display = this.checked ? 'block' : 'none';
-            if (this.checked) {
-                fetchStoreTables();
-            }
-        });
-
-        async function fetchCustomerTables() {
-            const response = await fetch('/tables');
-            const data = await response.json();
-            const customerTableSelect = document.getElementById('customerTable');
-
-            customerTableSelect.innerHTML = '<option value="">Select Table</option>';
-
-            data.tables.forEach(table => {
-                const option = document.createElement('option');
-                option.value = table;
-                option.text = table;
-                customerTableSelect.appendChild(option);
-            });
-        }
-
-        async function fetchStoreTables() {
-            const response = await fetch('/tables');
-            const data = await response.json();
-            const storeTableSelect = document.getElementById('storeTable');
-
-            storeTableSelect.innerHTML = '<option value="">Select Table</option>';
-
-            data.tables.forEach(table => {
-                const option = document.createElement('option');
-                option.value = table;
-                option.text = table;
-                storeTableSelect.appendChild(option);
-            });
-        }
-
-        async function fetchColumns(table, selectElement) {
-            if (!table) {
-                selectElement.innerHTML = '<option value="">Select Column</option>';
-                return;
-            }
-
-            const formData = new FormData();
-            formData.append('table', table);
-            const response = await fetch('/columns', {
-                method: 'POST',
-                body: formData
-            });
-            const data = await response.json();
-
-            selectElement.innerHTML = '<option value="">Select Column</option>';
-            data.columns.forEach(column => {
-                const option = document.createElement('option');
-                option.value = column;
-                option.text = column;
-                selectElement.appendChild(option);
-            });
-        }
-
-        document.getElementById('customerTable').addEventListener('change', function() {
-            fetchColumns(this.value, document.getElementById('customerColumn'));
-        });
-
-        document.getElementById('storeTable').addEventListener('change', function() {
-            fetchColumns(this.value, document.getElementById('storeColumn'));
-        });
-
-        document.getElementById('dataForm').addEventListener('submit', async function(event) {
-            event.preventDefault();
-            const customerCheckbox = document.getElementById('customerCheckbox').checked;
-            const storeCheckbox = document.getElementById('storeCheckbox').checked;
-
-            if (!customerCheckbox && !storeCheckbox) {
-                alert('Please select at least one data type.');
-                return;
-            }
-
-            if (customerCheckbox) {
-                await fetchData('customers');
-            }
-            if (storeCheckbox) {
-                await fetchData('stores');
-            }
-        });
-
-        async function fetchData(type) {
-            let tables = [];
-            let columns = [];
-            let aggregations = [];
-
-            if (type === 'customers') {
-                const customerTable = document.getElementById('customerTable').value;
-                const customerColumn = document.getElementById('customerColumn').value;
-                const customerAggregation = document.getElementById('customerAggregation').value;
-                tables.push('customers', 'customers', 'customers');
-                columns.push('customerID', 'longitude', 'latitude');
-                aggregations.push('', 'X', 'X');
-                if (customerColumn) {
-                    tables.push(customerTable);
-                    columns.push(customerColumn);
-                    aggregations.push(customerAggregation);
+        $(document).ready(function() {
+            var baseLayer = L.tileLayer(
+                'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors',
+                    maxZoom: 18
                 }
-            }
+            );
 
-            if (type === 'stores') {
-                const storeTable = document.getElementById('storeTable').value;
-                const storeColumn = document.getElementById('storeColumn').value;
-                const storeAggregation = document.getElementById('storeAggregation').value;
-                tables.push('stores', 'stores', 'stores');
-                columns.push('storeID', 'longitude', 'latitude');
-                aggregations.push('', 'X', 'X');
-                if (storeColumn) {
-                    tables.push(storeTable);
-                    columns.push(storeColumn);
-                    aggregations.push(storeAggregation);
-                }
-            }
+            var map = new L.Map('map', {
+                center: new L.LatLng(37.5, -117), // Zentrum von Kalifornien, Nevada und Utah
+                zoom: 6, // Angepasste Zoomstufe
+                layers: [baseLayer]
+            });
 
-            try {
-                const data = await fetch('/getdata', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ tables, columns, chartType: 'map', aggregations, filters: [] })
-                }).then(response => response.json());
+            var markers = L.markerClusterGroup();
 
-                if (data.chartType === 'map' && data.x && data.y0 && data.y1) {
-                    const seriesData = [];
+            // Laden der verfügbaren Tabellen
+            $.get("/tables", function(data) {
+                data.tables.forEach(table => {
+                    $('#tableSelect').append(`<option value="${table}">${table}</option>`);
+                });
+            });
 
-                    // Limit data points for performance
-                    const limit = 1000;
-                    for (let i = 0; i < Math.min(data.x.length, limit); i++) {
-                        const item = {
-                            name: data.x[i],
-                            value: [parseFloat(data.y0[i]), parseFloat(data.y1[i]), data.y2 ? Math.min(parseFloat(data.y2[i]), 10) : 10],
-                            aggregation: data.y2 ? parseFloat(data.y2[i]) : 'N/A'
-                        };
-                        seriesData.push(item);
-                    }
-
-                    const seriesOption = {
-                        name: type.charAt(0).toUpperCase() + type.slice(1),
-                        type: 'effectScatter',
-                        coordinateSystem: 'leaflet',
-                        data: seriesData,
-                        symbolSize: function(val) {
-                            return Math.min(val[2], 10); // Use aggregation value for radius, max size 10
-                        },
-                        showEffectOn: 'render',
-                        rippleEffect: {
-                            brushType: 'stroke'
-                        },
-                        hoverAnimation: true,
-                        label: {
-                            normal: {
-                                formatter: '{b}',
-                                position: 'right',
-                                show: true
-                            }
-                        },
-                        itemStyle: {
-                            normal: {
-                                color: type === 'customers' ? 'blue' : 'red',
-                                shadowBlur: 10,
-                                shadowColor: '#333'
-                            }
-                        },
-                        zlevel: 1
-                    };
-
-                    // Clear existing series and add new one
-                    let option = myChart.getOption();
-                    option.series = [seriesOption];
-                    myChart.setOption(option);
-
-                    myChart.off('click');
-                    myChart.on('click', { seriesIndex: 0 }, function(params) {
-                        const data = params.data;
-                        myChart.dispatchAction({
-                            type: 'showTip',
-                            seriesIndex: params.seriesIndex,
-                            dataIndex: params.dataIndex
+            // Laden der verfügbaren Spalten, wenn eine Tabelle ausgewählt wird
+            $('#tableSelect').change(function() {
+                var table = $(this).val();
+                if (table) {
+                    $.post("/columns", { table: table }, function(data) {
+                        $('#columnSelect').empty().append('<option value="">None</option>');
+                        data.columns.forEach(column => {
+                            $('#columnSelect').append(`<option value="${column}">${column}</option>`);
                         });
                     });
+                }
+            });
 
-                    myChart.setOption({
-                        tooltip: {
-                            trigger: 'item',
-                            formatter: function(params) {
-                                return `
-                                    <strong>ID:</strong> ${params.name}<br>
-                                    <strong>Longitude:</strong> ${params.value[0]}<br>
-                                    <strong>Latitude:</strong> ${params.value[1]}<br>
-                                    <strong>Aggregation:</strong> ${params.data.aggregation}
-                                `;
+            $('#dataForm').submit(function(event) {
+                event.preventDefault();
+                var markerTypes = $('input[name="markerType"]:checked').map(function() {
+                    return $(this).val();
+                }).get();
+                var table = $('#tableSelect').val();
+                var column = $('#columnSelect').val();
+                var aggregation = $('#aggregationSelect').val();
+
+                // Reset the markers layer
+                markers.clearLayers();
+                map.removeLayer(markers);
+                markers = L.markerClusterGroup();
+
+                // Helper function to load markers
+                function loadMarkers(markerType, color, callback) {
+                    var tables = [];
+                    var columns = [];
+                    var aggregations = [];
+                    var filters = [];
+
+                    if (markerType === "stores") {
+                        tables = ["stores", "stores", "stores"];
+                        columns = ["storeID", "longitude", "latitude"];
+                    } else if (markerType === "customers") {
+                        tables = ["customers", "customers", "customers"];
+                        columns = ["customerID", "longitude", "latitude"];
+                    }
+
+                    if (table && column && aggregation) {
+                        tables.push(table);
+                        columns.push(column);
+                        aggregations = ["", "X", "X", aggregation];
+                    } else {
+                        tables.push("");
+                        columns.push("");
+                        aggregations = ["", "X", "X", ""];
+                    }
+
+                    var requestData = {
+                        tables: tables.filter(value => value !== ""),
+                        columns: columns.filter(value => value !== ""),
+                        chartType: 'dynamicMarkers', // Change to dynamicMarkers
+                        aggregations: aggregations.filter(value => value !== ""),
+                        filters: filters
+                    };
+                    requestData.aggregations.unshift("");
+
+                    $.ajax({
+                        url: '/getdata',
+                        method: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify(requestData),
+                        success: function(responseData) {
+                            if (!responseData.hasOwnProperty('x') || !responseData.hasOwnProperty('y0') || !responseData.hasOwnProperty('y1') || (aggregation && !responseData.hasOwnProperty('y2'))) {
+                                console.error('Data does not have the required properties:', responseData);
+                                return;
                             }
+
+                            // Daten in das benötigte Format umwandeln
+                            var data = [];
+                            for (var i = 0; i < responseData.x.length; i++) {
+                                var point = {
+                                    id: responseData.x[i],
+                                    longitude: parseFloat(responseData.y0[i]),
+                                    latitude: parseFloat(responseData.y1[i]),
+                                };
+                                if (aggregation) {
+                                    point.Aggregation = parseFloat(responseData.y2[i]);
+                                }
+                                data.push(point);
+                            }
+
+                            var maxAggregation = aggregation ? Math.max(...data.map(point => point.Aggregation)) : 1;
+
+                            data.forEach(function(point) {
+                                var scale = aggregation ? point.Aggregation / maxAggregation : 1; // Skaliert die Markergröße basierend auf dem Aggregationswert
+                                var markerOptions = {
+                                    radius: 3 + scale * 17, // Radius dynamisch anpassen
+                                    fillColor: color,
+                                    color: "#000",
+                                    weight: 1,
+                                    opacity: 1,
+                                    fillOpacity: 0.6
+                                };
+
+                                var marker = L.circleMarker([point.latitude, point.longitude], markerOptions);
+                                var popupContent = `<b>ID:</b> ${point.id}<br><b>Longitude:</b> ${point.longitude}<br><b>Latitude:</b> ${point.latitude}`;
+                                if (aggregation) {
+                                    popupContent += `<br><b>Aggregation:</b> ${point.Aggregation}`;
+                                }
+                                marker.bindPopup(popupContent);
+                                markers.addLayer(marker);
+                            });
+
+                            if (callback) {
+                                callback();
+                            }
+                        },
+                        error: function(error) {
+                            console.log('Error:', error);
                         }
                     });
-
-                } else {
-                    console.error('Error fetching data:', data.error);
                 }
-            } catch (error) {
-                console.error('Error:', error);
-            }
-        }
 
-        document.addEventListener('DOMContentLoaded', function() {
-            initChart();
+                // Load markers sequentially
+                function loadSequentially(markerTypes) {
+                    if (markerTypes.length === 0) {
+                        map.addLayer(markers);
+                        return;
+                    }
+
+                    var markerType = markerTypes.shift();
+                    var color = markerType === "stores" ? "blue" : "pink";
+                    loadMarkers(markerType, color, function() {
+                        loadSequentially(markerTypes);
+                    });
+                }
+
+                loadSequentially(markerTypes.slice());
+            });
         });
     </script>
+
 </body>
+
 </html>
