@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="de">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -30,16 +29,13 @@
             border-radius: 5px;
             box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
         }
-
         .legend h4 {
             margin: 0 0 5px;
         }
-
         .legend div {
             display: flex;
             align-items: center;
         }
-
         .legend div span {
             display: inline-block;
             width: 20px;
@@ -51,7 +47,6 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
 </head>
-
 <body>
     <div class="container">
         <header>
@@ -100,27 +95,21 @@
                 <div id="chart5" class="chart">
                     <div id="map" style="width: 100%; height: 100%;"></div>
                 </div>
+
+
             </div>
         </section>
+    </main>
     <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
     <script src="/static/JS/sidemenu.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
     <script src="https://unpkg.com/heatmap.js"></script>
-    <script src="https://unpkg.com/leaflet-heatmap/leaflet-heatmap.js"></script>
     <script src="/static/JS/salesperformance.js"></script>
+    <script src="https://unpkg.com/leaflet-heatmap/leaflet-heatmap.js"></script>
     <script>
-        $(document).ready(async function() {
-            await loadChartsSequentially([
-                { id: 'chart1', xTable: 'products', xColumn: 'Name', yTable: 'orders', yColumn: 'total', type: 'bar', aggregation: 'Summe' },
-                { id: 'chart2', xTable: 'stores', xColumn: 'storeID', yTable: 'orders', yColumn: 'total', type: 'bar', aggregation: 'Summe' },
-                { id: 'chart3', xTable: 'products', xColumn: 'Name', yTable: 'orders', yColumn: 'total', type: 'pie', aggregation: 'Summe' },
-                { id: 'chart4', xTable: 'products', xColumn: 'Name', yTable: 'orders', yColumn: 'total', type: 'bar', aggregation: 'Summe' },
-                { id: 'chart5', markerType: 'stores', table: 'orders', column: 'total', aggregation: 'Summe', type: 'geo' }
-            ]);
-        });
+       
     </script>
 </body>
-
 </html>
