@@ -6,46 +6,50 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Data Visualisation - DV</title>
     <link rel="stylesheet" href="/static/CSS/all.css">
-    <link rel="stylesheet" href="/static/CSS/charts.css">
-    <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
     <style>
         .chart-container {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            grid-template-rows: repeat(2, 650px) 650px; /* Increase height to 500px */
-            gap: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
         }
-
         .chart {
+            width: 48%;
+            height: 400px;
+            margin-bottom: 20px;
             background-color: #f0f0f0;
             border: 1px solid #ccc;
+        }
+        .chart:nth-child(5) {
             width: 100%;
-            height: 100%;
-            box-sizing: border-box; /* Ensures padding and border are included in the element's total width and height */
+        }
+        .legend {
+            line-height: 18px;
+            color: #555;
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
         }
 
-        .chart-container > .chart:hover {
-            transform: none; /* Disables any transformation on hover */
+        .legend h4 {
+            margin: 0 0 5px;
         }
 
-        #chart5 {
-            grid-column: span 2;
+        .legend div {
+            display: flex;
+            align-items: center;
         }
 
-        .form-container {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box; /* Ensures padding and border are included in the element's total width and height */
-        }
-        .dashboard-title {
-            text-align: center;
-            font-size: 24px;
-            margin-bottom: 20px;
+        .legend div span {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            margin-right: 5px;
         }
     </style>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
 </head>
 
 <body>
@@ -82,107 +86,40 @@
             <h1 class="dashboard-title">Sales Performance Dashboard</h1>
             <div class="chart-container">
                 <div id="chart1" class="chart">
-                    <form id="dataForm" class="form-container">
-                        <div>
-                            <h2>Please Choose your Data for a Scale Area Chart</h2>
-                            <label for="xTable">Table for X-Axis</label>
-                            <select id="xTable" name="xTable">
-                                <option value="">None</option>
-                            </select>
-
-                            <label for="xColumn">Column for X-Axis</label>
-                            <select id="xColumn" name="xColumn">
-                                <option value="">None</option>
-                            </select>
-
-                            <label for="yTable">Table for Y-Axis</label>
-                            <select id="yTable" name="yTable">
-                                <option value="">None</option>
-                            </select>
-
-                            <label for="yColumn">Column for Y-Axis</label>
-                            <select id="yColumn" name="yColumn">
-                                <option value="">None</option>
-                            </select>
-
-                            <label for="aggregationSelect">Aggregation</label>
-                            <select id="aggregationSelect" name="aggregationSelect">
-                                <option value="">No Aggregation</option>
-                                <option value="Summe">Sum</option>
-                                <option value="Max">Max</option>
-                                <option value="Min">Min</option>
-                                <option value="Anzahl">Count</option>
-                                <option value="Diskrete Anzahl">Distinct Count</option>
-                                <option value="Durchschnitt">Average</option>
-                                <option value="Standardabweichung">Standard deviation</option>
-                                <option value="Varianz">Variance</option>
-                                <option value="Median">Median</option>
-                                <option value="Erstes Quartil">Q1 Quartile</option>
-                                <option value="Drittes Quartil">Q3 Quartile</option>
-                            </select>
-
-                            <button type="submit" id="submitButton">Submit</button>
-                        </div>
-                    </form>
-                    <div id="chart" class="chart"></div>
+                    <div id="myChart1" style="width: 100%; height: 100%;"></div>
                 </div>
                 <div id="chart2" class="chart">
-                    <form id="dataForm2" class="form-container">
-                        <div>
-                            <h2>Please Choose your Data for a Bar Chart</h2>
-                            <label for="xTable2">Table for X-Axis</label>
-                            <select id="xTable2" name="xTable2">
-                                <option value="">None</option>
-                            </select>
-
-                            <label for="xColumn2">Column for X-Axis</label>
-                            <select id="xColumn2" name="xColumn2">
-                                <option value="">None</option>
-                            </select>
-
-                            <label for="yTable2">Table for Y-Axis</label>
-                            <select id="yTable2" name="yTable2">
-                                <option value="">None</option>
-                            </select>
-
-                            <label for="yColumn2">Column for Y-Axis</label>
-                            <select id="yColumn2" name="yColumn2">
-                                <option value="">None</option>
-                            </select>
-
-                            <label for="aggregationSelect2">Aggregation</label>
-                            <select id="aggregationSelect2" name="aggregationSelect2">
-                                <option value="">No Aggregation</option>
-                                <option value="Summe">Sum</option>
-                                <option value="Max">Max</option>
-                                <option value="Min">Min</option>
-                                <option value="Anzahl">Count</option>
-                                <option value="Diskrete Anzahl">Distinct Count</option>
-                                <option value="Durchschnitt">Average</option>
-                                <option value="Standardabweichung">Standard deviation</option>
-                                <option value="Varianz">Variance</option>
-                                <option value="Median">Median</option>
-                                <option value="Erstes Quartil">Q1 Quartile</option>
-                                <option value="Drittes Quartil">Q3 Quartile</option>
-                            </select>
-
-                            <button type="submit" id="submitButton2">Submit</button>
-                        </div>
-                    </form>
-                    <div id="chart2Content" class="chart"></div>
+                    <div id="myChart2" style="width: 100%; height: 100%;"></div>
                 </div>
-                
-                <div id="chart3" class="chart"></div>
-                <div id="chart4" class="chart"></div>
-                <div id="chart5" class="chart"></div>
+                <div id="chart3" class="chart">
+                    <div id="myChart3" style="width: 100%; height: 100%;"></div>
+                </div>
+                <div id="chart4" class="chart">
+                    <div id="myChart4" style="width: 100%; height: 100%;"></div>
+                </div>
+                <div id="chart5" class="chart">
+                    <div id="map" style="width: 100%; height: 100%;"></div>
+                </div>
             </div>
         </section>
+    <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
     <script src="/static/JS/sidemenu.js"></script>
-    <script src="/static/JS/largescale.js"></script>
-    <script src="/static/JS/basicbarchart.js"></script>
-
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+    <script src="https://unpkg.com/heatmap.js"></script>
+    <script src="https://unpkg.com/leaflet-heatmap/leaflet-heatmap.js"></script>
+    <script src="/static/JS/salesperformance.js"></script>
     <script>
-
+        $(document).ready(async function() {
+            await loadChartsSequentially([
+                { id: 'chart1', xTable: 'products', xColumn: 'Name', yTable: 'orders', yColumn: 'total', type: 'bar', aggregation: 'Summe' },
+                { id: 'chart2', xTable: 'stores', xColumn: 'storeID', yTable: 'orders', yColumn: 'total', type: 'bar', aggregation: 'Summe' },
+                { id: 'chart3', xTable: 'products', xColumn: 'Name', yTable: 'orders', yColumn: 'total', type: 'pie', aggregation: 'Summe' },
+                { id: 'chart4', xTable: 'products', xColumn: 'Name', yTable: 'orders', yColumn: 'total', type: 'bar', aggregation: 'Summe' },
+                { id: 'chart5', markerType: 'stores', table: 'orders', column: 'total', aggregation: 'Summe', type: 'geo' }
+            ]);
+        });
     </script>
 </body>
 
