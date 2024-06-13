@@ -7,6 +7,7 @@ $(document).ready(async function() {
         { id: 'myChart2', xTable: 'stores', xColumn: 'storeID', yTable: 'orders', yColumn: 'total', type: 'bar', aggregation: 'Summe' },
         { id: 'myChart3', xTable: 'products', xColumn: 'Name', yTable: 'orders', yColumn: 'total', type: 'pie', aggregation: 'Summe' },
         { id: 'myChart4', xTable: 'products', xColumn: 'Name', yTable: 'orders', yColumn: 'total', type: 'bar', aggregation: 'Summe' },
+        { id: 'myChart5', xTable: 'stores', xColumn: 'storeID', yTable: 'orders', yColumn: 'total', type: 'stacked', aggregation: 'Summe' },
         { id: 'map', markerType: 'stores', table: 'orders', column: 'total', aggregation: 'Summe', type: 'geo' },
     ]);
 });
@@ -106,6 +107,27 @@ function generateChartOptions(chartType, response, yColumn) {
                 textStyle: { color: darkMode ? '#fff' : '#000' }
             };
             break;
+        case 'stacked':
+            option = {
+                title: { left: 'center', text: 'Stacked Bar Chart' },
+                tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+                legend: { top: '5%', left: 'center' },
+                xAxis: { type: 'category', data: response.x },
+                yAxis: { type: 'value' },
+                series: [{
+                    name: yColumn,
+                    type: 'bar',
+                    stack: 'total',
+                    emphasis: { focus: 'series' },
+                    itemStyle: { color: 'rgb(255, 70, 131)' },
+                    data: response.y0
+                }],
+                backgroundColor: darkMode ? '#333' : '#fff',
+                textStyle: { color: darkMode ? '#fff' : '#000' },
+                toolbox: { feature: getToolboxFeatures() },
+                dataZoom: [{ type: 'inside', start: 0, end: 100 }, { start: 0, end: 100 }]
+            };
+            break;
         default:
             option = {
                 tooltip: { trigger: 'axis', axisPointer: { type: 'cross', label: { backgroundColor: '#6a7985' } } },
@@ -163,7 +185,7 @@ function getToolboxFeatures() {
         myCloseChart: {
             show: true,
             title: 'Close Chart',
-            icon: 'path://M512 512l212.48-212.48a32 32 0 0 0-45.248-45.248L512 421.504 299.52 209.024a32 32 0 1 0-45.248 45.248L466.752 512 254.272 724.48a32 32 0 1 0 45.248 45.248L512 602.496l212.48 212.48a32 32 0 0 0-45.248-45.248L557.248 512z',
+            icon: 'path://M512 512l212.48-212.48a32 32 0 0 0-45.248-45.248L512 421.504 299.52 209.024a32 32 0 1 0-45.248 45.248L466.752 512 254.272 724.48a32 32 0 1 0 45.248 45.248L512 602.496l212.48 212.48a32 32 0 0 0 45.248-45.248L557.248 512z',
             onclick: function() {
                 myChart.dispose();
             }
