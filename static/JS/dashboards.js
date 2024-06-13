@@ -1,16 +1,3 @@
-let darkMode = false;
-let decalPattern = false;
-
-$(document).ready(async function() {
-    await loadChartsSequentially([
-        { id: 'myChart1', xTable: 'stores', xColumn: 'storeID', yTable: 'orders', yColumn: 'total', type: 'area', aggregation: 'Summe' },
-        { id: 'myChart2', xTable: 'stores', xColumn: 'storeID', yTable: 'orders', yColumn: 'total', type: 'bar', aggregation: 'Summe' },
-        { id: 'myChart3', xTable: 'products', xColumn: 'Name', yTable: 'orders', yColumn: 'total', type: 'pie', aggregation: 'Summe' },
-        { id: 'myChart4', xTable: 'products', xColumn: 'Name', yTable: 'orders', yColumn: 'total', type: 'bar', aggregation: 'Summe' },
-        { id: 'myChart5', xTable: 'stores', xColumn: 'storeID', yTable: 'orders', yColumn: 'total', type: 'stacked', aggregation: 'Summe' },
-        { id: 'map', markerType: 'stores', table: 'orders', column: 'total', aggregation: 'Summe', type: 'geo' },
-    ]);
-});
 
 async function fetchData(requestData) {
     return new Promise((resolve, reject) => {
@@ -31,7 +18,7 @@ async function fetchData(requestData) {
     });
 }
 
-function generateChartOptions(chartType, response, yColumn) {
+function generateChartOptions(chartType, response, yColumns) {
     let option = {};
     switch(chartType) {
         case 'pie':
@@ -61,10 +48,10 @@ function generateChartOptions(chartType, response, yColumn) {
             option = {
                 title: { left: 'center', text: 'Large Scale Area Chart' },
                 tooltip: { trigger: 'axis', axisPointer: { type: 'cross', label: { backgroundColor: '#6a7985' } } },
-                legend: { data: [yColumn], top: '5%' },
+                legend: { data: yColumns, top: '5%' },
                 xAxis: { type: 'category', boundaryGap: false, data: response.x },
                 yAxis: { type: 'value' },
-                series: [{
+                series: yColumns.map((yColumn, index) => ({
                     name: yColumn,
                     type: 'line',
                     stack: 'total',
@@ -76,8 +63,8 @@ function generateChartOptions(chartType, response, yColumn) {
                     },
                     emphasis: { focus: 'series' },
                     itemStyle: { color: 'rgb(255, 70, 131)' },
-                    data: response.y0
-                }],
+                    data: response[`y${index}`]
+                })),
                 backgroundColor: darkMode ? '#333' : '#fff',
                 textStyle: { color: darkMode ? '#fff' : '#000' },
                 toolbox: { feature: getToolboxFeatures() },
@@ -109,19 +96,20 @@ function generateChartOptions(chartType, response, yColumn) {
             break;
         case 'stacked':
             option = {
-                title: { left: 'center', text: 'Stacked Bar Chart' },
-                tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+                title: { left: 'center', text: 'Stacked Area Chart' },
+                tooltip: { trigger: 'axis', axisPointer: { type: 'cross', label: { backgroundColor: '#6a7985' } } },
                 legend: { top: '5%', left: 'center' },
                 xAxis: { type: 'category', data: response.x },
                 yAxis: { type: 'value' },
-                series: [{
+                series: yColumns.map((yColumn, index) => ({
                     name: yColumn,
-                    type: 'bar',
-                    stack: 'total',
+                    type: 'line',
+                    areaStyle: {},
                     emphasis: { focus: 'series' },
-                    itemStyle: { color: 'rgb(255, 70, 131)' },
-                    data: response.y0
-                }],
+                    data: response[`y${index}`],
+                    itemStyle: { color: echarts.color.modifyHSL('#c23531', index * 120) } // Definieren Sie eine eindeutige Farbe
+
+                })),
                 backgroundColor: darkMode ? '#333' : '#fff',
                 textStyle: { color: darkMode ? '#fff' : '#000' },
                 toolbox: { feature: getToolboxFeatures() },
@@ -182,34 +170,37 @@ function getToolboxFeatures() {
                 });
             }
         },
-        myCloseChart: {
-            show: true,
-            title: 'Close Chart',
-            icon: 'path://M512 512l212.48-212.48a32 32 0 0 0-45.248-45.248L512 421.504 299.52 209.024a32 32 0 1 0-45.248 45.248L466.752 512 254.272 724.48a32 32 0 1 0 45.248 45.248L512 602.496l212.48 212.48a32 32 0 0 0 45.248-45.248L557.248 512z',
-            onclick: function() {
-                myChart.dispose();
-            }
-        }
     };
 }
 
 async function initializeChart(config) {
     if (config.type === 'geo') {
         await initializeGeoChart(config.id, config.markerType, config.table, config.column, config.aggregation);
+    } else if (config.type === 'dynamicMarkers') {
+        await loadDynamicMarkers(config.id, config.markerType, config.table, config.column, config.aggregation);
     } else {
         const myChart = echarts.init(document.getElementById(config.id));
         const requestData = {
-            tables: [config.xTable, config.yTable],
-            columns: [config.xColumn, config.yColumn],
+            tables: [config.xTable, ...Array(config.yColumns.length).fill(config.yTable)],
+            columns: [config.xColumn, ...config.yColumns],
             chartType: config.type,
-            aggregations: ["", config.aggregation],
+            aggregations: ["", ...config.aggregations],
             filters: []
         };
 
         try {
             const response = await fetchData(requestData);
             console.log(response.sql);
-            const option = generateChartOptions(config.type, response, config.yColumn);
+            let parsedResponse = response;
+            if (config.type === 'stacked') {
+                parsedResponse = {
+                    x: response.x,
+                    y0: response.y0,
+                    y1: response.y1,
+                    y2: response.y2
+                };
+            }
+            const option = generateChartOptions(config.type, parsedResponse, config.yColumns);
             myChart.setOption(option);
         } catch (error) {
             console.error("Failed to initialize chart:", error);
@@ -368,4 +359,69 @@ async function loadChartsSequentially(chartConfigs) {
     for (const config of chartConfigs) {
         await initializeChart(config);
     }
+}
+
+async function loadDynamicMarkers(chartId, markerType, table, column, aggregation) {
+    const requestData = {
+        tables: ['stores', 'stores', 'stores', table],
+        columns: ['storeID', 'longitude', 'latitude', column],
+        chartType: 'dynamicMarkers',
+        aggregations: ['', 'X', 'X', aggregation],
+        filters: []
+    };
+    if (markerType === 'stores') {
+        requestData.tables = ['stores', 'stores', 'stores', table];
+        requestData.columns = ['storeID', 'longitude', 'latitude', column];
+    } else if (markerType === 'customers') {
+        requestData.tables = ['customers', 'customers', 'customers', table];
+        requestData.columns = ['customerID', 'longitude', 'latitude', column];
+    }
+
+    fetchData(requestData).then(responseData => {
+        if (!responseData.hasOwnProperty('x') || !responseData.hasOwnProperty('y0') || !responseData.hasOwnProperty('y1') || !responseData.hasOwnProperty('y2')) {
+            console.error('Data does not have the required properties:', responseData);
+            return;
+        }
+
+        const data = responseData.x.map((x, index) => ({
+            id: x,
+            longitude: parseFloat(responseData.y0[index]),
+            latitude: parseFloat(responseData.y1[index]),
+            Aggregation: parseFloat(responseData.y2[index])
+        }));
+
+        const maxAggregation = Math.max(...data.map(point => point.Aggregation));
+
+        const map = new L.Map(chartId, {
+            center: new L.LatLng(37.5, -117),
+            zoom: 6,
+            layers: [L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 18
+            })]
+        });
+
+        const markers = L.markerClusterGroup();
+
+        data.forEach(point => {
+            const scale = point.Aggregation / maxAggregation;
+            const markerOptions = {
+                radius: 3 + scale * 17,
+                fillColor: markerType === 'stores' ? 'blue' : 'pink',
+                color: "#000",
+                weight: 1,
+                opacity: 1,
+                fillOpacity: 0.6
+            };
+
+            const marker = L.circleMarker([point.latitude, point.longitude], markerOptions);
+            const popupContent = `<b>ID:</b> ${point.id}<br><b>Longitude:</b> ${point.longitude}<br><b>Latitude:</b> ${point.latitude}<br><b>Aggregation:</b> ${point.Aggregation}`;
+            marker.bindPopup(popupContent);
+            markers.addLayer(marker);
+        });
+
+        map.addLayer(markers);
+    }).catch(error => {
+        console.error('Error:', error);
+    });
 }
