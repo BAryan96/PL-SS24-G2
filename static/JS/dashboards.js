@@ -1,4 +1,3 @@
-
 async function fetchData(requestData) {
     return new Promise((resolve, reject) => {
         $.ajax({

@@ -116,7 +116,6 @@ function addChart(chartType) {
                 aggregations: ["", aggregationType], // X-Achse keine Aggregation
                 filters: filter.filter(f => f.chartId !== chartInstance.id)
             };
-    
             $.ajax({
                 url: "/getdata",
                 type: "POST",
@@ -345,7 +344,8 @@ function addChart(chartType) {
                     filterValue: value
                 });
             }
-    
+            console.log(filter);
+
             // Aktualisieren Sie das Diagramm, um die Hervorhebung anzuzeigen
             updateHighlighting(chartInstance);
     
