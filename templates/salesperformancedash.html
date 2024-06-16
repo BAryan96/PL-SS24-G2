@@ -18,8 +18,7 @@
             background-color: #f0f0f0;
             border: 1px solid #ccc;
         }
-        .chart:nth-child(5),
-        .chart:nth-child(6) {
+            .chart:nth-child(7){
             width: 100%;
         }
         .legend {
@@ -96,6 +95,12 @@
                 <div id="chart5" class="chart">
                     <div id="map" style="width: 100%; height: 100%;"></div>
                 </div>
+                <div id="chart6" class="chart">
+                    <div id="myStackedChart" style="width: 100%; height: 100%;"></div>
+                </div>
+                <div id="chart7" class="chart">
+                    <div id="myChart7" style="width: 100%; height: 100%;"></div>
+                </div>
             </div>
         </section>
     </main>
@@ -107,24 +112,20 @@
     <script src="https://unpkg.com/heatmap.js"></script>
     <script src="https://unpkg.com/leaflet-heatmap/leaflet-heatmap.js"></script>
     <script src="/static/JS/dashboards.js"></script>
-
-
     <script>
- let darkMode = false;
-let decalPattern = false;
-
- $(document).ready(async function() {
+        $(document).ready(async function() {
     await loadChartsSequentially([
         { id: 'myChart1', xTable: 'stores', xColumn: 'storeID', yTable: 'orders', yColumns: ['total'], type: 'area', aggregations: ['Summe'] },
-   { id: 'myChart2', xTable: 'stores', xColumn: 'storeID', yTable: 'orders', yColumns: ['total'], type: 'bar', aggregations: ['Summe'] },
-    { id: 'myChart3', xTable: 'products', xColumn: 'Name', yTable: 'orders', yColumns: ['total'], type: 'pie', aggregations: ['Summe'] },
-    { id: 'myChart4', xTable: 'products', xColumn: 'Name', yTable: 'orders', yColumns: ['total'], type: 'bar', aggregations: ['Summe'] },
-  // { id: 'myStackedChart', xTable: 'orders', xColumn: 'nItems', yTable: 'orders', yColumns: ['total', 'total', 'total'], type: 'stacked', aggregations: ['Min', 'Max', 'Durchschnitt'] },
-    { id: 'map', markerType: 'stores', table: 'orders', column: 'total', aggregation: 'Summe', type: 'geo' },
-  //{ id: 'chart7', markerType: 'stores', table: 'orders', column: 'total', aggregation: 'Anzahl', type: 'dynamicMarkers' } // Neue Chart-Konfiguration
-     ]);
-});
+        { id: 'myChart2', xTable: 'stores', xColumn: 'storeID', yTable: 'orders', yColumns: ['total'], type: 'bar', aggregations: ['Summe'] },
+        { id: 'myChart3', xTable: 'products', xColumn: 'Name', yTable: 'orders', yColumns: ['total'], type: 'pie', aggregations: ['Summe'] },
+        { id: 'myChart4', xTable: 'products', xColumn: 'Name', yTable: 'orders', yColumns: ['total'], type: 'bar', aggregations: ['Summe'] },
+        { id: 'map', markerType: 'stores', table: 'orders', column: 'total', aggregation: 'Summe', type: 'geo' },
+        { id: 'myStackedChart', xTable: 'orders', xColumn: 'nItems', yTable: 'orders', yColumns: ['total', 'total', 'total'], type: 'stacked', aggregations: ['Min', 'Max', 'Durchschnitt'] },
+        { id: 'chart7', markerType: 'stores', table: 'orders', column: 'total', aggregation: 'Anzahl', type: 'dynamicMarkers' } // Neue Chart-Konfiguration
 
+
+    ]);
+});
     </script>
 </body>
 </html>

@@ -1,3 +1,10 @@
+let darkMode = false;
+let decalPattern = false;
+let charts = [];
+let filter = [];
+let highlightedPoints = {};
+let originalData = {};
+
 async function fetchData(requestData) {
     return new Promise((resolve, reject) => {
         $.ajax({
@@ -19,14 +26,21 @@ async function fetchData(requestData) {
 
 function generateChartOptions(chartType, response, yColumns) {
     let option = {};
-    switch(chartType) {
+    const seriesData = response.x.map((x, index) => ({
+        value: response.y0[index],
+        name: x,
+        itemStyle: highlightedPoints[`${response.chartId}-${index}`] ? {
+            borderColor: 'black',
+            borderWidth: 2
+        } : {}
+    }));
+
+    switch (chartType) {
         case 'pie':
             option = {
                 title: { left: 'center', text: 'Donut Chart' },
                 tooltip: { trigger: 'item' },
-                toolbox: {
-                    feature: getToolboxFeatures()
-                },
+                toolbox: { feature: getToolboxFeatures() },
                 legend: { top: '5%', left: 'center' },
                 series: [{
                     name: 'Data',
@@ -36,16 +50,14 @@ function generateChartOptions(chartType, response, yColumns) {
                     label: { show: false, position: 'center' },
                     emphasis: { label: { show: true, fontSize: '20', fontWeight: 'bold' } },
                     labelLine: { show: false },
-                    data: response.x.map((x, index) => ({
-                        value: response.y0[index],
-                        name: x
-                    }))
+                    data: seriesData
                 }]
             };
             break;
         case 'area':
+        case 'line':
             option = {
-                title: { left: 'center', text: 'Large Scale Area Chart' },
+                title: { left: 'center', text: chartType === 'area' ? 'Large Scale Area Chart' : 'Line Chart' },
                 tooltip: { trigger: 'axis', axisPointer: { type: 'cross', label: { backgroundColor: '#6a7985' } } },
                 legend: { data: yColumns, top: '5%' },
                 xAxis: { type: 'category', boundaryGap: false, data: response.x },
@@ -54,15 +66,21 @@ function generateChartOptions(chartType, response, yColumns) {
                     name: yColumn,
                     type: 'line',
                     stack: 'total',
-                    areaStyle: {
+                    areaStyle: chartType === 'area' ? {
                         color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
                             { offset: 0, color: 'rgb(255, 158, 68)' },
                             { offset: 1, color: 'rgb(255, 70, 131)' }
                         ])
-                    },
+                    } : undefined,
                     emphasis: { focus: 'series' },
                     itemStyle: { color: 'rgb(255, 70, 131)' },
-                    data: response[`y${index}`]
+                    data: response[`y${index}`].map((y, dataIndex) => ({
+                        value: y,
+                        itemStyle: highlightedPoints[`${response.chartId}-${dataIndex}`] ? {
+                            borderColor: 'black',
+                            borderWidth: 2
+                        } : {}
+                    }))
                 })),
                 backgroundColor: darkMode ? '#333' : '#fff',
                 textStyle: { color: darkMode ? '#fff' : '#000' },
@@ -85,7 +103,13 @@ function generateChartOptions(chartType, response, yColumns) {
                 yAxis: { type: 'category' },
                 series: [{
                     symbolSize: 20,
-                    data: response.x.map((x, index) => [x, response.y0[index]]),
+                    data: response.x.map((x, index) => ({
+                        value: [x, response.y0[index]],
+                        itemStyle: highlightedPoints[`${response.chartId}-${index}`] ? {
+                            borderColor: 'black',
+                            borderWidth: 2
+                        } : {}
+                    })),
                     type: 'scatter',
                     itemStyle: { color: response.colors ? response.colors[0] : '#c23531' }
                 }],
@@ -105,9 +129,14 @@ function generateChartOptions(chartType, response, yColumns) {
                     type: 'line',
                     areaStyle: {},
                     emphasis: { focus: 'series' },
-                    data: response[`y${index}`],
-                    itemStyle: { color: echarts.color.modifyHSL('#c23531', index * 120) } // Definieren Sie eine eindeutige Farbe
-
+                    data: response[`y${index}`].map((y, dataIndex) => ({
+                        value: y,
+                        itemStyle: highlightedPoints[`${response.chartId}-${dataIndex}`] ? {
+                            borderColor: 'black',
+                            borderWidth: 2
+                        } : {}
+                    })),
+                    itemStyle: { color: echarts.color.modifyHSL('#c23531', index * 120) }
                 })),
                 backgroundColor: darkMode ? '#333' : '#fff',
                 textStyle: { color: darkMode ? '#fff' : '#000' },
@@ -125,7 +154,10 @@ function generateChartOptions(chartType, response, yColumns) {
                     type: chartType,
                     data: response.y0.map((y, index) => ({
                         value: y,
-                        itemStyle: { color: response.colors ? response.colors[index] : null }
+                        itemStyle: highlightedPoints[`${response.chartId}-${index}`] ? {
+                            borderColor: 'black',
+                            borderWidth: 2
+                        } : {}
                     }))
                 }]
             };
@@ -160,11 +192,11 @@ function getToolboxFeatures() {
             show: true,
             title: 'Share',
             icon: 'path://M864 160h-192V96H352v64H160c-35.328 0-64 28.672-64 64v576c0 35.328 28.672 64 64 64h704c35.328 0 64-28.672 64-64V224c0-35.328-28.672-64-64-64z m0 640H160V224h192v64h320v-64h192v576z m-320-320h-64v192h-192V480h-64l160-160 160 160z',
-            onclick: function () {
+            onclick: function() {
                 const url = window.location.href;
-                navigator.clipboard.writeText(url).then(function () {
+                navigator.clipboard.writeText(url).then(function() {
                     alert('URL copied to clipboard');
-                }, function (err) {
+                }, function(err) {
                     console.error('Could not copy URL: ', err);
                 });
             }
@@ -179,28 +211,33 @@ async function initializeChart(config) {
         await loadDynamicMarkers(config.id, config.markerType, config.table, config.column, config.aggregation);
     } else {
         const myChart = echarts.init(document.getElementById(config.id));
+        charts.push({ chart: myChart, config: config });
         const requestData = {
             tables: [config.xTable, ...Array(config.yColumns.length).fill(config.yTable)],
             columns: [config.xColumn, ...config.yColumns],
             chartType: config.type,
             aggregations: ["", ...config.aggregations],
-            filters: []
+            filters: filter
         };
 
         try {
             const response = await fetchData(requestData);
             console.log(response.sql);
             let parsedResponse = response;
+            parsedResponse.chartId = config.id;
             if (config.type === 'stacked') {
                 parsedResponse = {
                     x: response.x,
                     y0: response.y0,
                     y1: response.y1,
-                    y2: response.y2
+                    y2: response.y2,
+                    chartId: config.id
                 };
             }
+            originalData[config.id] = parsedResponse;
             const option = generateChartOptions(config.type, parsedResponse, config.yColumns);
             myChart.setOption(option);
+            myChart.on('click', params => handleChartClick(myChart, config, params));
         } catch (error) {
             console.error("Failed to initialize chart:", error);
         }
@@ -208,8 +245,7 @@ async function initializeChart(config) {
 }
 
 function updateChartAppearance() {
-    const charts = echarts.getInstanceByDom(document.querySelectorAll('.chart'));
-    charts.forEach(chart => {
+    charts.forEach(({ chart }) => {
         const option = chart.getOption();
         if (darkMode) {
             option.backgroundColor = '#333';
@@ -231,14 +267,14 @@ function updateChartAppearance() {
 
 async function initializeGeoChart(chartId, markerType, table, column, aggregation) {
     return new Promise((resolve, reject) => {
-        var baseLayer = L.tileLayer(
+        const baseLayer = L.tileLayer(
             'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '© OpenStreetMap contributors',
                 maxZoom: 18
             }
         );
 
-        var cfg = {
+        const cfg = {
             "radius": 0.2,
             "maxOpacity": .8,
             "scaleRadius": true,
@@ -256,16 +292,16 @@ async function initializeGeoChart(chartId, markerType, table, column, aggregatio
             }
         };
 
-        var heatmapLayer = new HeatmapOverlay(cfg);
+        const heatmapLayer = new HeatmapOverlay(cfg);
 
-        var map = new L.Map(chartId, {
+        const map = new L.Map(chartId, {
             center: new L.LatLng(37.5, -117),
             zoom: 6,
             layers: [baseLayer]
         });
 
-        var markers = L.markerClusterGroup();
-        var circleMarkerOptions = {
+        const markers = L.markerClusterGroup();
+        const circleMarkerOptions = {
             radius: 3,
             fillColor: "#ff7800",
             color: "#000",
@@ -275,19 +311,19 @@ async function initializeGeoChart(chartId, markerType, table, column, aggregatio
         };
 
         function createLegend(legendElement, gradient) {
-            for (var key in gradient) {
-                var color = gradient[key];
-                var div = document.createElement('div');
+            for (const key in gradient) {
+                const color = gradient[key];
+                const div = document.createElement('div');
                 div.innerHTML = '<span style="background-color:' + color + ';"></span>' + key;
                 legendElement.appendChild(div);
             }
         }
 
-        var legendControl = L.control({ position: 'bottomright' });
+        const legendControl = L.control({ position: 'bottomright' });
 
-        legendControl.onAdd = function (map) {
-            var div = L.DomUtil.create('div', 'legend');
-            var gradient = cfg.gradient;
+        legendControl.onAdd = function(map) {
+            const div = L.DomUtil.create('div', 'legend');
+            const gradient = cfg.gradient;
             createLegend(div, gradient);
             return div;
         };
@@ -299,7 +335,7 @@ async function initializeGeoChart(chartId, markerType, table, column, aggregatio
             columns: ['storeID', 'longitude', 'latitude', column],
             chartType: 'heatmap',
             aggregations: ["", "X", "X", aggregation],
-            filters: []
+            filters: filter
         };
 
         fetchData(requestData).then(responseData => {
@@ -308,8 +344,8 @@ async function initializeGeoChart(chartId, markerType, table, column, aggregatio
                 return;
             }
 
-            var data = [];
-            for (var i = 0; i < responseData.x.length; i++) {
+            const data = [];
+            for (let i = 0; i < responseData.x.length; i++) {
                 data.push({
                     id: responseData.x[i],
                     longitude: parseFloat(responseData.y0[i]),
@@ -319,11 +355,11 @@ async function initializeGeoChart(chartId, markerType, table, column, aggregatio
             }
 
             markers.clearLayers();
-            var bounds = [];
-            var heatmapPoints = [];
+            const bounds = [];
+            const heatmapPoints = [];
 
-            data.forEach(function(point) {
-                var marker = L.circleMarker([point.latitude, point.longitude], circleMarkerOptions);
+            data.forEach(point => {
+                const marker = L.circleMarker([point.latitude, point.longitude], circleMarkerOptions);
                 marker.bindPopup(`<b>ID:</b> ${point.id}<br><b>Longitude:</b> ${point.longitude}<br><b>Latitude:</b> ${point.latitude}<br><b>Aggregation:</b> ${point.Aggregation}`);
                 markers.addLayer(marker);
                 bounds.push([point.latitude, point.longitude]);
@@ -366,7 +402,7 @@ async function loadDynamicMarkers(chartId, markerType, table, column, aggregatio
         columns: ['storeID', 'longitude', 'latitude', column],
         chartType: 'dynamicMarkers',
         aggregations: ['', 'X', 'X', aggregation],
-        filters: []
+        filters: filter
     };
     if (markerType === 'stores') {
         requestData.tables = ['stores', 'stores', 'stores', table];
@@ -422,5 +458,98 @@ async function loadDynamicMarkers(chartId, markerType, table, column, aggregatio
         map.addLayer(markers);
     }).catch(error => {
         console.error('Error:', error);
+    });
+}
+
+function handleChartClick(chartInstance, config, params) {
+    if (params.componentType === 'series') {
+        const key = `${chartInstance.id}-${params.dataIndex}`;
+        let value;
+
+        if (config.type === "scatter") {
+            value = params.value[0];
+        } else {
+            value = params.name;
+        }
+
+        if (highlightedPoints[key]) {
+            delete highlightedPoints[key];
+            filter = filter.filter(item => item.filterValue !== value);
+            if (Object.keys(highlightedPoints).length === 0) {
+                resetAllCharts();
+            } else {
+                updateHighlighting(chartInstance);
+                updateAllCharts(chartInstance.id);
+            }
+        } else {
+            highlightedPoints[key] = true;
+            filter.push({
+                chartId: chartInstance.id,
+                filterTable: config.xTable,
+                filterColumn: config.xColumn,
+                filterValue: value
+            });
+            updateHighlighting(chartInstance);
+            updateAllCharts(chartInstance.id);
+        }
+    }
+}
+
+function updateHighlighting(chartInstance) {
+    const series = chartInstance.getOption().series;
+    series.forEach(serie => {
+        serie.data.forEach((dataPoint, index) => {
+            const key = `${chartInstance.id}-${index}`;
+            if (highlightedPoints[key]) {
+                dataPoint.itemStyle = dataPoint.itemStyle || {};
+                dataPoint.itemStyle.borderColor = 'black';
+                dataPoint.itemStyle.borderWidth = 2;
+            } else {
+                if (dataPoint.itemStyle) {
+                    delete dataPoint.itemStyle.borderColor;
+                    delete dataPoint.itemStyle.borderWidth;
+                }
+            }
+        });
+    });
+
+    chartInstance.setOption({ series: series });
+}
+
+function updateAllCharts(excludeChartId) {
+    charts.forEach(({ chart, config }) => {
+        if (config.id !== excludeChartId) {
+            const data = applyFilters(originalData[config.id]);
+            data.chartId = config.id;
+            const option = generateChartOptions(config.type, data, config.yColumns);
+            chart.setOption(option);
+        }
+    });
+}
+
+function applyFilters(data) {
+    if (filter.length === 0) {
+        return data;
+    }
+
+    const filteredData = { x: [], y0: [] };
+
+    data.x.forEach((x, index) => {
+        const match = filter.some(f => f.filterValue === x);
+        if (match) {
+            filteredData.x.push(x);
+            filteredData.y0.push(data.y0[index]);
+        }
+    });
+
+    return filteredData;
+}
+
+function resetAllCharts() {
+    filter = [];
+    highlightedPoints = {};
+    charts.forEach(({ chart, config }) => {
+        const option = generateChartOptions(config.type, originalData[config.id], config.yColumns);
+        chart.setOption(option);
     });
 }
