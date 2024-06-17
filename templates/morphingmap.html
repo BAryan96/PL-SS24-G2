@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Visualisation - DV</title>
+    <link rel="stylesheet" href="/static/CSS/all.css">
+    <link rel="stylesheet" href="/static/CSS/charts.css">
+    <style>
+        #submitButton {
+            margin-top: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            color: #fff;
+            background-color: coral;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        #submitButton:hover {
+            background-color: #e57373;
+        }
+        .close-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background-color: red;
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.3s ease;
+        }
+        .close-btn:hover {
+            background-color: darkred;
+        }
+        .options-menu {
+            background-color: #fff;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            padding: 20px;
+            z-index: 1000;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            max-width: 600px;
+            max-height: 80%;
+            overflow-y: auto;
+        }
+        .data-selection {
+            display: flex;
+            width: 100%;
+            justify-content: space-between;        
+        }
+        .form-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .form-container label, .form-container select, .form-container button {
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        .chart-container #chart {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo-area">
+                <span class="logo-circle"></span>
+                <span class="logo-text">Data Visualisation - DV</span>
+            </div>
+            <button class="menu-button">☰</button>
+        </header>
+        <div class="side-menu" id="sideMenu">
+            <button class="close-button">X</button>
+            <h1>What would you like to See?</h1>
+            <a href="/charts">Chart Overview</a>
+            <a href="#">Edit/Clear Data</a>
+            <a href="#">Forecast</a>
+            <a href="#">My Profile</a>
+            <a href="/login">Sign In</a>
+            <a href="/">Log Out</a>
+        </div>
+        <main class="main">
+            <section class="data-selection">
+                <form id="dataForm" class="form-container">
+                    <div>
+                        <h2>Please Choose your Data for a Map</h2>
+                        <label for="xTable">Table for X-Axis</label>
+                        <select id="xTable" name="xTable">
+                            <option value="">None</option>
+                        </select>
+                        <label for="xColumn">Column for X-Axis</label>
+                        <select id="xColumn" name="xColumn">
+                            <option value="">None</option>
+                        </select>
+                        <label for="yTable1">Table for Y-Axis</label>
+                        <select id="yTable1" name="yTable1">
+                            <option value="">None</option>
+                        </select>
+                        <label for="yColumn1">Column for Y-Axis</label>
+                        <select id="yColumn1" name="yColumn1">
+                            <option value="">None</option>
+                        </select>
+                        <label for="aggregationSelect">Aggregation</label>
+                        <select id="aggregationSelect" name="aggregationSelect">
+                            <option value="">No Aggregation</option>
+                            <option value="Summe">Sum</option>
+                            <option value="Max">Max</option>
+                            <option value="Min">Min</option>
+                            <option value="Anzahl">Count</option>
+                            <option value="Diskrete Anzahl">Distinct Count</option>
+                            <option value="Durchschnitt">Average</option>
+                            <option value="Standardabweichung">Standard deviation</option>
+                            <option value="Varianz">Variance</option>
+                            <option value="Median">Median</option>
+                            <option value="Erstes Quartil">Q1 Quartile</option>
+                            <option value="Drittes Quartil">Q3 Quartile</option>
+                        </select>
+                        <button type="submit" id="submitButton">Submit</button>
+                    </div>
+                </form>
+                <div class="chart-container">
+                    <div id="chart"></div>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
+    <script>
+        let map;
+        let markers = [];
+        const filter = [];
+        const storeData = [
+            {"storeID":"S490972","latitude":41.328852,"longitude":-116.12251},
+            {"storeID":"S476770","latitude":37.593883,"longitude":-121.88281},
+            {"storeID":"S750231","latitude":38.744062,"longitude":-121.99929},
+            {"storeID":"S688745","latitude":33.326956,"longitude":-114.68562},
+            {"storeID":"S817950","latitude":38.004922,"longitude":-121.40022},
+            {"storeID":"S948821","latitude":38.97159,"longitude":-122.02725},
+            {"storeID":"S872983","latitude":37.388718,"longitude":-121.63845},
+            {"storeID":"S799887","latitude":41.890872,"longitude":-114.44545},
+            {"storeID":"S013343","latitude":40.489736,"longitude":-117.08692},
+            {"storeID":"S068548","latitude":34.639682,"longitude":-120.4471},
+            {"storeID":"S449313","latitude":35.262548,"longitude":-120.65196},
+            {"storeID":"S263879","latitude":39.748753,"longitude":-117.01152},
+            {"storeID":"S276746","latitude":39.663256,"longitude":-120.24835},
+            {"storeID":"S606312","latitude":35.664386,"longitude":-121.21965},
+            {"storeID":"S062214","latitude":41.782681,"longitude":-124.16703},
+            {"storeID":"S064089","latitude":39.717627,"longitude":-116.02944},
+            {"storeID":"S058118","latitude":37.571495,"longitude":-117.31507},
+            {"storeID":"S361257","latitude":34.639682,"longitude":-120.4471},
+            {"storeID":"S918734","latitude":41.736424,"longitude":-122.40008},
+            {"storeID":"S351225","latitude":41.208288,"longitude":-114.86098},
+            {"storeID":"S048150","latitude":34.31039,"longitude":-116.45012},
+            {"storeID":"S370494","latitude":37.237216,"longitude":-119.23304},
+            {"storeID":"S080157","latitude":38.966064,"longitude":-118.67848},
+            {"storeID":"S588444","latitude":41.596722,"longitude":-117.40232},
+            {"storeID":"S486166","latitude":41.890872,"longitude":-114.44545},
+            {"storeID":"S669665","latitude":40.700131,"longitude":-118.11473},
+            {"storeID":"S216043","latitude":38.898385,"longitude":-123.65746},
+            {"storeID":"S396799","latitude":38.654705,"longitude":-123.3999},
+            {"storeID":"S505400","latitude":38.944921,"longitude":-115.70749},
+            {"storeID":"S147185","latitude":38.835421,"longitude":-115.02628},
+            {"storeID":"S122017","latitude":39.285782,"longitude":-123.22064},
+            {"storeID":"S302800","latitude":40.105506,"longitude":-113.94372}
+        ];
+
+        $(document).ready(function() {
+            // Load available tables
+            $.get("/tables", function(data) {
+                window.availableTables = data.tables;
+                const tableSelects = [$('#xTable'), $('#yTable1')];
+                tableSelects.forEach(select => {
+                    data.tables.forEach(table => {
+                        select.append(new Option(table, table));
+                    });
+                });
+            });
+
+            $('#xTable').change(function() {
+                const table = $(this).val();
+                if (table) {
+                    $.post("/columns", { table: table }, function(data) {
+                        const xColumnSelect = $('#xColumn');
+                        xColumnSelect.empty().append(new Option('None', ''));
+                        data.columns.forEach(column => {
+                            xColumnSelect.append(new Option(column, column));
+                        });
+                    });
+                }
+            });
+
+            $('#yTable1').change(function() {
+                const table = $(this).val();
+                if (table) {
+                    $.post("/columns", { table: table }, function(data) {
+                        const yColumnSelect = $('#yColumn1');
+                        yColumnSelect.empty().append(new Option('None', ''));
+                        data.columns.forEach(column => {
+                            yColumnSelect.append(new Option(column, column));
+                        });
+                    });
+                }
+            });
+
+            // Initialize map
+            map = L.map('chart').setView([37.7749, -122.4194], 5);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19
+            }).addTo(map);
+
+            // Add initial store markers
+            storeData.forEach(store => {
+                const marker = L.circleMarker([store.latitude, store.longitude], {
+                    radius: 8,
+                    color: 'blue'
+                }).addTo(map);
+                markers.push(marker);
+            });
+
+            const latLngs = storeData.map(store => [store.latitude, store.longitude]);
+            const bounds = L.latLngBounds(latLngs);
+            map.fitBounds(bounds);
+        });
+
+        function updateMap(data) {
+            // Clear existing markers
+            markers.forEach(marker => map.removeLayer(marker));
+            markers = [];
+
+            // Add new markers with updated size and color
+            const latLngs = storeData.map(item => {
+                const store = storeData.find(store => store.storeID === item.storeID);
+                const value = data.find(d => d.storeID === item.storeID) || {};
+                const marker = L.circleMarker([item.latitude, item.longitude], {
+                    radius: value.radius || 8,
+                    color: value.color || 'blue'
+                }).addTo(map);
+
+                markers.push(marker);
+                return [item.latitude, item.longitude];
+            });
+
+            // Fit map to markers
+            const bounds = L.latLngBounds(latLngs);
+            map.fitBounds(bounds);
+        }
+
+        $('#dataForm').submit(function(event) {
+            event.preventDefault();
+            const xTable = $('#xTable').val();
+            const xColumn = $('#xColumn').val();
+            const yTable1 = $('#yTable1').val();
+            const yColumn1 = $('#yColumn1').val();
+            const aggregation = $('#aggregationSelect').val();
+
+            const requestData = {
+                tables: [xTable, yTable1],
+                columns: [xColumn, yColumn1],
+                chartType: 'map',
+                aggregations: ['', aggregation],
+                filters: filter
+            };
+
+            $.ajax({
+                url: "/getdata",
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify(requestData),
+                success: function(response) {
+                    const data = storeData.map(store => {
+                        const value = response.data.find(d => d.storeID === store.storeID) || {};
+                        return {
+                            ...store,
+                            radius: (value.value || 10) / 10, // Adjust as needed
+                            color: `hsl(${(value.value || 10) * 10}, 100%, 50%)` // Adjust color based on value
+                        };
+                    });
+
+                    updateMap(data);
+                }
+            });
+        });
+    </script>
+</body>
+</html>
+

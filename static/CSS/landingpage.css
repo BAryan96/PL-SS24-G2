@@ -1,0 +1,140 @@
+.header-btn {
+    padding: 10px 20px;
+    margin-left: 5px;
+    cursor: pointer;
+    border: none;
+}
+
+.header-btn.sign-in {
+    background-color: transparent;
+    color: #333;
+}
+
+.header-btn.sign-up {
+    background-color: #ff4500;
+    color: white;
+}
+
+.content-section {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: flex-start;
+    padding: 20px;
+    gap: 20px;
+
+}
+
+.intro {
+    flex: 2; 
+    background-color: #f4f4f4; 
+    margin-right: 40px;
+}
+
+.intro h1 {
+    font-size: 24px;
+    margin-bottom: 20px;
+}
+
+.intro p {
+    font-size: 16px;
+    line-height: 1.5;
+    color: #666;
+}
+
+.main-button {
+    background-color: #ff4500;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    cursor: pointer;
+}
+
+.login-section {
+    flex: 1;  
+    max-width: 350px;
+    background-color: white;
+    padding: 20px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+
+.login-btn {
+    background-color: #ff4500;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    width: 100%;
+    margin: 10px 0;
+    cursor: pointer;
+}
+
+.divider {
+    height: 1px;
+    background-color: #ccc;
+    margin: 20px 0;
+}
+
+footer {
+    text-align: center;
+    padding: 20px 0;
+}
+
+.footer-button {
+    background-color: transparent;
+    color: #333;
+    border: 1px solid #333;
+    padding: 10px 20px;
+    cursor: pointer;
+}
+
+.menu-button {
+    background-color: transparent;
+    border: none;
+    color: #333;
+    padding: 10px;
+    font-size: 24px;
+    cursor: pointer;
+}
+.auth-buttons {
+    display: flex;
+    align-items: center;
+}
+.trailer-buttons {
+    display: flex;
+    align-items: center;
+}
+
+.main-button, .play-button {
+    padding: 10px 20px;
+    cursor: pointer;
+    border: none;
+    background-color: transparent;
+}
+
+.main-button {
+    color: #ff4500;
+    font-size: 16px;
+    margin-right: 5px;
+}
+
+.play-button {
+    color: #cccccc;
+    font-size: 22px;
+    padding: 10px 5px;
+}
+
+.intro, .content-section {
+    min-height: calc(100vh - 100px);
+    margin: auto;  
+    background-color: #f4f4f4;   
+  
+
+}
+
+@media (max-width: 768px) {
+    .content-section {
+        flex-direction: column;
+        gap: 20px;
+    }
+}
