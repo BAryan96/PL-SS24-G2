@@ -8,8 +8,6 @@
     <link rel="stylesheet" href="/static/CSS/all.css">
     <link rel="stylesheet" href="/static/CSS/charts.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
     <style>
         .color-picker {
             margin: 10px 0;
@@ -141,7 +139,6 @@
     </div>
 
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="/static/JS/sidemenu.js"></script>
 
@@ -160,7 +157,7 @@
                 layers: [baseLayer]
             });
 
-            var markers = L.markerClusterGroup();
+            var markers = L.layerGroup();
 
             // Laden der verfügbaren Tabellen
             $.get("/tables", function(data) {
@@ -194,7 +191,7 @@
                 // Reset the markers layer
                 markers.clearLayers();
                 map.removeLayer(markers);
-                markers = L.markerClusterGroup();
+                markers = L.layerGroup();
 
                 // Helper function to load markers
                 function loadMarkers(markerType, color, callback) {

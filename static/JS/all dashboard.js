@@ -16,6 +16,7 @@ $(document).ready(async function() {
         { id: 'chart7', markerType: 'stores', table: 'orders', column: 'total', aggregation: 'Anzahl', type: 'dynamicMarkers' } // Neue Chart-Konfiguration
 
 
+
     ]);
 });
 

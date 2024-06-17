@@ -7,15 +7,8 @@ let originalData = {};
 
 $(document).ready(async function() {
     await loadChartsSequentially([
-        { id: 'myChart1', markerType: 'stores', table: 'orders', column: 'total', aggregation: 'Anzahl', type: 'dynamicMarkers' }, // Neue Chart-Konfiguration
-        // { id: 'myChart1', xTable: 'stores', xColumn: 'storeID', yTable: 'orders', yColumns: ['total'], type: 'area', aggregations: ['Summe'] },
-        // { id: 'myChart2', xTable: 'stores', xColumn: 'storeID', yTable: 'orders', yColumns: ['total'], type: 'bar', aggregations: ['Summe'] },
-        // { id: 'myChart3', xTable: 'products', xColumn: 'Name', yTable: 'orders', yColumns: ['total'], type: 'pie', aggregations: ['Summe'] },
-        // { id: 'myChart4', xTable: 'products', xColumn: 'Name', yTable: 'orders', yColumns: ['total'], type: 'bar', aggregations: ['Summe'] },
-        // { id: 'map', markerType: 'stores', table: 'orders', column: 'total', aggregation: 'Summe', type: 'geo' },
-        // { id: 'myStackedChart', xTable: 'orders', xColumn: 'nItems', yTable: 'orders', yColumns: ['total', 'total', 'total'], type: 'stacked', aggregations: ['Min', 'Max', 'Durchschnitt'] }
-
-
+        { id: 'myChart1', markerType: 'customers', type: 'dynamicMarkers' }, // Neue Chart-Konfiguration
+        
     ]);
 });
 
@@ -220,7 +213,7 @@ async function initializeChart(config) {
     if (config.type === 'geo') {
         await initializeGeoChart(config.id, config.markerType, config.table, config.column, config.aggregation);
     } else if (config.type === 'dynamicMarkers') {
-        await loadDynamicMarkers(config.id, config.markerType, config.table, config.column, config.aggregation);
+        await loadDynamicMarkers(config.id, config.markerType);
     } else {
         const myChart = echarts.init(document.getElementById(config.id));
         charts.push({ chart: myChart, config: config });
@@ -405,24 +398,17 @@ async function initializeGeoChart(chartId, markerType, table, column, aggregatio
     });
 }
 
-async function loadDynamicMarkers(chartId, markerType, table, column, aggregation) {
+async function loadDynamicMarkers(chartId, markerType) {
     const requestData = {
-        tables: ['stores', 'stores', 'stores', table],
-        columns: ['storeID', 'longitude', 'latitude', column],
+        tables: ['customers', 'customers', 'customers'],
+        columns: ['customerID', 'longitude', 'latitude'],
         chartType: 'dynamicMarkers',
-        aggregations: ['', 'X', 'X', aggregation],
+        aggregations: ['', 'X', 'X'],
         filters: filter
     };
-    if (markerType === 'stores') {
-        requestData.tables = ['stores', 'stores', 'stores', table];
-        requestData.columns = ['storeID', 'longitude', 'latitude', column];
-    } else if (markerType === 'customers') {
-        requestData.tables = ['customers', 'customers', 'customers', table];
-        requestData.columns = ['customerID', 'longitude', 'latitude', column];
-    }
 
     fetchData(requestData).then(responseData => {
-        if (!responseData.hasOwnProperty('x') || !responseData.hasOwnProperty('y0') || !responseData.hasOwnProperty('y1') || !responseData.hasOwnProperty('y2')) {
+        if (!responseData.hasOwnProperty('x') || !responseData.hasOwnProperty('y0') || !responseData.hasOwnProperty('y1')) {
             console.error('Data does not have the required properties:', responseData);
             return;
         }
@@ -431,10 +417,7 @@ async function loadDynamicMarkers(chartId, markerType, table, column, aggregatio
             id: x,
             longitude: parseFloat(responseData.y0[index]),
             latitude: parseFloat(responseData.y1[index]),
-            Aggregation: parseFloat(responseData.y2[index])
         }));
-
-        const maxAggregation = Math.max(...data.map(point => point.Aggregation));
 
         const map = new L.Map(chartId, {
             center: new L.LatLng(37.5, -117),
@@ -446,10 +429,9 @@ async function loadDynamicMarkers(chartId, markerType, table, column, aggregatio
         });
 
         data.forEach(point => {
-            const scale = point.Aggregation / maxAggregation;
             const markerOptions = {
-                radius: 3 + scale * 17,
-                fillColor: markerType === 'stores' ? 'blue' : 'pink',
+                radius: 3,
+                fillColor: 'pink',
                 color: "#000",
                 weight: 1,
                 opacity: 1,
@@ -457,7 +439,7 @@ async function loadDynamicMarkers(chartId, markerType, table, column, aggregatio
             };
 
             const marker = L.circleMarker([point.latitude, point.longitude], markerOptions);
-            const popupContent = `<b>ID:</b> ${point.id}<br><b>Longitude:</b> ${point.longitude}<br><b>Latitude:</b> ${point.latitude}<br><b>Aggregation:</b> ${point.Aggregation}`;
+            const popupContent = `<b>ID:</b> ${point.id}<br><b>Longitude:</b> ${point.longitude}<br><b>Latitude:</b> ${point.latitude}`;
             marker.bindPopup(popupContent);
             marker.on('click', () => handleMarkerClick(marker, point));
             map.addLayer(marker);
@@ -518,8 +500,8 @@ function handleMarkerClick(marker, point) {
         highlightedPoints[key] = true;
         filter.push({
             chartId: marker.options.id,
-            filterTable: 'stores',
-            filterColumn: 'storeID',
+            filterTable: 'customers',
+            filterColumn: 'customerID',
             filterValue: point.id
         });
         updateAllCharts();
