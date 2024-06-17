@@ -54,6 +54,10 @@ def heatmap():
 def salesperformancedash():
     return render_template ('salesperformancedash.html')
 
+@app.route ("/customerdash")
+def customerdash():
+    return render_template ('customerdash.html')
+
 #wichtig 
 @app.route("/tables")
 def get_tables():
@@ -262,6 +266,8 @@ def get_data():
 
     print(response)
     return jsonify(response)
+
+
 
 @app.route("/test")
 def test():

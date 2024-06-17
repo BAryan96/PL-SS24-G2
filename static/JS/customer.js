@@ -7,13 +7,13 @@ let originalData = {};
 
 $(document).ready(async function() {
     await loadChartsSequentially([
-        { id: 'myChart1', xTable: 'stores', xColumn: 'storeID', yTable: 'orders', yColumns: ['total'], type: 'area', aggregations: ['Summe'] },
-        { id: 'myChart2', xTable: 'stores', xColumn: 'storeID', yTable: 'orders', yColumns: ['total'], type: 'bar', aggregations: ['Summe'] },
-        { id: 'myChart3', xTable: 'products', xColumn: 'Name', yTable: 'orders', yColumns: ['total'], type: 'pie', aggregations: ['Summe'] },
-        { id: 'myChart4', xTable: 'products', xColumn: 'Name', yTable: 'orders', yColumns: ['total'], type: 'bar', aggregations: ['Summe'] },
-        { id: 'map', markerType: 'stores', table: 'orders', column: 'total', aggregation: 'Summe', type: 'geo' },
-        { id: 'myStackedChart', xTable: 'orders', xColumn: 'nItems', yTable: 'orders', yColumns: ['total', 'total', 'total'], type: 'stacked', aggregations: ['Min', 'Max', 'Durchschnitt'] },
-        { id: 'chart7', markerType: 'stores', table: 'orders', column: 'total', aggregation: 'Anzahl', type: 'dynamicMarkers' } // Neue Chart-Konfiguration
+        { id: 'myChart1', markerType: 'stores', table: 'orders', column: 'total', aggregation: 'Anzahl', type: 'dynamicMarkers' }, // Neue Chart-Konfiguration
+        // { id: 'myChart1', xTable: 'stores', xColumn: 'storeID', yTable: 'orders', yColumns: ['total'], type: 'area', aggregations: ['Summe'] },
+        // { id: 'myChart2', xTable: 'stores', xColumn: 'storeID', yTable: 'orders', yColumns: ['total'], type: 'bar', aggregations: ['Summe'] },
+        // { id: 'myChart3', xTable: 'products', xColumn: 'Name', yTable: 'orders', yColumns: ['total'], type: 'pie', aggregations: ['Summe'] },
+        // { id: 'myChart4', xTable: 'products', xColumn: 'Name', yTable: 'orders', yColumns: ['total'], type: 'bar', aggregations: ['Summe'] },
+        // { id: 'map', markerType: 'stores', table: 'orders', column: 'total', aggregation: 'Summe', type: 'geo' },
+        // { id: 'myStackedChart', xTable: 'orders', xColumn: 'nItems', yTable: 'orders', yColumns: ['total', 'total', 'total'], type: 'stacked', aggregations: ['Min', 'Max', 'Durchschnitt'] }
 
 
     ]);
@@ -237,24 +237,6 @@ async function initializeChart(config) {
             console.log(response.sql);
             let parsedResponse = response;
             parsedResponse.chartId = config.id;
-
-            // Sortiere die Daten, wenn es sich um myChart4 handelt
-            if (config.id === 'myChart4') {
-                let sortedData = {
-                    x: [],
-                    y0: []
-                };
-
-                let data = response.x.map((x, index) => ({ x: x, y0: response.y0[index] }));
-                data.sort((a, b) => b.y0 - a.y0);
-
-                sortedData.x = data.map(item => item.x);
-                sortedData.y0 = data.map(item => item.y0);
-
-                parsedResponse = sortedData;
-                parsedResponse.chartId = config.id;
-            }
-
             if (config.type === 'stacked') {
                 parsedResponse = {
                     x: response.x,

@@ -237,24 +237,6 @@ async function initializeChart(config) {
             console.log(response.sql);
             let parsedResponse = response;
             parsedResponse.chartId = config.id;
-
-            // Sortiere die Daten, wenn es sich um myChart4 handelt
-            if (config.id === 'myChart4') {
-                let sortedData = {
-                    x: [],
-                    y0: []
-                };
-
-                let data = response.x.map((x, index) => ({ x: x, y0: response.y0[index] }));
-                data.sort((a, b) => b.y0 - a.y0);
-
-                sortedData.x = data.map(item => item.x);
-                sortedData.y0 = data.map(item => item.y0);
-
-                parsedResponse = sortedData;
-                parsedResponse.chartId = config.id;
-            }
-
             if (config.type === 'stacked') {
                 parsedResponse = {
                     x: response.x,
