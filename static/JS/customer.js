@@ -6,10 +6,12 @@ let highlightedPoints = {};
 let originalData = {};
 
 $(document).ready(async function() {
+    console.log("Document ready, starting to load charts sequentially.");
     await loadChartsSequentially([
-        { id: 'myChart1', markerType: 'customers', type: 'dynamicMarkers' }, // Neue Chart-Konfiguration
-        
+        { id: 'myChart1', markerType: 'customers', type: 'dynamicMarkers' },
+        { id: 'myChart2', xTable: 'customers', xColumn: 'customerID', yTable: 'orders', yColumns: ['orderID'], type: 'bar', aggregations: ['Anzahl'] }
     ]);
+    console.log("All charts have been loaded.");
 });
 
 async function fetchData(requestData) {
@@ -149,6 +151,31 @@ function generateChartOptions(chartType, response, yColumns) {
                 dataZoom: [{ type: 'inside', start: 0, end: 100 }, { start: 0, end: 100 }]
             };
             break;
+        case 'bar':
+            option = {
+                title: { left: 'center', text: 'Bar Chart' },
+                tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+                toolbox: { feature: getToolboxFeatures() },
+                legend: { data: yColumns, top: '5%' },
+                xAxis: { type: 'category', data: response.x },
+                yAxis: { type: 'value' },
+                series: yColumns.map((yColumn, seriesIndex) => ({
+                    name: yColumn,
+                    type: 'bar',
+                    emphasis: { focus: 'series' },
+                    itemStyle: { color: 'rgb(255, 70, 131)' },
+                    data: response[`y${seriesIndex}`].map((y, dataIndex) => ({
+                        value: y,
+                        itemStyle: highlightedPoints[`${response.chartId}-${seriesIndex}-${dataIndex}`] ? {
+                            borderColor: 'black',
+                            borderWidth: 2
+                        } : {}
+                    }))
+                })),
+                backgroundColor: darkMode ? '#333' : '#fff',
+                textStyle: { color: darkMode ? '#fff' : '#000' }
+            };
+            break;
         default:
             option = {
                 tooltip: { trigger: 'axis', axisPointer: { type: 'cross', label: { backgroundColor: '#6a7985' } } },
@@ -210,6 +237,7 @@ function getToolboxFeatures() {
 }
 
 async function initializeChart(config) {
+    console.log(`Initializing chart ${config.id}`);
     if (config.type === 'geo') {
         await initializeGeoChart(config.id, config.markerType, config.table, config.column, config.aggregation);
     } else if (config.type === 'dynamicMarkers') {
@@ -247,6 +275,7 @@ async function initializeChart(config) {
             console.error("Failed to initialize chart:", error);
         }
     }
+    console.log(`Finished initializing chart ${config.id}`);
 }
 
 function updateChartAppearance() {
@@ -428,6 +457,9 @@ async function loadDynamicMarkers(chartId, markerType) {
             })]
         });
 
+        // Create a marker cluster group
+        const markers = L.markerClusterGroup();
+
         data.forEach(point => {
             const markerOptions = {
                 radius: 3,
@@ -442,8 +474,13 @@ async function loadDynamicMarkers(chartId, markerType) {
             const popupContent = `<b>ID:</b> ${point.id}<br><b>Longitude:</b> ${point.longitude}<br><b>Latitude:</b> ${point.latitude}`;
             marker.bindPopup(popupContent);
             marker.on('click', () => handleMarkerClick(marker, point));
-            map.addLayer(marker);
+
+            // Add marker to cluster group
+            markers.addLayer(marker);
         });
+
+        // Add the marker cluster group to the map
+        map.addLayer(markers);
     }).catch(error => {
         console.error('Error:', error);
     });

@@ -13,8 +13,9 @@ $(document).ready(async function() {
         { id: 'myChart4', xTable: 'products', xColumn: 'Name', yTable: 'orders', yColumns: ['total'], type: 'bar', aggregations: ['Summe'] },
         { id: 'map', markerType: 'stores', table: 'orders', column: 'total', aggregation: 'Summe', type: 'geo' },
         { id: 'myStackedChart', xTable: 'orders', xColumn: 'nItems', yTable: 'orders', yColumns: ['total', 'total', 'total'], type: 'stacked', aggregations: ['Min', 'Max', 'Durchschnitt'] },
-        { id: 'chart7', markerType: 'stores', table: 'orders', column: 'total', aggregation: 'Anzahl', type: 'dynamicMarkers' } // Neue Chart-Konfiguration
+        { id: 'chart7', markerType: 'stores', table: 'orders', column: 'total', aggregation: 'Anzahl', type: 'dynamicMarkers' }, // Neue Chart-Konfiguration
 
+        { id: 'myChart2', xTable: 'customers', xColumn: 'customerID', yTable: 'orders', yColumns: ['orderID'], type: 'bar', aggregations: ['Anzahl'] },
 
 
     ]);
