@@ -8,8 +8,10 @@ let originalData = {};
 $(document).ready(async function() {
     console.log("Document ready, starting to load charts sequentially.");
     await loadChartsSequentially([
-        { id: 'myChart1', markerType: 'customers', type: 'dynamicMarkers' },
-        { id: 'myChart2', xTable: 'customers', xColumn: 'customerID', yTable: 'orders', yColumns: ['orderID'], type: 'bar', aggregations: ['Anzahl'] }
+        { id: 'myChart1', xTable: 'customers', xColumn: 'customerID', yTable: 'orders', yColumns: ['orderID'], type: 'bar', aggregations: ['Anzahl'] },
+        { id: 'myChart2', markerType: 'customers', table: '', column: '', aggregation: '', type: 'dynamicMarkers' }, // Neue Chart-Konfiguration
+        // { id: 'myChart3', xTable: 'customers', xColumn: 'customerID', yTable: 'orders', yColumns: ['orderID'], type: 'pie', aggregations: ['Anzahl'] },
+
     ]);
     console.log("All charts have been loaded.");
 });
