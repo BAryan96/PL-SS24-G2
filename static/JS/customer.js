@@ -8,9 +8,9 @@ let originalData = {};
 $(document).ready(async function() {
     console.log("Document ready, starting to load charts sequentially.");
     await loadChartsSequentially([
-        { id: 'myChart1', xTable: 'customers', xColumn: 'customerID', yTable: 'orders', yColumns: ['orderID'], type: 'bar', aggregations: ['Anzahl'] },
-        { id: 'myChart2', markerType: 'customers', table: '', column: '', aggregation: '', type: 'dynamicMarkers' }, // Neue Chart-Konfiguration
-        // { id: 'myChart3', xTable: 'customers', xColumn: 'customerID', yTable: 'orders', yColumns: ['orderID'], type: 'pie', aggregations: ['Anzahl'] },
+        { id: 'myChart1', xTable: 'customers', xColumn: 'customerID', yTable: 'orders', yColumns: ['orderID'], type: 'pie', aggregations: ['Anzahl'] },
+        { id: 'myChart2', xTable: 'customers', xColumn: 'customerID', yTable: 'orders', yColumns: ['orderID'], type: 'bar', aggregations: ['Anzahl'] },
+        { id: 'myChart3', markerType: 'customers', table: '', column: '', aggregation: '', type: 'dynamicMarkers' }, // Neue Chart-Konfiguration
 
     ]);
     console.log("All charts have been loaded.");
@@ -35,30 +35,49 @@ async function fetchData(requestData) {
     });
 }
 
+function groupCustomersByOrders(data) {
+    let groups = {
+
+        'ONE-TIME-BUYERS': 0,
+        'OCCASIONAL BUYERS': 0,
+        'FREQUENT BURYERS': 0
+    };
+
+    data.x.forEach((customerID, index) => {
+        let orderCount = data.y0[index];
+        if (orderCount <= 20) {
+            groups['ONE-TIME-BUYERS']++;
+        } else if (orderCount <= 200) {
+            groups['OCCASIONAL BUYERS']++;
+        } else {
+            groups['FREQUENT BURYERS']++;
+        }
+    });
+
+    return groups;
+}
+
 function generateChartOptions(chartType, response, yColumns) {
     let option = {};
     switch (chartType) {
         case 'pie':
+            let groupedData = groupCustomersByOrders(response);
             option = {
-                title: { left: 'center', text: 'Donut Chart' },
+                title: { left: 'center', text: 'Kundenkategorien' },
                 tooltip: { trigger: 'item' },
                 toolbox: { feature: getToolboxFeatures() },
                 legend: { top: '5%', left: 'center' },
                 series: [{
-                    name: 'Data',
+                    name: 'Kundenkategorien',
                     type: 'pie',
                     radius: ['40%', '70%'],
                     avoidLabelOverlap: false,
                     label: { show: false, position: 'center' },
                     emphasis: { label: { show: true, fontSize: '20', fontWeight: 'bold' } },
                     labelLine: { show: false },
-                    data: response.x.map((x, index) => ({
-                        value: response.y0[index],
-                        name: x,
-                        itemStyle: highlightedPoints[`${response.chartId}-${index}`] ? {
-                            borderColor: 'black',
-                            borderWidth: 2
-                        } : {}
+                    data: Object.keys(groupedData).map(key => ({
+                        value: groupedData[key],
+                        name: key
                     }))
                 }]
             };
@@ -161,6 +180,10 @@ function generateChartOptions(chartType, response, yColumns) {
                 legend: { data: yColumns, top: '5%' },
                 xAxis: { type: 'category', data: response.x },
                 yAxis: { type: 'value' },
+                dataZoom: [
+                    { type: 'slider', start: 0, end: 100 }, // Horizontal zoom
+                    { type: 'inside', start: 0, end: 100 }, // Horizontal zoom for mouse wheel
+                ],
                 series: yColumns.map((yColumn, seriesIndex) => ({
                     name: yColumn,
                     type: 'bar',
