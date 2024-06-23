@@ -82,6 +82,9 @@ def get_data():
     data = request.get_json()
     print("Received JSON data:", data)
 
+
+    #data = {'tables': ['orders', 'orders'], 'columns': ['orderDate-YYYY', 'nItems'], 'chartType': 'bar', 'aggregations': ['', 'Summe'], 'filters': []}
+
     # Check for required fields
     required_fields = ['tables', 'columns', 'chartType', 'aggregations']
     missing_fields = [field for field in required_fields if field not in data]
@@ -123,6 +126,23 @@ def get_data():
         "Median": "PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY", #deffekt
         "Erstes Quartil": "PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY", #deffekt
         "Drittes Quartil": "PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY" #deffekt
+    }
+
+    date_formats = {
+        '-DD.MM.YYYY HH24:MI:SS': '%d.%m.%Y %H:%i:%s',
+        '-DD.MM.YYYY HH24:MI': '%d.%m.%Y %H:%i',
+        '-DD.MM.YYYY HH24': '%d.%m.%Y %H',
+        '-DD.MM.YYYY': '%d.%m.%Y',
+        '-DD.MM': '%d.%m',
+        '-DD.YYYY': '%d.%Y',
+        '-MM.YYYY': '%m.%Y',
+        '-DD': '%d',
+        '-MM': '%m',
+        '-YYYY': '%Y',
+        '-HH24:MI': '%H:%i',
+        '-HH24': '%H',
+        '-MI': '%i',
+        '-SS': '%s',
     }
 
     # Construct filter query
@@ -218,7 +238,15 @@ def get_data():
     # Iterate over all tables, columns, and aggregations
     for table, col, agg in zip(tables, columns, aggregations):
         if col:
-            full_column_name = f"{table}.{col}"
+            full_column_name = None
+            for suffix, date_format in date_formats.items():
+                if col.endswith(suffix):
+                    col = col[: -len(suffix)]
+                    full_column_name = f"DATE_FORMAT({table}.{col}, '{date_format}')"
+                    break
+            if not full_column_name:
+                full_column_name = f"{table}.{col}"
+            
             aggregation_function = aggregation_functions.get(agg, "")
             if not aggregation_function:
                 select_columns.append(full_column_name)  # No aggregation
@@ -266,8 +294,6 @@ def get_data():
 
     print(response)
     return jsonify(response)
-
-
 
 @app.route("/test")
 def test():
