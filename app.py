@@ -1,6 +1,5 @@
 from flask import Flask, render_template, request, jsonify
 from DB import connect_to_database, get_cursor
-import time
 
 app = Flask(__name__)
 conn = connect_to_database()
@@ -50,27 +49,20 @@ def basicbarchart():
 def heatmap():
     return render_template('heatmap.html')
 
-@app.route ("/salesperformancedash")
+@app.route("/salesperformancedash")
 def salesperformancedash():
-    return render_template ('salesperformancedash.html')
+    return render_template('salesperformancedash.html')
 
-@app.route ("/customerdash")
+@app.route("/customerdash")
 def customerdash():
-    return render_template ('customerdash.html')
+    return render_template('customerdash.html')
 
-@app.route ("/productdash")
-def productdash():
-    return render_template ('productdash.html')
-
-#wichtig 
 @app.route("/tables")
 def get_tables():
     cur.execute("SHOW TABLES")
     tables = [row[0] for row in cur.fetchall()]
     return jsonify({"tables": tables})
 
-
-#wichtig
 @app.route("/columns", methods=["POST"])
 def get_columns():
     table = request.form['table']
@@ -86,7 +78,8 @@ def get_data():
     data = request.get_json()
     print("Received JSON data:", data)
 
-    # Check for required fields
+    #data =  {'tables': ['customers', 'orders-Right'], 'columns': ['customerID', 'orderID'], 'chartType': 'bar', 'aggregations': ['', 'Anzahl'], 'filters': []}
+
     required_fields = ['tables', 'columns', 'chartType', 'aggregations']
     missing_fields = [field for field in required_fields if field not in data]
 
@@ -124,12 +117,28 @@ def get_data():
         "Durchschnitt": "AVG",
         "Varianz": "VARIANCE",
         "Standardabweichung": "STDDEV",
-        "Median": "PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY", #deffekt
-        "Erstes Quartil": "PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY", #deffekt
-        "Drittes Quartil": "PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY" #deffekt
+        "Median": "PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY",
+        "Erstes Quartil": "PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY",
+        "Drittes Quartil": "PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY"
     }
 
-    # Construct filter query
+    date_formats = {
+        '-DD.MM.YYYY HH24:MI:SS': '%d.%m.%Y %H:%i:%s',
+        '-DD.MM.YYYY HH24:MI': '%d.%m.%Y %H:%i',
+        '-DD.MM.YYYY HH24': '%d.%m.%Y %H',
+        '-DD.MM.YYYY': '%d.%m.%Y',
+        '-DD.MM': '%d.%m',
+        '-DD.YYYY': '%d.%Y',
+        '-MM.YYYY': '%m.%Y',
+        '-DD': '%d',
+        '-MM': '%m',
+        '-YYYY': '%Y',
+        '-HH24:MI': '%H:%i',
+        '-HH24': '%H',
+        '-MI': '%i',
+        '-SS': '%s',
+    }
+
     filter_query = ""
     if filters:
         chart_filters = {}
@@ -163,7 +172,6 @@ def get_data():
         if filter_clauses:
             filter_query = " WHERE " + " AND ".join(filter_clauses)
 
-    # Ensure that the filter table is in the tables list
     for filter in filters:
         filter_table = filter['filterTable']
         if filter_table not in tables:
@@ -171,15 +179,13 @@ def get_data():
             columns.append('')
             aggregations.append('')
 
-    # Remove duplicate table names
     unique_tables = []
     for table in tables:
         if table not in unique_tables:
             unique_tables.append(table)
 
-    # Generate join conditions
     join_conditions = []
-    from_clause = unique_tables[0]
+    from_clause = unique_tables[0].split('-')[0]
 
     def find_join_path(start_table, end_table, joins):
         paths = {start_table: []}
@@ -202,39 +208,58 @@ def get_data():
 
     join_paths = {}
     for i in range(1, len(unique_tables)):
-        table1, table2 = unique_tables[i - 1], unique_tables[i]
+        table1, table2 = unique_tables[i - 1].split('-')[0], unique_tables[i].split('-')[0]
         join_path = find_join_path(table1, table2, joins)
         if join_path:
             join_paths[(table1, table2)] = join_path
         else:
             return jsonify({"error": f"No valid join path found between {table1} and {table2}"}), 400
 
-    for (table1, table2), path in join_paths.items():
-        for join in path:
-            join_conditions.append(f"JOIN {join[1]} ON {join[0]}.{join[2]} = {join[1]}.{join[3]}")
+    for i in range(1, len(unique_tables)):
+        table2 = unique_tables[i]
+        join_type = 'JOIN'
+        if '-' in table2:
+            table2, join_type_suffix = table2.split('-')
+            join_type = {
+                'Left': 'LEFT JOIN',
+                'Right': 'RIGHT JOIN',
+                'Full': 'FULL JOIN'
+            }.get(join_type_suffix, 'JOIN')
+
+        table1 = unique_tables[i - 1].split('-')[0]
+        path = join_paths.get((table1, table2))
+        if path:
+            for join in path:
+                join_conditions.append(f"{join_type} {join[1]} ON {join[0]}.{join[2]} = {join[1]}.{join[3]}")
 
     join_query = " ".join(join_conditions)
 
-    # Construct the select clause
     select_columns = []
     group_by_columns = []
 
-    # Iterate over all tables, columns, and aggregations
     for table, col, agg in zip(tables, columns, aggregations):
         if col:
-            full_column_name = f"{table}.{col}"
+            table = table.split('-')[0]  # Remove join suffix for SQL usage
+            full_column_name = None
+            for suffix, date_format in date_formats.items():
+                if col.endswith(suffix):
+                    col = col[: -len(suffix)]
+                    full_column_name = f"DATE_FORMAT({table}.{col}, '{date_format}')"
+                    break
+            if not full_column_name:
+                full_column_name = f"{table}.{col}"
+
             aggregation_function = aggregation_functions.get(agg, "")
             if not aggregation_function:
-                select_columns.append(full_column_name)  # No aggregation
+                select_columns.append(full_column_name)
                 if agg != "X":
-                    group_by_columns.append(full_column_name)  # Add to GROUP BY if no aggregation and not "X"
+                    group_by_columns.append(full_column_name)
             else:
                 if agg in ["Diskrete Anzahl", "Median", "Erstes Quartil", "Drittes Quartil"]:
                     select_columns.append(f"{aggregation_function} {full_column_name})")
                 else:
                     select_columns.append(f"{aggregation_function}({full_column_name})")
 
-    # Ensure every column is included
     if not all(columns):
         print("Each table must have at least one column specified")
         return jsonify({"error": "Each table must have at least one column specified"}), 400
@@ -242,7 +267,6 @@ def get_data():
     select_query = ", ".join(select_columns)
     group_by_query = ", ".join(group_by_columns)
 
-    # Construct the final SQL query
     query = f"""
     SELECT {select_query}
     FROM {from_clause}
@@ -270,8 +294,6 @@ def get_data():
 
     print(response)
     return jsonify(response)
-
-
 
 @app.route("/test")
 def test():
