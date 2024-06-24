@@ -7,9 +7,9 @@ let originalData = {};
 
 $(document).ready(async function() {
     await loadChartsSequentially([
-            // { id: 'myChart1', tables: ['orders','orders'], columns: ['orderDate-MM', 'total'], type: 'bar', aggregations: ['', 'Summe'] , filters: [] },
-            // { id: 'myChart2', tables: ['products','orders'], columns: ['category', 'total'], type: 'bar', aggregations: ['', 'Summe'] , filters: [] },
-            // { id: 'myChart3', tables: ['stores', 'orders', 'stores'], 'columns': ['state', 'nItems', 'storeID'], type: 'pie', 'aggregations': ['', 'Summe', 'Diskrete Anzahl'], 'filters': []},
+            { id: 'myChart1', tables: ['orders','orders'], columns: ['orderDate-MM', 'total'], type: 'bar', aggregations: ['', 'Summe'] , filters: [] },
+            { id: 'myChart2', tables: ['products','orders'], columns: ['category', 'total'], type: 'bar', aggregations: ['', 'Summe'] , filters: [] },
+            { id: 'myChart3', tables: ['stores', 'orders', 'stores'], 'columns': ['state', 'nItems', 'storeID'], type: 'pie', 'aggregations': ['', 'Summe', 'Diskrete Anzahl'], 'filters': []},
             { id: 'myChart4', tables: ['products','orders', 'products'], columns: ['Name', 'total', 'category'], type: 'donut', aggregations: ['', 'Summe', ''] , filters: [] },
         //    { id: 'myChart5', tables: ['orders','orders'], columns: ['orderDate-MM.YYYY', 'total'], type: 'bar', aggregations: ['', 'Summe'] , filters: [] }, //in Prozent umrechnen.
     ]);
