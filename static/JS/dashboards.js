@@ -5,17 +5,17 @@ let filter = [];
 let highlightedPoints = {};
 let originalData = {};
 
+
 $(document).ready(async function() {
     await loadChartsSequentially([
-        { id: 'myChart1', xTable: 'stores', xColumn: 'storeID', yTable: 'orders', yColumns: ['total'], type: 'area', aggregations: ['Summe'] },
-        { id: 'myChart2', xTable: 'stores', xColumn: 'storeID', yTable: 'orders', yColumns: ['total'], type: 'bar', aggregations: ['Summe'] },
-        { id: 'myChart3', xTable: 'products', xColumn: 'Name', yTable: 'orders', yColumns: ['total'], type: 'pie', aggregations: ['Summe'] },
-        { id: 'myChart4', xTable: 'products', xColumn: 'Name', yTable: 'orders', yColumns: ['total'], type: 'bar', aggregations: ['Summe'] },
-        { id: 'map', markerType: 'stores', table: 'orders', column: 'total', aggregation: 'Summe', type: 'geo' },
-        { id: 'myStackedChart', xTable: 'orders', xColumn: 'nItems', yTable: 'orders', yColumns: ['total', 'total', 'total'], type: 'stacked', aggregations: ['Min', 'Max', 'Durchschnitt'] },
-        { id: 'chart7', markerType: 'stores', table: 'orders', column: 'total', aggregation: 'Anzahl', type: 'dynamicMarkers' } // Neue Chart-Konfiguration
-
-
+        { id: 'myChart1', tables: ['stores','orders'], columns: ['storeID', 'total'], type: 'area', aggregations: ['', 'Summe'] , filters: [] },
+        { id: 'myChart2', tables: ['stores','orders'], columns: ['storeID', 'total'], type: 'pie', aggregations: ['', 'Summe'] , filters: [] },
+        //{ id: 'myChart2', xTable: 'stores', xColumn: 'storeID', yTable: 'orders', yColumns: ['total'], type: 'bar', aggregations: ['Summe'] },
+        // { id: 'myChart3', xTable: 'products', xColumn: 'Name', yTable: 'orders', yColumns: ['total'], type: 'pie', aggregations: ['Summe'] },
+        // { id: 'myChart4', xTable: 'products', xColumn: 'Name', yTable: 'orders', yColumns: ['total'], type: 'bar', aggregations: ['Summe'] },
+        // { id: 'map', markerType: 'stores', table: 'orders', column: 'total', aggregation: 'Summe', type: 'geo' },
+        // { id: 'myStackedChart', xTable: 'orders', xColumn: 'nItems', yTable: 'orders', yColumns: ['total', 'total', 'total'], type: 'stacked', aggregations: ['Min', 'Max', 'Durchschnitt'] },
+        // { id: 'chart7', markerType: 'stores', table: 'orders', column: 'total', aggregation: 'Anzahl', type: 'dynamicMarkers' } // Neue Chart-Konfiguration
     ]);
 });
 
@@ -225,11 +225,11 @@ async function initializeChart(config) {
         const myChart = echarts.init(document.getElementById(config.id));
         charts.push({ chart: myChart, config: config });
         const requestData = {
-            tables: [config.xTable, ...Array(config.yColumns.length).fill(config.yTable)],
-            columns: [config.xColumn, ...config.yColumns],
+            tables: config.tables,
+            columns: config.columns,
             chartType: config.type,
-            aggregations: ["", ...config.aggregations],
-            filters: filter
+            aggregations: config.aggregations,
+            filters: config.filters
         };
 
         try {
@@ -238,7 +238,6 @@ async function initializeChart(config) {
             let parsedResponse = response;
             parsedResponse.chartId = config.id;
 
-            // Sortiere die Daten, wenn es sich um myChart4 handelt
             if (config.id === 'myChart4') {
                 let sortedData = {
                     x: [],
@@ -265,7 +264,7 @@ async function initializeChart(config) {
                 };
             }
             originalData[config.id] = parsedResponse;
-            const option = generateChartOptions(config.type, parsedResponse, config.yColumns);
+            const option = generateChartOptions(config.type, parsedResponse, config.columns.slice(1));
             myChart.setOption(option);
             myChart.on('click', params => handleChartClick(myChart, config, params));
         } catch (error) {
@@ -511,8 +510,8 @@ function handleChartClick(chartInstance, config, params) {
             highlightedPoints[key] = true;
             filter.push({
                 chartId: chartInstance.id,
-                filterTable: config.xTable,
-                filterColumn: config.xColumn,
+                filterTable: config.tables[0],
+                filterColumn: config.columns[0],
                 filterValue: value
             });
             updateHighlighting(chartInstance);
@@ -569,14 +568,14 @@ function updateHighlighting(chartInstance) {
 function updateAllCharts(excludeChartId) {
     charts.forEach(({ chart, config }) => {
         if (chart.id !== excludeChartId) {
-            const applicableFilter = filter.filter(f => f.filterTable === config.xTable && f.filterColumn === config.xColumn);
+            const applicableFilter = filter.filter(f => f.filterTable === config.tables[0] && f.filterColumn === config.columns[0]);
             if (applicableFilter.length > 0) {
                 const data = applyFilters(originalData[config.id], applicableFilter);
-                const option = generateChartOptions(config.type, data, config.yColumns);
+                const option = generateChartOptions(config.type, data, config.columns.slice(1));
                 chart.setOption(option);
             } else {
                 // No applicable filters, keep the chart unchanged
-                const option = generateChartOptions(config.type, originalData[config.id], config.yColumns);
+                const option = generateChartOptions(config.type, originalData[config.id], config.columns.slice(1));
                 chart.setOption(option);
             }
         }
@@ -605,7 +604,7 @@ function resetAllCharts() {
     filter = [];
     highlightedPoints = {};
     charts.forEach(({ chart, config }) => {
-        const option = generateChartOptions(config.type, originalData[config.id], config.yColumns);
+        const option = generateChartOptions(config.type, originalData[config.id], config.columns.slice(1));
         chart.setOption(option);
     });
 }
