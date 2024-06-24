@@ -57,6 +57,19 @@ def salesperformancedash():
 def customerdash():
     return render_template('customerdash.html')
 
+@app.route("/productdash")
+def productdash():
+    return render_template('productdash.html')
+
+@app.route("/storeperformancedash")
+def productstoreperformancedashdash():
+    return render_template('storeperformancedash.html')
+
+@app.route("/orderdetailsdash")
+def orderdetailsdash():
+    return render_template('orderdetailsdash.html')
+
+
 @app.route("/tables")
 def get_tables():
     cur.execute("SHOW TABLES")
