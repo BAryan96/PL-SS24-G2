@@ -58,6 +58,10 @@ def salesperformancedash():
 def customerdash():
     return render_template ('customerdash.html')
 
+@app.route ("/productdash")
+def productdash():
+    return render_template ('productdash.html')
+
 #wichtig 
 @app.route("/tables")
 def get_tables():
