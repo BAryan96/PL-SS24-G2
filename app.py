@@ -92,7 +92,7 @@ def get_data():
     print("Received JSON data:", data)
 
     #data =  {'tables': ['customers', 'orders-Right'], 'columns': ['customerID', 'orderID'], 'chartType': 'bar', 'aggregations': ['', 'Anzahl'], 'filters': []}
-    #data =  {'tables': ['orders', 'orders'], 'columns': ['orderDate-MM.YYYY', 'total'], 'chartType': 'bar', 'aggregations': ['', 'Summe'], 'filters': []}
+    #data =  {'tables': ['orders', 'orders'], 'columns': ['orderDate-MM', 'total'], 'chartType': 'bar', 'aggregations': ['', 'Summe'], 'filters': []}
 
     required_fields = ['tables', 'columns', 'chartType', 'aggregations']
     missing_fields = [field for field in required_fields if field not in data]

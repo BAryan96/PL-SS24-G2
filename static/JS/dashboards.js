@@ -5,12 +5,13 @@ let filter = [];
 let highlightedPoints = {};
 let originalData = {};
 
-
 $(document).ready(async function() {
     await loadChartsSequentially([
-        { id: 'myChart1', tables: ['stores','orders'], columns: ['storeID', 'total'], type: 'area', aggregations: ['', 'Summe'] , filters: [] },
-        { id: 'myChart2', tables: ['products','orders'], columns: ['Name', 'total'], type: 'pie', aggregations: ['', 'Summe'] , filters: [] },
-        { id: 'myChart3', tables: ['products','orders'], columns: ['Name', 'total'], type: 'bar', aggregations: ['', 'Summe'] , filters: [] },
+            { id: 'myChart1', tables: ['orders','orders'], columns: ['orderDate-MM', 'total'], type: 'bar', aggregations: ['', 'Summe'] , filters: [] },
+            { id: 'myChart2', tables: ['products','orders'], columns: ['category', 'total'], type: 'bar', aggregations: ['', 'Summe'] , filters: [] },
+            { id: 'myChart3', tables: ['stores', 'orders'], 'columns': ['state', 'nItems'], type: 'pie', 'aggregations': ['', 'Summe'], 'filters': []},
+            { id: 'myChart4', tables: ['products','orders'], columns: ['category', 'total'], type: 'donut', aggregations: ['', 'Summe'] , filters: [] },
+            { id: 'myChart5', tables: ['orders','orders'], columns: ['orderDate-MM.YYYY', 'total'], type: 'bar', aggregations: ['', 'Summe'] , filters: [] }, //in Prozent umrechnen.
 
         //{ id: 'myChart2', xTable: 'stores', xColumn: 'storeID', yTable: 'orders', yColumns: ['total'], type: 'bar', aggregations: ['Summe'] },
         // { id: 'myChart3', xTable: 'products', xColumn: 'Name', yTable: 'orders', yColumns: ['total'], type: 'pie', aggregations: ['Summe'] },
@@ -53,6 +54,9 @@ function generateChartOptions(chartType, response, yColumns) {
                     name: 'Data',
                     type: 'pie',
                     radius: ['40%', '70%'],
+                    center: ['50%', '70%'],
+                    startAngle: 180,
+                    endAngle: 360,
                     avoidLabelOverlap: false,
                     label: { show: false, position: 'center' },
                     emphasis: { label: { show: true, fontSize: '20', fontWeight: 'bold' } },
@@ -68,6 +72,31 @@ function generateChartOptions(chartType, response, yColumns) {
                 }]
             };
             break;
+            case 'donut':
+                option = {
+                    title: { left: 'center', text: 'Donut Chart' },
+                    tooltip: { trigger: 'item' },
+                    toolbox: { feature: getToolboxFeatures() },
+                    legend: { top: '5%', left: 'center' },
+                    series: [{
+                        name: 'Data',
+                        type: 'pie',
+                        radius: ['40%', '70%'],
+                        avoidLabelOverlap: false,
+                        label: { show: false, position: 'center' },
+                        emphasis: { label: { show: true, fontSize: '20', fontWeight: 'bold' } },
+                        labelLine: { show: false },
+                        data: response.x.map((x, index) => ({
+                            value: response.y0[index],
+                            name: x,
+                            itemStyle: highlightedPoints[`${response.chartId}-${index}`] ? {
+                                borderColor: 'black',
+                                borderWidth: 2
+                            } : {}
+                        }))
+                    }]
+                };
+                break
         case 'area':
         case 'line':
             option = {
