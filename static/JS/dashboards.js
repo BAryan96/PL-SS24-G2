@@ -9,7 +9,9 @@ let originalData = {};
 $(document).ready(async function() {
     await loadChartsSequentially([
         { id: 'myChart1', tables: ['stores','orders'], columns: ['storeID', 'total'], type: 'area', aggregations: ['', 'Summe'] , filters: [] },
-        { id: 'myChart2', tables: ['stores','orders'], columns: ['storeID', 'total'], type: 'pie', aggregations: ['', 'Summe'] , filters: [] },
+        { id: 'myChart2', tables: ['products','orders'], columns: ['Name', 'total'], type: 'pie', aggregations: ['', 'Summe'] , filters: [] },
+        { id: 'myChart3', tables: ['products','orders'], columns: ['Name', 'total'], type: 'bar', aggregations: ['', 'Summe'] , filters: [] },
+
         //{ id: 'myChart2', xTable: 'stores', xColumn: 'storeID', yTable: 'orders', yColumns: ['total'], type: 'bar', aggregations: ['Summe'] },
         // { id: 'myChart3', xTable: 'products', xColumn: 'Name', yTable: 'orders', yColumns: ['total'], type: 'pie', aggregations: ['Summe'] },
         // { id: 'myChart4', xTable: 'products', xColumn: 'Name', yTable: 'orders', yColumns: ['total'], type: 'bar', aggregations: ['Summe'] },
@@ -614,3 +616,4 @@ async function loadChartsSequentially(chartConfigs) {
         await initializeChart(config);
     }
 }
+

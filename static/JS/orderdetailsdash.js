@@ -7,7 +7,7 @@ let originalData = {};
 
 $(document).ready(async function() {
     await loadChartsSequentially([
-        { id: 'myChart1', xTable: 'orders', xColumn: 'orderID', yTable: 'orders', yColumns: ['total'], type: 'bar', aggregations: ['Summe'] },
+     //   { id: 'myChart1', xTable: 'orders', xColumn: 'orderID', yTable: 'orders', yColumns: ['nItems'], type: 'scatter', aggregations: [''] },
     //     { id: 'myChart2', xTable: 'stores', xColumn: 'storeID', yTable: 'orders', yColumns: ['orderID'], type: 'bar', aggregations: ['Anzahl'] },
     //     { id: 'myChart3', xTable: 'stores', xColumn: 'storeID', yTable: 'orders', yColumns: ['total'], type: 'area', aggregations: ['Durchschnitt'] },
     //     { id: 'myChart4', markerType: 'stores', type: 'dynamicMarkers' },
