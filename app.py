@@ -57,6 +57,7 @@ def salesperformancedash():
 def customerdash():
     return render_template('customerdash.html')
 
+#wichtig 
 @app.route("/tables")
 def get_tables():
     cur.execute("SHOW TABLES")
@@ -78,8 +79,7 @@ def get_data():
     data = request.get_json()
     print("Received JSON data:", data)
 
-    #data =  {'tables': ['customers', 'orders-Right'], 'columns': ['customerID', 'orderID'], 'chartType': 'bar', 'aggregations': ['', 'Anzahl'], 'filters': []}
-
+    # Check for required fields
     required_fields = ['tables', 'columns', 'chartType', 'aggregations']
     missing_fields = [field for field in required_fields if field not in data]
 

@@ -6,10 +6,14 @@ let highlightedPoints = {};
 let originalData = {};
 
 $(document).ready(async function() {
+    console.log("Document ready, starting to load charts sequentially.");
     await loadChartsSequentially([
-        { id: 'myChart1', markerType: 'customers', type: 'dynamicMarkers' }, // Neue Chart-Konfiguration
-        
+        { id: 'myChart1', xTable: 'customers', xColumn: 'customerID', yTable: 'orders', yColumns: ['orderID'], type: 'pie', aggregations: ['Anzahl'] },
+        { id: 'myChart2', xTable: 'customers', xColumn: 'customerID', yTable: 'orders', yColumns: ['orderID'], type: 'bar', aggregations: ['Anzahl'] },
+        { id: 'myChart3', markerType: 'customers', table: '', column: '', aggregation: '', type: 'dynamicMarkers' }, // Neue Chart-Konfiguration
+
     ]);
+    console.log("All charts have been loaded.");
 });
 
 async function fetchData(requestData) {
@@ -31,30 +35,49 @@ async function fetchData(requestData) {
     });
 }
 
+function groupCustomersByOrders(data) {
+    let groups = {
+
+        'ONE-TIME-BUYERS': 0,
+        'OCCASIONAL BUYERS': 0,
+        'FREQUENT BURYERS': 0
+    };
+
+    data.x.forEach((customerID, index) => {
+        let orderCount = data.y0[index];
+        if (orderCount <= 1) {
+            groups['ONE-TIME-BUYERS']++;
+        } else if (orderCount <= 200) {
+            groups['OCCASIONAL BUYERS']++;
+        } else {
+            groups['FREQUENT BURYERS']++;
+        }
+    });
+
+    return groups;
+}
+
 function generateChartOptions(chartType, response, yColumns) {
     let option = {};
     switch (chartType) {
         case 'pie':
+            let groupedData = groupCustomersByOrders(response);
             option = {
-                title: { left: 'center', text: 'Donut Chart' },
+                title: { left: 'center', text: 'Kundenkategorien' },
                 tooltip: { trigger: 'item' },
                 toolbox: { feature: getToolboxFeatures() },
                 legend: { top: '5%', left: 'center' },
                 series: [{
-                    name: 'Data',
+                    name: 'Kundenkategorien',
                     type: 'pie',
                     radius: ['40%', '70%'],
                     avoidLabelOverlap: false,
                     label: { show: false, position: 'center' },
                     emphasis: { label: { show: true, fontSize: '20', fontWeight: 'bold' } },
                     labelLine: { show: false },
-                    data: response.x.map((x, index) => ({
-                        value: response.y0[index],
-                        name: x,
-                        itemStyle: highlightedPoints[`${response.chartId}-${index}`] ? {
-                            borderColor: 'black',
-                            borderWidth: 2
-                        } : {}
+                    data: Object.keys(groupedData).map(key => ({
+                        value: groupedData[key],
+                        name: key
                     }))
                 }]
             };
@@ -149,6 +172,35 @@ function generateChartOptions(chartType, response, yColumns) {
                 dataZoom: [{ type: 'inside', start: 0, end: 100 }, { start: 0, end: 100 }]
             };
             break;
+        case 'bar':
+            option = {
+                title: { left: 'center', text: 'Bar Chart' },
+                tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+                toolbox: { feature: getToolboxFeatures() },
+                legend: { data: yColumns, top: '5%' },
+                xAxis: { type: 'category', data: response.x },
+                yAxis: { type: 'value' },
+                dataZoom: [
+                    { type: 'slider', start: 0, end: 100 }, // Horizontal zoom
+                    { type: 'inside', start: 0, end: 100 }, // Horizontal zoom for mouse wheel
+                ],
+                series: yColumns.map((yColumn, seriesIndex) => ({
+                    name: yColumn,
+                    type: 'bar',
+                    emphasis: { focus: 'series' },
+                    itemStyle: { color: 'rgb(255, 70, 131)' },
+                    data: response[`y${seriesIndex}`].map((y, dataIndex) => ({
+                        value: y,
+                        itemStyle: highlightedPoints[`${response.chartId}-${seriesIndex}-${dataIndex}`] ? {
+                            borderColor: 'black',
+                            borderWidth: 2
+                        } : {}
+                    }))
+                })),
+                backgroundColor: darkMode ? '#333' : '#fff',
+                textStyle: { color: darkMode ? '#fff' : '#000' }
+            };
+            break;
         default:
             option = {
                 tooltip: { trigger: 'axis', axisPointer: { type: 'cross', label: { backgroundColor: '#6a7985' } } },
@@ -210,6 +262,7 @@ function getToolboxFeatures() {
 }
 
 async function initializeChart(config) {
+    console.log(`Initializing chart ${config.id}`);
     if (config.type === 'geo') {
         await initializeGeoChart(config.id, config.markerType, config.table, config.column, config.aggregation);
     } else if (config.type === 'dynamicMarkers') {
@@ -247,6 +300,7 @@ async function initializeChart(config) {
             console.error("Failed to initialize chart:", error);
         }
     }
+    console.log(`Finished initializing chart ${config.id}`);
 }
 
 function updateChartAppearance() {
@@ -428,6 +482,9 @@ async function loadDynamicMarkers(chartId, markerType) {
             })]
         });
 
+        // Create a marker cluster group
+        const markers = L.markerClusterGroup();
+
         data.forEach(point => {
             const markerOptions = {
                 radius: 3,
@@ -442,8 +499,13 @@ async function loadDynamicMarkers(chartId, markerType) {
             const popupContent = `<b>ID:</b> ${point.id}<br><b>Longitude:</b> ${point.longitude}<br><b>Latitude:</b> ${point.latitude}`;
             marker.bindPopup(popupContent);
             marker.on('click', () => handleMarkerClick(marker, point));
-            map.addLayer(marker);
+
+            // Add marker to cluster group
+            markers.addLayer(marker);
         });
+
+        // Add the marker cluster group to the map
+        map.addLayer(markers);
     }).catch(error => {
         console.error('Error:', error);
     });

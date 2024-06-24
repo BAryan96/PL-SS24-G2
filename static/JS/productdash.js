@@ -5,19 +5,21 @@ let filter = [];
 let highlightedPoints = {};
 let originalData = {};
 
-
 $(document).ready(async function() {
     await loadChartsSequentially([
-        { id: 'myChart1', tables: ['stores','orders'], columns: ['storeID', 'total'], type: 'area', aggregations: ['', 'Summe'] , filters: [] },
-        { id: 'myChart2', tables: ['products','orders'], columns: ['Name', 'total'], type: 'pie', aggregations: ['', 'Summe'] , filters: [] },
-        { id: 'myChart3', tables: ['products','orders'], columns: ['Name', 'total'], type: 'bar', aggregations: ['', 'Summe'] , filters: [] },
+        { id: 'myChart1', xTable: 'products', xColumn: 'name', yTable: 'orders', yColumns: ['total'], type: 'bar', aggregations: ['Summe'] },
+        { id: 'myChart2', xTable: 'products', xColumn: 'category', yTable: 'orders', yColumns: ['total'], type: 'pie', aggregations: ['Summe'] },
 
-        //{ id: 'myChart2', xTable: 'stores', xColumn: 'storeID', yTable: 'orders', yColumns: ['total'], type: 'bar', aggregations: ['Summe'] },
+        // { id: 'myChart2', xTable: 'stores', xColumn: 'storeID', yTable: 'orders', yColumns: ['total'], type: 'bar', aggregations: ['Summe'] },
         // { id: 'myChart3', xTable: 'products', xColumn: 'Name', yTable: 'orders', yColumns: ['total'], type: 'pie', aggregations: ['Summe'] },
         // { id: 'myChart4', xTable: 'products', xColumn: 'Name', yTable: 'orders', yColumns: ['total'], type: 'bar', aggregations: ['Summe'] },
         // { id: 'map', markerType: 'stores', table: 'orders', column: 'total', aggregation: 'Summe', type: 'geo' },
         // { id: 'myStackedChart', xTable: 'orders', xColumn: 'nItems', yTable: 'orders', yColumns: ['total', 'total', 'total'], type: 'stacked', aggregations: ['Min', 'Max', 'Durchschnitt'] },
-        // { id: 'chart7', markerType: 'stores', table: 'orders', column: 'total', aggregation: 'Anzahl', type: 'dynamicMarkers' } // Neue Chart-Konfiguration
+        // { id: 'chart7', markerType: 'stores', table: 'orders', column: 'total', aggregation: 'Anzahl', type: 'dynamicMarkers' }, // Neue Chart-Konfiguration
+
+        // { id: 'myChart2', xTable: 'customers', xColumn: 'customerID', yTable: 'orders', yColumns: ['orderID'], type: 'bar', aggregations: ['Anzahl'] },
+
+
     ]);
 });
 
@@ -227,11 +229,11 @@ async function initializeChart(config) {
         const myChart = echarts.init(document.getElementById(config.id));
         charts.push({ chart: myChart, config: config });
         const requestData = {
-            tables: config.tables,
-            columns: config.columns,
+            tables: [config.xTable, ...Array(config.yColumns.length).fill(config.yTable)],
+            columns: [config.xColumn, ...config.yColumns],
             chartType: config.type,
-            aggregations: config.aggregations,
-            filters: config.filters
+            aggregations: ["", ...config.aggregations],
+            filters: filter
         };
 
         try {
@@ -239,23 +241,6 @@ async function initializeChart(config) {
             console.log(response.sql);
             let parsedResponse = response;
             parsedResponse.chartId = config.id;
-
-            if (config.id === 'myChart4') {
-                let sortedData = {
-                    x: [],
-                    y0: []
-                };
-
-                let data = response.x.map((x, index) => ({ x: x, y0: response.y0[index] }));
-                data.sort((a, b) => b.y0 - a.y0);
-
-                sortedData.x = data.map(item => item.x);
-                sortedData.y0 = data.map(item => item.y0);
-
-                parsedResponse = sortedData;
-                parsedResponse.chartId = config.id;
-            }
-
             if (config.type === 'stacked') {
                 parsedResponse = {
                     x: response.x,
@@ -266,7 +251,7 @@ async function initializeChart(config) {
                 };
             }
             originalData[config.id] = parsedResponse;
-            const option = generateChartOptions(config.type, parsedResponse, config.columns.slice(1));
+            const option = generateChartOptions(config.type, parsedResponse, config.yColumns);
             myChart.setOption(option);
             myChart.on('click', params => handleChartClick(myChart, config, params));
         } catch (error) {
@@ -512,8 +497,8 @@ function handleChartClick(chartInstance, config, params) {
             highlightedPoints[key] = true;
             filter.push({
                 chartId: chartInstance.id,
-                filterTable: config.tables[0],
-                filterColumn: config.columns[0],
+                filterTable: config.xTable,
+                filterColumn: config.xColumn,
                 filterValue: value
             });
             updateHighlighting(chartInstance);
@@ -570,14 +555,14 @@ function updateHighlighting(chartInstance) {
 function updateAllCharts(excludeChartId) {
     charts.forEach(({ chart, config }) => {
         if (chart.id !== excludeChartId) {
-            const applicableFilter = filter.filter(f => f.filterTable === config.tables[0] && f.filterColumn === config.columns[0]);
+            const applicableFilter = filter.filter(f => f.filterTable === config.xTable && f.filterColumn === config.xColumn);
             if (applicableFilter.length > 0) {
                 const data = applyFilters(originalData[config.id], applicableFilter);
-                const option = generateChartOptions(config.type, data, config.columns.slice(1));
+                const option = generateChartOptions(config.type, data, config.yColumns);
                 chart.setOption(option);
             } else {
                 // No applicable filters, keep the chart unchanged
-                const option = generateChartOptions(config.type, originalData[config.id], config.columns.slice(1));
+                const option = generateChartOptions(config.type, originalData[config.id], config.yColumns);
                 chart.setOption(option);
             }
         }
@@ -606,7 +591,7 @@ function resetAllCharts() {
     filter = [];
     highlightedPoints = {};
     charts.forEach(({ chart, config }) => {
-        const option = generateChartOptions(config.type, originalData[config.id], config.columns.slice(1));
+        const option = generateChartOptions(config.type, originalData[config.id], config.yColumns);
         chart.setOption(option);
     });
 }
@@ -616,4 +601,3 @@ async function loadChartsSequentially(chartConfigs) {
         await initializeChart(config);
     }
 }
-
