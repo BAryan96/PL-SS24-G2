@@ -7,18 +7,11 @@ let originalData = {};
 
 $(document).ready(async function() {
     await loadChartsSequentially([
-            { id: 'myChart1', tables: ['orders','orders'], columns: ['orderDate-MM', 'total'], type: 'bar', aggregations: ['', 'Summe'] , filters: [] },
-            { id: 'myChart2', tables: ['products','orders'], columns: ['category', 'total'], type: 'bar', aggregations: ['', 'Summe'] , filters: [] },
-            { id: 'myChart3', tables: ['stores', 'orders'], 'columns': ['state', 'nItems'], type: 'pie', 'aggregations': ['', 'Summe'], 'filters': []},
-            { id: 'myChart4', tables: ['products','orders'], columns: ['category', 'total'], type: 'donut', aggregations: ['', 'Summe'] , filters: [] },
-            { id: 'myChart5', tables: ['orders','orders'], columns: ['orderDate-MM.YYYY', 'total'], type: 'bar', aggregations: ['', 'Summe'] , filters: [] }, //in Prozent umrechnen.
-
-        //{ id: 'myChart2', xTable: 'stores', xColumn: 'storeID', yTable: 'orders', yColumns: ['total'], type: 'bar', aggregations: ['Summe'] },
-        // { id: 'myChart3', xTable: 'products', xColumn: 'Name', yTable: 'orders', yColumns: ['total'], type: 'pie', aggregations: ['Summe'] },
-        // { id: 'myChart4', xTable: 'products', xColumn: 'Name', yTable: 'orders', yColumns: ['total'], type: 'bar', aggregations: ['Summe'] },
-        // { id: 'map', markerType: 'stores', table: 'orders', column: 'total', aggregation: 'Summe', type: 'geo' },
-        // { id: 'myStackedChart', xTable: 'orders', xColumn: 'nItems', yTable: 'orders', yColumns: ['total', 'total', 'total'], type: 'stacked', aggregations: ['Min', 'Max', 'Durchschnitt'] },
-        // { id: 'chart7', markerType: 'stores', table: 'orders', column: 'total', aggregation: 'Anzahl', type: 'dynamicMarkers' } // Neue Chart-Konfiguration
+            // { id: 'myChart1', tables: ['orders','orders'], columns: ['orderDate-MM', 'total'], type: 'bar', aggregations: ['', 'Summe'] , filters: [] },
+            // { id: 'myChart2', tables: ['products','orders'], columns: ['category', 'total'], type: 'bar', aggregations: ['', 'Summe'] , filters: [] },
+            // { id: 'myChart3', tables: ['stores', 'orders', 'stores'], 'columns': ['state', 'nItems', 'storeID'], type: 'pie', 'aggregations': ['', 'Summe', 'Diskrete Anzahl'], 'filters': []},
+            { id: 'myChart4', tables: ['products','orders', 'products'], columns: ['Name', 'total', 'category'], type: 'donut', aggregations: ['', 'Summe', ''] , filters: [] },
+        //    { id: 'myChart5', tables: ['orders','orders'], columns: ['orderDate-MM.YYYY', 'total'], type: 'bar', aggregations: ['', 'Summe'] , filters: [] }, //in Prozent umrechnen.
     ]);
 });
 
@@ -47,7 +40,14 @@ function generateChartOptions(chartType, response, yColumns) {
         case 'pie':
             option = {
                 title: { left: 'center', text: 'Donut Chart' },
-                tooltip: { trigger: 'item' },
+                tooltip: { 
+                    trigger: 'item',
+                    formatter: function(params) {
+                        const dataIndex = params.dataIndex;
+                        const y1Value = response.y1 ? response.y1[dataIndex] : 'N/A';
+                        return `${params.name}: ${params.value}<br>Number of Stores in State: ${y1Value}`;
+                    }
+                },
                 toolbox: { feature: getToolboxFeatures() },
                 legend: { top: '5%', left: 'center' },
                 series: [{
@@ -73,30 +73,37 @@ function generateChartOptions(chartType, response, yColumns) {
             };
             break;
             case 'donut':
-                option = {
-                    title: { left: 'center', text: 'Donut Chart' },
-                    tooltip: { trigger: 'item' },
-                    toolbox: { feature: getToolboxFeatures() },
-                    legend: { top: '5%', left: 'center' },
-                    series: [{
-                        name: 'Data',
-                        type: 'pie',
-                        radius: ['40%', '70%'],
-                        avoidLabelOverlap: false,
-                        label: { show: false, position: 'center' },
-                        emphasis: { label: { show: true, fontSize: '20', fontWeight: 'bold' } },
-                        labelLine: { show: false },
-                        data: response.x.map((x, index) => ({
-                            value: response.y0[index],
-                            name: x,
-                            itemStyle: highlightedPoints[`${response.chartId}-${index}`] ? {
-                                borderColor: 'black',
-                                borderWidth: 2
-                            } : {}
-                        }))
-                    }]
-                };
-                break
+            option = {
+                title: { left: 'center', text: 'Donut Chart' },
+                tooltip: {
+                    trigger: 'item',
+                    formatter: function(params) {
+                        const dataIndex = params.dataIndex;
+                        const category = response.y1 ? response.y1[dataIndex] : 'N/A';
+                        return `${params.name}: ${params.value}<br>Category: ${category}`;
+                    }
+                },
+                toolbox: { feature: getToolboxFeatures() },
+                legend: { top: '5%', left: 'center' },
+                series: [{
+                    name: 'Data',
+                    type: 'pie',
+                    radius: ['40%', '70%'],
+                    avoidLabelOverlap: false,
+                    label: { show: false, position: 'center' },
+                    emphasis: { label: { show: true, fontSize: '20', fontWeight: 'bold' } },
+                    labelLine: { show: false },
+                    data: response.x.map((x, index) => ({
+                        value: response.y0[index],
+                        name: x,
+                        itemStyle: highlightedPoints[`${response.chartId}-${index}`] ? {
+                            borderColor: 'black',
+                            borderWidth: 2
+                        } : {}
+                    }))
+                }]
+            };
+            break;
         case 'area':
         case 'line':
             option = {
@@ -248,62 +255,42 @@ function getToolboxFeatures() {
 }
 
 async function initializeChart(config) {
-    if (config.type === 'geo') {
-        await initializeGeoChart(config.id, config.markerType, config.table, config.column, config.aggregation);
-    } else if (config.type === 'dynamicMarkers') {
-        await loadDynamicMarkers(config.id, config.markerType, config.table, config.column, config.aggregation);
-    } else {
-        const myChart = echarts.init(document.getElementById(config.id));
-        charts.push({ chart: myChart, config: config });
-        const requestData = {
-            tables: config.tables,
-            columns: config.columns,
-            chartType: config.type,
-            aggregations: config.aggregations,
-            filters: config.filters
-        };
+    const myChart = echarts.init(document.getElementById(config.id));
+    charts.push({ chart: myChart, config: config });
+    const requestData = {
+        tables: config.tables,
+        columns: config.columns,
+        chartType: config.type,
+        aggregations: config.aggregations,
+        filters: config.filters
+    };
 
-        try {
-            const response = await fetchData(requestData);
-            console.log(response.sql);
-            let parsedResponse = response;
-            parsedResponse.chartId = config.id;
+    try {
+        const response = await fetchData(requestData);
+        console.log(response.sql);
+        response.chartId = config.id;
 
-            if (config.id === 'myChart4') {
-                let sortedData = {
-                    x: [],
-                    y0: []
-                };
+        if (config.id === 'myChart4') {
+            let data = response.x.map((x, index) => ({
+                x: x,
+                y0: response.y0[index],
+                y1: response.y1[index]
+            }));
+            data.sort((a, b) => b.y0 - a.y0);
 
-                let data = response.x.map((x, index) => ({ x: x, y0: response.y0[index] }));
-                data.sort((a, b) => b.y0 - a.y0);
-
-                sortedData.x = data.map(item => item.x);
-                sortedData.y0 = data.map(item => item.y0);
-
-                parsedResponse = sortedData;
-                parsedResponse.chartId = config.id;
-            }
-
-            if (config.type === 'stacked') {
-                parsedResponse = {
-                    x: response.x,
-                    y0: response.y0,
-                    y1: response.y1,
-                    y2: response.y2,
-                    chartId: config.id
-                };
-            }
-            originalData[config.id] = parsedResponse;
-            const option = generateChartOptions(config.type, parsedResponse, config.columns.slice(1));
-            myChart.setOption(option);
-            myChart.on('click', params => handleChartClick(myChart, config, params));
-        } catch (error) {
-            console.error("Failed to initialize chart:", error);
+            response.x = data.map(item => item.x);
+            response.y0 = data.map(item => item.y0);
+            response.y1 = data.map(item => item.y1);
         }
+
+        originalData[config.id] = response;
+        const option = generateChartOptions(config.type, response, config.columns.slice(1));
+        myChart.setOption(option);
+        myChart.on('click', params => handleChartClick(myChart, config, params));
+    } catch (error) {
+        console.error("Failed to initialize chart:", error);
     }
 }
-
 function updateChartAppearance() {
     charts.forEach(({ chart }) => {
         const option = chart.getOption();
