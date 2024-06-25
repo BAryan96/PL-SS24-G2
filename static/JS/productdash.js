@@ -7,9 +7,8 @@ let originalData = {};
 
 $(document).ready(async function() {
     await loadChartsSequentially([
-        
-        { id: 'myChart1', xTable: 'products', xColumn: 'name', yTable: 'orders', yColumns: ['total'], type: 'bar', aggregations: ['Summe'] },
-        { id: 'myChart2', xTable: 'products', xColumn: 'category', yTable: 'orders', yColumns: ['total'], type: 'pie', aggregations: ['Summe'] },
+        { id: 'myChart1', tables: ['products','orders'], columns: ['name', 'total'], type: 'bar', aggregations: ['', 'Summe'] , filters: [] },
+        { id: 'myChart2', tables: ['products','orders'], columns: ['category', 'total'], type: 'pie', aggregations: ['', 'Summe'] , filters: [] },
 
         // { id: 'myChart2', xTable: 'stores', xColumn: 'storeID', yTable: 'orders', yColumns: ['total'], type: 'bar', aggregations: ['Summe'] },
         // { id: 'myChart3', xTable: 'products', xColumn: 'Name', yTable: 'orders', yColumns: ['total'], type: 'pie', aggregations: ['Summe'] },
@@ -43,13 +42,185 @@ async function fetchData(requestData) {
     });
 }
 
+function sortDataByDate(response) {
+    let sortedIndices = [...Array(response.x.length).keys()].sort((a, b) => {
+        const [monthA, yearA] = response.x[a].split('.').map(Number);
+        const [monthB, yearB] = response.x[b].split('.').map(Number);
+        return new Date(yearA, monthA - 1) - new Date(yearB, monthB - 1);
+    });
+
+    let sortedX = sortedIndices.map(i => response.x[i]);
+    let sortedY0 = sortedIndices.map(i => response.y0[i]);
+
+    return {
+        ...response,
+        x: sortedX,
+        y0: sortedY0
+    };
+}
+
+function calculateGrowthRates(data) {
+    let growthRates = [];
+    const y0 = data.y0;
+    for (let i = 0; i < y0.length; i++) {
+        if (i === 0) {
+            growthRates.push(0); // Die erste Wachstumsrate ist 0%
+        } else {
+            let previous = y0[i - 1];
+            let current = y0[i];
+            let growthRate = ((current / previous) - 1) * 100;
+            growthRates.push(growthRate);
+        }
+    }
+    return growthRates;
+}
+
 function generateChartOptions(chartType, response, yColumns) {
     let option = {};
     switch (chartType) {
+        case 'negativBar':
+            // Sortiere die Daten nach Datum
+            response = sortDataByDate(response);
+            let growthRates = calculateGrowthRates(response);
+            console.log(growthRates); // Debugging-Ausgabe
+            option = {
+                title: { 
+                    left: 'center', 
+                    text: 'Monthly Sales Growth Rate',
+                    textStyle: {
+                        fontFamily: 'Arial, sans-serif',
+                        fontSize: 18,
+                        fontWeight: 'bold'
+                    }
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    backgroundColor: 'rgba(50, 50, 50, 0.7)',
+                    textStyle: {
+                        color: '#fff'
+                    },
+                    formatter: function(params) {
+                        return `${params[0].name}: ${params[0].value.toFixed(2)}%`;
+                    }
+                },
+                xAxis: {
+                    type: 'category',
+                    data: response.x,  // Alle Monate werden angezeigt
+                    axisLine: {
+                        lineStyle: {
+                            color: '#ccc'
+                        }
+                    },
+                    axisLabel: {
+                        fontFamily: 'Arial, sans-serif',
+                        fontSize: 12
+                    }
+                },
+                yAxis: {
+                    type: 'value',
+                    axisLabel: {
+                        formatter: '{value}%',
+                        fontFamily: 'Arial, sans-serif',
+                        fontSize: 12
+                    },
+                    splitLine: {
+                        lineStyle: {
+                            type: 'dashed',
+                            color: '#ccc'
+                        }
+                    }
+                },
+                series: [{
+                    data: growthRates,
+                    type: 'bar',
+                    barWidth: '60%',
+                    itemStyle: {
+                        normal: {
+                            color: function(params) {
+                                return params.value < 0 ? '#ff6b6b' : '#1dd1a1'; // Modernere Farben: Rot für negative Werte, Grün für positive Werte
+                            },
+                            barBorderRadius: [5, 5, 0, 0],
+                            shadowColor: 'rgba(0, 0, 0, 0.1)',
+                            shadowBlur: 10
+                        }
+                    },
+                    markLine: {
+                        data: [{ type: 'average', name: 'Average' }],
+                        lineStyle: {
+                            type: 'dashed',
+                            color: '#576574'
+                        },
+                        label: {
+                            formatter: '{b}: {c}%',
+                            fontFamily: 'Arial, sans-serif',
+                            fontSize: 12,
+                            color: '#576574'
+                        }
+                    }
+                }],
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: '3%',
+                    containLabel: true
+                },
+                backgroundColor: '#f5f6fa',
+                textStyle: {
+                    fontFamily: 'Arial, sans-serif',
+                    color: '#2f3542'
+                },
+                 toolbox: { 
+                    feature: getToolboxFeatures() 
+                },
+            };
+    break;
+
         case 'pie':
             option = {
                 title: { left: 'center', text: 'Donut Chart' },
-                tooltip: { trigger: 'item' },
+                tooltip: { 
+                    trigger: 'item',
+                    formatter: function(params) {
+                        const dataIndex = params.dataIndex;
+                        const y1Value = response.y1 ? response.y1[dataIndex] : 'N/A';
+                        return `${params.name}: ${params.value}<br>Number of Stores in State: ${y1Value}`;
+                    }
+                },
+                toolbox: { feature: getToolboxFeatures() },
+                legend: { top: '5%', left: 'center' },
+                series: [{
+                    name: 'Data',
+                    type: 'pie',
+                    radius: ['40%', '70%'],
+                    center: ['50%', '70%'],
+                    startAngle: 180,
+                    endAngle: 360,
+                    avoidLabelOverlap: false,
+                    label: { show: false, position: 'center' },
+                    emphasis: { label: { show: true, fontSize: '20', fontWeight: 'bold' } },
+                    labelLine: { show: false },
+                    data: response.x.map((x, index) => ({
+                        value: response.y0[index],
+                        name: x,
+                        itemStyle: highlightedPoints[`${response.chartId}-${index}`] ? {
+                            borderColor: 'black',
+                            borderWidth: 2
+                        } : {}
+                    }))
+                }]
+            };
+            break;
+            case 'donut':
+            option = {
+                title: { left: 'center', text: 'Donut Chart' },
+                tooltip: {
+                    trigger: 'item',
+                    formatter: function(params) {
+                        const dataIndex = params.dataIndex;
+                        const category = response.y1 ? response.y1[dataIndex] : 'N/A';
+                        return `${params.name}: ${params.value}<br>Category: ${category}`;
+                    }
+                },
                 toolbox: { feature: getToolboxFeatures() },
                 legend: { top: '5%', left: 'center' },
                 series: [{
@@ -222,42 +393,44 @@ function getToolboxFeatures() {
 }
 
 async function initializeChart(config) {
-    if (config.type === 'geo') {
-        await initializeGeoChart(config.id, config.markerType, config.table, config.column, config.aggregation);
-    } else if (config.type === 'dynamicMarkers') {
-        await loadDynamicMarkers(config.id, config.markerType, config.table, config.column, config.aggregation);
-    } else {
-        const myChart = echarts.init(document.getElementById(config.id));
-        charts.push({ chart: myChart, config: config });
-        const requestData = {
-            tables: config.tables,
-            columns: config.columns,
-            chartType: config.type,
-            aggregations: config.aggregations,
-            filters: config.filters || filter
-        };
+    const myChart = echarts.init(document.getElementById(config.id));
+    const existingChart = charts.find(chartObj => chartObj.config.id === config.id);
+    if (existingChart) {
+        existingChart.chart.dispose();
+        charts = charts.filter(chartObj => chartObj.config.id !== config.id);
+    }
+    charts.push({ chart: myChart, config: config });
 
-        try {
-            const response = await fetchData(requestData);
-            console.log(response.sql);
-            let parsedResponse = response;
-            parsedResponse.chartId = config.id;
-            if (config.type === 'stacked') {
-                parsedResponse = {
-                    x: response.x,
-                    y0: response.y0,
-                    y1: response.y1,
-                    y2: response.y2,
-                    chartId: config.id
-                };
-            }
-            originalData[config.id] = parsedResponse;
-            const option = generateChartOptions(config.type, parsedResponse, config.columns.slice(1)); // Use columns excluding the first one for yColumns
-            myChart.setOption(option);
-            myChart.on('click', params => handleChartClick(myChart, config, params));
-        } catch (error) {
-            console.error("Failed to initialize chart:", error);
+    const requestData = {
+        tables: config.tables,
+        columns: config.columns,
+        chartType: config.type,
+        aggregations: config.aggregations,
+        filters: config.filters
+    };
+
+    try {
+        let response = await fetchData(requestData);
+        console.log(response);  // Debugging-Ausgabe
+
+        if (config.id === 'myChart1' || config.type === 'negativBar') {
+            response = sortDataByDate(response); // Sortiere die Daten nur für myChart1 und negativBar
         }
+
+        response.chartId = config.id;
+
+        // Überprüfe, ob genügend Daten vorhanden sind
+        if (response.y0.length < 2) {
+            console.error("Nicht genügend Daten für Wachstumsraten");
+            return;
+        }
+
+        originalData[config.id] = response;
+        const option = generateChartOptions(config.type, response, config.columns.slice(1));
+        myChart.setOption(option);
+        myChart.on('click', params => handleChartClick(myChart, config, params));
+    } catch (error) {
+        console.error("Failed to initialize chart:", error);
     }
 }
 
@@ -489,6 +662,7 @@ function handleChartClick(chartInstance, config, params) {
         if (highlightedPoints[key]) {
             delete highlightedPoints[key];
             filter = filter.filter(item => item.filterValue !== value);
+            config.filters = config.filters.filter(item => item.filterValue !== value);
             if (Object.keys(highlightedPoints).length === 0) {
                 resetAllCharts();
             } else {
@@ -497,17 +671,20 @@ function handleChartClick(chartInstance, config, params) {
             }
         } else {
             highlightedPoints[key] = true;
-            filter.push({
+            const newFilter = {
                 chartId: chartInstance.id,
-                filterTable: config.xTable,
-                filterColumn: config.xColumn,
+                filterTable: config.tables[0],
+                filterColumn: config.columns[0],
                 filterValue: value
-            });
+            };
+            filter.push(newFilter);
+            config.filters.push(newFilter);
             updateHighlighting(chartInstance);
             updateAllCharts(chartInstance.id);
         }
     }
 }
+
 
 function handleMarkerClick(marker, point) {
     const key = `marker-${point.id}`;
@@ -557,19 +734,20 @@ function updateHighlighting(chartInstance) {
 function updateAllCharts(excludeChartId) {
     charts.forEach(({ chart, config }) => {
         if (chart.id !== excludeChartId) {
-            const applicableFilter = filter.filter(f => f.filterTable === config.xTable && f.filterColumn === config.xColumn);
+            const applicableFilter = filter.filter(f => f.filterTable === config.tables[0] && f.filterColumn === config.columns[0]);
             if (applicableFilter.length > 0) {
                 const data = applyFilters(originalData[config.id], applicableFilter);
-                const option = generateChartOptions(config.type, data, config.yColumns);
+                const option = generateChartOptions(config.type, data, config.columns.slice(1));
                 chart.setOption(option);
             } else {
                 // No applicable filters, keep the chart unchanged
-                const option = generateChartOptions(config.type, originalData[config.id], config.yColumns);
+                const option = generateChartOptions(config.type, originalData[config.id], config.columns.slice(1));
                 chart.setOption(option);
             }
         }
     });
 }
+
 
 function applyFilters(data, applicableFilter) {
     if (applicableFilter.length === 0) {
@@ -593,13 +771,103 @@ function resetAllCharts() {
     filter = [];
     highlightedPoints = {};
     charts.forEach(({ chart, config }) => {
-        const option = generateChartOptions(config.type, originalData[config.id], config.yColumns);
+        const option = generateChartOptions(config.type, originalData[config.id], config.columns.slice(1));
         chart.setOption(option);
     });
 }
 
 async function loadChartsSequentially(chartConfigs) {
+    charts = [];  // Clear existing charts
     for (const config of chartConfigs) {
         await initializeChart(config);
     }
+}
+
+document.getElementById('exportJsonButton').addEventListener('click', exportJson);
+document.getElementById('importJsonButton').addEventListener('click', openImportPopup);
+document.querySelector('.schließen-button').addEventListener('click', closeImportPopup);
+document.getElementById('dropArea').addEventListener('dragover', handleDragOver);
+document.getElementById('dropArea').addEventListener('drop', handleFileSelect);
+document.getElementById('fileSelectButton').addEventListener('click', () => document.getElementById('fileInput').click());
+document.getElementById('fileInput').addEventListener('change', handleFileUpload);
+
+
+function exportJson() {
+
+    if (charts.length === 0) {
+        alert("No JSON Data available to export.");
+        return;
+    }
+    // Aktuelle Diagrammkonfigurationen sammeln
+    const chartConfigs = charts.map(chartObj => chartObj.config);
+
+    const jsonString = JSON.stringify(chartConfigs, null, 4); // 4 for proper formatting
+    const blob = new Blob([jsonString], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'charts_config.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}
+
+function openImportPopup() {
+    document.getElementById('importJsonPopup').style.display = 'block';
+}
+
+function closeImportPopup() {
+    document.getElementById('importJsonPopup').style.display = 'none';
+}
+
+function handleDragOver(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    event.dataTransfer.dropEffect = 'copy';
+}
+
+function handleFileSelect(event) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const files = event.dataTransfer.files;
+    if (files.length === 1 && files[0].type === "application/json") {
+        const file = files[0];
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const importedData = JSON.parse(e.target.result);
+                loadChartsSequentially(importedData);
+                closeImportPopup();
+            } catch (error) {
+                alert("Invalid JSON file");
+            }
+        };
+        reader.readAsText(file);
+    } else {
+        alert("Please drop a valid JSON file.");
+    }
+}
+
+function handleFileUpload(event) {
+    const files = event.target.files;
+    if (files.length === 1 && files[0].type === "application/json") {
+        readFile(files[0]);
+    } else {
+        alert("Please select a valid JSON file.");
+    }
+}
+
+function readFile(file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const importedData = JSON.parse(e.target.result);
+            loadChartsSequentially(importedData);
+            closeImportPopup();
+        } catch (error) {
+            alert("Invalid JSON file");
+        }
+    };
+    reader.readAsText(file);
 }
