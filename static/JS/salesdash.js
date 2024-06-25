@@ -5,14 +5,15 @@ let filter = [];
 let highlightedPoints = {};
 let originalData = {};
 
-$(document).ready(async function() {
-    await loadChartsSequentially([
-            { id: 'myChart1', tables: ['orders','orders'], columns: ['orderDate-MM', 'total'], type: 'bar', aggregations: ['', 'Summe'] , filters: [] },
-            { id: 'myChart2', tables: ['products','orders'], columns: ['category', 'total'], type: 'bar', aggregations: ['', 'Summe'] , filters: [] },
-            { id: 'myChart3', tables: ['stores', 'orders', 'stores'], 'columns': ['state', 'nItems', 'storeID'], type: 'pie', 'aggregations': ['', 'Summe', 'Diskrete Anzahl'], 'filters': []},
-            { id: 'myChart4', tables: ['products','orders', 'products'], columns: ['Name', 'total', 'category'], type: 'donut', aggregations: ['', 'Summe', ''] , filters: [] },
-        //    { id: 'myChart5', tables: ['orders','orders'], columns: ['orderDate-MM.YYYY', 'total'], type: 'bar', aggregations: ['', 'Summe'] , filters: [] }, //in Prozent umrechnen.
-    ]);
+ $(document).ready(async function() {
+     await loadChartsSequentially([
+              { id: 'myChart1', tables: ['orders','orders'], columns: ['orderDate-MM.YYYY', 'total'], type: 'bar', aggregations: ['', 'Summe'] , filters: [] },
+              { id: 'myChart2', tables: ['orders','orders'], columns: ['orderDate-MM.YYYY', 'total'], type: 'negativBar', aggregations: ['', 'Summe'] , filters: [] }, //in Prozent umrechnen.
+              { id: 'myChart3', tables: ['products','orders', 'products'], columns: ['Name', 'total', 'category'], type: 'donut', aggregations: ['', 'Summe', ''] , filters: [] },
+              { id: 'myChart4', tables: ['products','orders'], columns: ['category', 'total'], type: 'bar', aggregations: ['', 'Summe'] , filters: [] },
+              { id: 'myChart5', tables: ['stores', 'orders', 'stores'], 'columns': ['state', 'nItems', 'storeID'], type: 'pie', 'aggregations': ['', 'Summe', 'Diskrete Anzahl'], 'filters': []},
+
+     ]);
 });
 
 async function fetchData(requestData) {
@@ -34,9 +35,139 @@ async function fetchData(requestData) {
     });
 }
 
+function sortDataByDate(response) {
+    let sortedIndices = [...Array(response.x.length).keys()].sort((a, b) => {
+        const [monthA, yearA] = response.x[a].split('.').map(Number);
+        const [monthB, yearB] = response.x[b].split('.').map(Number);
+        return new Date(yearA, monthA - 1) - new Date(yearB, monthB - 1);
+    });
+
+    let sortedX = sortedIndices.map(i => response.x[i]);
+    let sortedY0 = sortedIndices.map(i => response.y0[i]);
+
+    return {
+        ...response,
+        x: sortedX,
+        y0: sortedY0
+    };
+}
+
+function calculateGrowthRates(data) {
+    let growthRates = [];
+    const y0 = data.y0;
+    for (let i = 0; i < y0.length; i++) {
+        if (i === 0) {
+            growthRates.push(0); // Die erste Wachstumsrate ist 0%
+        } else {
+            let previous = y0[i - 1];
+            let current = y0[i];
+            let growthRate = ((current / previous) - 1) * 100;
+            growthRates.push(growthRate);
+        }
+    }
+    return growthRates;
+}
+
 function generateChartOptions(chartType, response, yColumns) {
     let option = {};
     switch (chartType) {
+        case 'negativBar':
+            // Sortiere die Daten nach Datum
+            response = sortDataByDate(response);
+            let growthRates = calculateGrowthRates(response);
+            console.log(growthRates); // Debugging-Ausgabe
+            option = {
+                title: { 
+                    left: 'center', 
+                    text: 'Monthly Sales Growth Rate',
+                    textStyle: {
+                        fontFamily: 'Arial, sans-serif',
+                        fontSize: 18,
+                        fontWeight: 'bold'
+                    }
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    backgroundColor: 'rgba(50, 50, 50, 0.7)',
+                    textStyle: {
+                        color: '#fff'
+                    },
+                    formatter: function(params) {
+                        return `${params[0].name}: ${params[0].value.toFixed(2)}%`;
+                    }
+                },
+                xAxis: {
+                    type: 'category',
+                    data: response.x,  // Alle Monate werden angezeigt
+                    axisLine: {
+                        lineStyle: {
+                            color: '#ccc'
+                        }
+                    },
+                    axisLabel: {
+                        fontFamily: 'Arial, sans-serif',
+                        fontSize: 12
+                    }
+                },
+                yAxis: {
+                    type: 'value',
+                    axisLabel: {
+                        formatter: '{value}%',
+                        fontFamily: 'Arial, sans-serif',
+                        fontSize: 12
+                    },
+                    splitLine: {
+                        lineStyle: {
+                            type: 'dashed',
+                            color: '#ccc'
+                        }
+                    }
+                },
+                series: [{
+                    data: growthRates,
+                    type: 'bar',
+                    barWidth: '60%',
+                    itemStyle: {
+                        normal: {
+                            color: function(params) {
+                                return params.value < 0 ? '#ff6b6b' : '#1dd1a1'; // Modernere Farben: Rot für negative Werte, Grün für positive Werte
+                            },
+                            barBorderRadius: [5, 5, 0, 0],
+                            shadowColor: 'rgba(0, 0, 0, 0.1)',
+                            shadowBlur: 10
+                        }
+                    },
+                    markLine: {
+                        data: [{ type: 'average', name: 'Average' }],
+                        lineStyle: {
+                            type: 'dashed',
+                            color: '#576574'
+                        },
+                        label: {
+                            formatter: '{b}: {c}%',
+                            fontFamily: 'Arial, sans-serif',
+                            fontSize: 12,
+                            color: '#576574'
+                        }
+                    }
+                }],
+                grid: {
+                    left: '3%',
+                    right: '4%',
+                    bottom: '3%',
+                    containLabel: true
+                },
+                backgroundColor: '#f5f6fa',
+                textStyle: {
+                    fontFamily: 'Arial, sans-serif',
+                    color: '#2f3542'
+                },
+                 toolbox: { 
+                    feature: getToolboxFeatures() 
+                },
+            };
+    break;
+
         case 'pie':
             option = {
                 title: { left: 'center', text: 'Donut Chart' },
@@ -256,7 +387,13 @@ function getToolboxFeatures() {
 
 async function initializeChart(config) {
     const myChart = echarts.init(document.getElementById(config.id));
+    const existingChart = charts.find(chartObj => chartObj.config.id === config.id);
+    if (existingChart) {
+        existingChart.chart.dispose();
+        charts = charts.filter(chartObj => chartObj.config.id !== config.id);
+    }
     charts.push({ chart: myChart, config: config });
+
     const requestData = {
         tables: config.tables,
         columns: config.columns,
@@ -266,21 +403,19 @@ async function initializeChart(config) {
     };
 
     try {
-        const response = await fetchData(requestData);
-        console.log(response.sql);
+        let response = await fetchData(requestData);
+        console.log(response);  // Debugging-Ausgabe
+
+        if (config.id === 'myChart1' || config.type === 'negativBar') {
+            response = sortDataByDate(response); // Sortiere die Daten nur für myChart1 und negativBar
+        }
+
         response.chartId = config.id;
 
-        if (config.id === 'myChart4') {
-            let data = response.x.map((x, index) => ({
-                x: x,
-                y0: response.y0[index],
-                y1: response.y1[index]
-            }));
-            data.sort((a, b) => b.y0 - a.y0);
-
-            response.x = data.map(item => item.x);
-            response.y0 = data.map(item => item.y0);
-            response.y1 = data.map(item => item.y1);
+        // Überprüfe, ob genügend Daten vorhanden sind
+        if (response.y0.length < 2) {
+            console.error("Nicht genügend Daten für Wachstumsraten");
+            return;
         }
 
         originalData[config.id] = response;
@@ -291,6 +426,8 @@ async function initializeChart(config) {
         console.error("Failed to initialize chart:", error);
     }
 }
+
+
 function updateChartAppearance() {
     charts.forEach(({ chart }) => {
         const option = chart.getOption();
@@ -518,6 +655,7 @@ function handleChartClick(chartInstance, config, params) {
         if (highlightedPoints[key]) {
             delete highlightedPoints[key];
             filter = filter.filter(item => item.filterValue !== value);
+            config.filters = config.filters.filter(item => item.filterValue !== value);
             if (Object.keys(highlightedPoints).length === 0) {
                 resetAllCharts();
             } else {
@@ -526,17 +664,20 @@ function handleChartClick(chartInstance, config, params) {
             }
         } else {
             highlightedPoints[key] = true;
-            filter.push({
+            const newFilter = {
                 chartId: chartInstance.id,
                 filterTable: config.tables[0],
                 filterColumn: config.columns[0],
                 filterValue: value
-            });
+            };
+            filter.push(newFilter);
+            config.filters.push(newFilter);
             updateHighlighting(chartInstance);
             updateAllCharts(chartInstance.id);
         }
     }
 }
+
 
 function handleMarkerClick(marker, point) {
     const key = `marker-${point.id}`;
@@ -600,6 +741,7 @@ function updateAllCharts(excludeChartId) {
     });
 }
 
+
 function applyFilters(data, applicableFilter) {
     if (applicableFilter.length === 0) {
         return data;
@@ -628,8 +770,97 @@ function resetAllCharts() {
 }
 
 async function loadChartsSequentially(chartConfigs) {
+    charts = [];  // Clear existing charts
     for (const config of chartConfigs) {
         await initializeChart(config);
     }
 }
 
+document.getElementById('exportJsonButton').addEventListener('click', exportJson);
+document.getElementById('importJsonButton').addEventListener('click', openImportPopup);
+document.querySelector('.schließen-button').addEventListener('click', closeImportPopup);
+document.getElementById('dropArea').addEventListener('dragover', handleDragOver);
+document.getElementById('dropArea').addEventListener('drop', handleFileSelect);
+document.getElementById('fileSelectButton').addEventListener('click', () => document.getElementById('fileInput').click());
+document.getElementById('fileInput').addEventListener('change', handleFileUpload);
+
+
+function exportJson() {
+
+    if (charts.length === 0) {
+        alert("No JSON Data available to export.");
+        return;
+    }
+    // Aktuelle Diagrammkonfigurationen sammeln
+    const chartConfigs = charts.map(chartObj => chartObj.config);
+
+    const jsonString = JSON.stringify(chartConfigs, null, 4); // 4 for proper formatting
+    const blob = new Blob([jsonString], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'charts_config.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}
+
+function openImportPopup() {
+    document.getElementById('importJsonPopup').style.display = 'block';
+}
+
+function closeImportPopup() {
+    document.getElementById('importJsonPopup').style.display = 'none';
+}
+
+function handleDragOver(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    event.dataTransfer.dropEffect = 'copy';
+}
+
+function handleFileSelect(event) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const files = event.dataTransfer.files;
+    if (files.length === 1 && files[0].type === "application/json") {
+        const file = files[0];
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const importedData = JSON.parse(e.target.result);
+                loadChartsSequentially(importedData);
+                closeImportPopup();
+            } catch (error) {
+                alert("Invalid JSON file");
+            }
+        };
+        reader.readAsText(file);
+    } else {
+        alert("Please drop a valid JSON file.");
+    }
+}
+
+function handleFileUpload(event) {
+    const files = event.target.files;
+    if (files.length === 1 && files[0].type === "application/json") {
+        readFile(files[0]);
+    } else {
+        alert("Please select a valid JSON file.");
+    }
+}
+
+function readFile(file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const importedData = JSON.parse(e.target.result);
+            loadChartsSequentially(importedData);
+            closeImportPopup();
+        } catch (error) {
+            alert("Invalid JSON file");
+        }
+    };
+    reader.readAsText(file);
+}

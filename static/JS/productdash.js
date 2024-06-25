@@ -7,6 +7,7 @@ let originalData = {};
 
 $(document).ready(async function() {
     await loadChartsSequentially([
+        
         { id: 'myChart1', xTable: 'products', xColumn: 'name', yTable: 'orders', yColumns: ['total'], type: 'bar', aggregations: ['Summe'] },
         { id: 'myChart2', xTable: 'products', xColumn: 'category', yTable: 'orders', yColumns: ['total'], type: 'pie', aggregations: ['Summe'] },
 
@@ -229,11 +230,11 @@ async function initializeChart(config) {
         const myChart = echarts.init(document.getElementById(config.id));
         charts.push({ chart: myChart, config: config });
         const requestData = {
-            tables: [config.xTable, ...Array(config.yColumns.length).fill(config.yTable)],
-            columns: [config.xColumn, ...config.yColumns],
+            tables: config.tables,
+            columns: config.columns,
             chartType: config.type,
-            aggregations: ["", ...config.aggregations],
-            filters: filter
+            aggregations: config.aggregations,
+            filters: config.filters || filter
         };
 
         try {
@@ -251,7 +252,7 @@ async function initializeChart(config) {
                 };
             }
             originalData[config.id] = parsedResponse;
-            const option = generateChartOptions(config.type, parsedResponse, config.yColumns);
+            const option = generateChartOptions(config.type, parsedResponse, config.columns.slice(1)); // Use columns excluding the first one for yColumns
             myChart.setOption(option);
             myChart.on('click', params => handleChartClick(myChart, config, params));
         } catch (error) {
@@ -259,6 +260,7 @@ async function initializeChart(config) {
         }
     }
 }
+
 
 function updateChartAppearance() {
     charts.forEach(({ chart }) => {
