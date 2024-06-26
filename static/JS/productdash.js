@@ -463,7 +463,6 @@ function generateChartOptions(chartType, response) {
     return option;
 }
 
-// Function call to initialize chart
 async function initializeChart(config) {
     console.log("Initializing chart with config:", config);
     const myChart = echarts.init(document.getElementById(config.id));
@@ -498,6 +497,16 @@ async function initializeChart(config) {
         console.log("Chart options generated:", option);
         myChart.setOption(option);
 
+        if (config.id === 'myChart2') {
+            myChart.on('mouseover', function(params) {
+                handleMouseOver(myChart, config, params);
+            });
+
+            myChart.on('mouseout', function(params) {
+                handleMouseOut(myChart, config, params);
+            });
+        }
+        
     } catch (error) {
         console.error("Failed to initialize chart:", error);
     }
@@ -505,34 +514,40 @@ async function initializeChart(config) {
 
 
 
+
 function handleMouseOver(chartInstance, config, params) {
-    if (params.componentType === 'series') {
+    if (params.componentType === 'series' && config.id === 'myChart2') {
         const seriesName = params.seriesName;
-        charts.forEach(({ chart }) => {
-            const option = chart.getOption();
-            option.series.forEach((series, index) => {
-                if (series.name === seriesName) {
+        charts.forEach(({ chart, config }) => {
+            if (config.id === 'myChart2') {
+                const option = chart.getOption();
+                option.series.forEach((series) => {
                     series.itemStyle = series.itemStyle || {};
-                    series.itemStyle.opacity = 1;
-                } else {
-                    series.itemStyle = series.itemStyle || {};
-                    series.itemStyle.opacity = 0.3;
-                }
-            });
-            chart.setOption(option);
+                    if (series.name === seriesName) {
+                        series.itemStyle.opacity = 1;
+                    } else {
+                        series.itemStyle.opacity = 0.3;
+                    }
+                });
+                chart.setOption(option);
+            }
         });
     }
 }
 
 function handleMouseOut(chartInstance, config, params) {
-    charts.forEach(({ chart }) => {
-        const option = chart.getOption();
-        option.series.forEach((series) => {
-            series.itemStyle = series.itemStyle || {};
-            series.itemStyle.opacity = 1;
+    if (config.id === 'myChart2') {
+        charts.forEach(({ chart, config }) => {
+            if (config.id === 'myChart2') {
+                const option = chart.getOption();
+                option.series.forEach((series) => {
+                    series.itemStyle = series.itemStyle || {};
+                    series.itemStyle.opacity = 1;
+                });
+                chart.setOption(option);
+            }
         });
-        chart.setOption(option);
-    });
+    }
 }
 
 function handleChartClick(chartInstance, config, params) {
