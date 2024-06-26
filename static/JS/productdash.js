@@ -10,7 +10,9 @@ $(document).ready(async function() {
         { id: 'myChart1', tables: ['products', 'products', 'orders'], columns: ['name', 'size', 'total'], type: 'stackedBar', aggregations: ['','','Summe'], filters: [] },  // Neue Konfiguration für gestapeltes Balkendiagramm
         { id: 'myChart2', tables: ['orders', 'orders', 'products'], columns: ['orderDate-YYYY', 'total', 'name'], type: 'dynamicBar', aggregations: ['', 'Summe',''], filters: [] },
         { id: 'myChart3', tables: ['products', 'products'], columns: ['price', 'ingredients'], type: 'scatter', aggregations: ['', ''], filters: [] },
+        { id: 'myChart4', tables: ['products', 'products', 'orders'], columns: ['category', 'name', 'total'], type: 'treemap', aggregations: ['', '', 'Summe'], filters: [] },  // Neue Treemap-Konfiguration
         { id: 'myChart7', tables: ['products', 'products'], columns: ['name', 'price'], type: 'boxplot', aggregations: ['',''], filters: [] },
+
 
     ]);
 });
@@ -186,10 +188,105 @@ function processstackedBarData(response) {
 
     return { names, processedData, sizes };
 }
+function processTreemapData(response) {
+    const categoryMap = {};
+
+    response.x.forEach((category, index) => {
+        const product = response.y0[index];
+        const total = parseFloat(response.y1[index]);
+
+        if (!categoryMap[category]) {
+            categoryMap[category] = {
+                name: category,
+                children: []
+            };
+        }
+
+        categoryMap[category].children.push({
+            name: product,
+            value: total
+        });
+    });
+
+    return Object.values(categoryMap);
+}
+
+
 
 function generateChartOptions(chartType, response) {
     let option = {};
     switch (chartType) {
+        case 'treemap':
+            const treemapData = processTreemapData(response);
+            option = {
+                title: {
+                    text: 'Revenue Based on Product Category',
+                    left: 'center',
+                    textStyle: {
+                        fontSize: 18,
+                        fontWeight: 'bold',
+                        fontFamily: 'Arial, sans-serif'
+                    }
+                },
+                tooltip: {
+                    trigger: 'item',
+                    formatter: function(info) {
+                        const value = info.value;
+                        return `${info.name}All time total Revenue  $${value.toFixed(2)}`;
+                    }
+                },
+                series: [{
+                    type: 'treemap',
+                    data: treemapData,
+                    label: {
+                        show: true,
+                        formatter: function(info) {
+                            const value = info.value;
+                            return `${info.name}$${value.toFixed(2)}`;
+                        },
+                        fontSize: 14,
+                        fontFamily: 'Arial, sans-serif'
+                    },
+                    itemStyle: {
+                        borderColor: '#fff',
+                        borderWidth: 2,
+                        gapWidth: 2,
+                        shadowColor: 'rgba(0, 0, 0, 0.3)',
+                        shadowBlur: 10,
+                        color: {
+                            type: 'gradient',
+                            colorStops: [
+                                { offset: 0, color: '#ff7f50' },
+                                { offset: 0.2, color: '#87cefa' },
+                                { offset: 0.4, color: '#da70d6' },
+                                { offset: 0.6, color: '#32cd32' },
+                                { offset: 0.8, color: '#6495ed' },
+                                { offset: 1, color: '#ff69b4' }
+                            ]
+                        }
+                    },
+                    levels: [
+                        {
+                            itemStyle: {
+                                borderColor: '#777',
+                                borderWidth: 3,
+                                gapWidth: 3
+                            },
+                            upperLabel: {
+                                show: true,
+                                height: 30,
+                                textStyle: {
+                                    fontSize: 18,
+                                    fontWeight: 'bold',
+                                    fontFamily: 'Arial, sans-serif',
+                                    color: '#333'
+                                }
+                            }
+                        }
+                    ]
+                }]
+            };
+            break;
         case 'stackedBar':
             const { names, processedData, sizes } = processstackedBarData(response);
 
