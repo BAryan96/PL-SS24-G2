@@ -7,18 +7,9 @@ let originalData = {};
 
 $(document).ready(async function() {
     await loadChartsSequentially([
-        { id: 'myChart1', tables: ['products','orders'], columns: ['name', 'total'], type: 'bar', aggregations: ['', 'Summe'] , filters: [] },
-        { id: 'myChart2', tables: ['products','orders'], columns: ['category', 'total'], type: 'pie', aggregations: ['', 'Summe'] , filters: [] },
-
-        // { id: 'myChart2', xTable: 'stores', xColumn: 'storeID', yTable: 'orders', yColumns: ['total'], type: 'bar', aggregations: ['Summe'] },
-        // { id: 'myChart3', xTable: 'products', xColumn: 'Name', yTable: 'orders', yColumns: ['total'], type: 'pie', aggregations: ['Summe'] },
-        // { id: 'myChart4', xTable: 'products', xColumn: 'Name', yTable: 'orders', yColumns: ['total'], type: 'bar', aggregations: ['Summe'] },
-        // { id: 'map', markerType: 'stores', table: 'orders', column: 'total', aggregation: 'Summe', type: 'geo' },
-        // { id: 'myStackedChart', xTable: 'orders', xColumn: 'nItems', yTable: 'orders', yColumns: ['total', 'total', 'total'], type: 'stacked', aggregations: ['Min', 'Max', 'Durchschnitt'] },
-        // { id: 'chart7', markerType: 'stores', table: 'orders', column: 'total', aggregation: 'Anzahl', type: 'dynamicMarkers' }, // Neue Chart-Konfiguration
-
-        // { id: 'myChart2', xTable: 'customers', xColumn: 'customerID', yTable: 'orders', yColumns: ['orderID'], type: 'bar', aggregations: ['Anzahl'] },
-
+        // { id: 'myChart1', tables: ['products', 'orders'], columns: ['name', 'total'], type: 'bar', aggregations: ['','Summe'], filters: [] },
+        // { id: 'myChart2', tables: ['orders', 'orders', 'products'], columns: ['orderDate-YYYY', 'total', 'name'], type: 'dynamicBar', aggregations: ['', 'Summe',''], filters: [] },
+        { id: 'myChart7', tables: ['products', 'products'], columns: ['name', 'price'], type: 'boxplot', aggregations: ['',''], filters: [] },
 
     ]);
 });
@@ -42,357 +33,303 @@ async function fetchData(requestData) {
     });
 }
 
-function sortDataByDate(response) {
-    let sortedIndices = [...Array(response.x.length).keys()].sort((a, b) => {
-        const [monthA, yearA] = response.x[a].split('.').map(Number);
-        const [monthB, yearB] = response.x[b].split('.').map(Number);
-        return new Date(yearA, monthA - 1) - new Date(yearB, monthB - 1);
+function processBoxplotData(response) {
+    const dataMap = {};
+    response.x.forEach((name, index) => {
+        if (!dataMap[name]) {
+            dataMap[name] = [];
+        }
+        dataMap[name].push(response.y0[index]);
     });
 
-    let sortedX = sortedIndices.map(i => response.x[i]);
-    let sortedY0 = sortedIndices.map(i => response.y0[i]);
+    const x = Object.keys(dataMap);
+    const y = x.map(name => {
+        const values = dataMap[name];
+        values.sort((a, b) => a - b);
+        const min = values[0];
+        const max = values[values.length - 1];
+        const q1 = values[Math.floor((values.length / 4))];
+        const median = values[Math.floor((values.length / 2))];
+        const q3 = values[Math.floor((values.length * 3) / 4)];
+        return [min, q1, median, q3, max];
+    });
+
+    return { x, y };
+}
+
+
+function processBarData(response) {
+    // Daten sortieren
+    const sortedData = response.x.map((name, index) => ({
+        name: name,
+        value: response.y0[index]
+    })).sort((a, b) => b.value - a.value); // Sortieren in absteigender Reihenfolge
 
     return {
-        ...response,
-        x: sortedX,
-        y0: sortedY0
+        x: sortedData.map(data => data.name),
+        y: sortedData.map(data => data.value)
     };
 }
 
-function calculateGrowthRates(data) {
-    let growthRates = [];
-    const y0 = data.y0;
-    for (let i = 0; i < y0.length; i++) {
-        if (i === 0) {
-            growthRates.push(0); // Die erste Wachstumsrate ist 0%
-        } else {
-            let previous = y0[i - 1];
-            let current = y0[i];
-            let growthRate = ((current / previous) - 1) * 100;
-            growthRates.push(growthRate);
+function processDynamicBarData(response) {
+    const yearProductMap = {};
+
+    response.x.forEach((year, index) => {
+        const product = response.y1[index];
+        const total = parseFloat(response.y0[index]);
+
+        if (!yearProductMap[year]) {
+            yearProductMap[year] = {};
         }
-    }
-    return growthRates;
+
+        if (!yearProductMap[year][product]) {
+            yearProductMap[year][product] = 0;
+        }
+
+        yearProductMap[year][product] += total;
+    });
+
+    const years = Object.keys(yearProductMap).sort();
+    const products = Array.from(new Set(response.y1));
+
+    const seriesData = products.map(product => {
+        return {
+            name: product,
+            type: 'bar',
+            label: {
+                show: true,
+                position: 'inside',
+                formatter: '{c}',
+                fontSize: 12,
+                fontWeight: 'bold'
+            },
+            data: years.map(year => yearProductMap[year][product] || 0)
+        };
+    });
+
+    return { years, seriesData, products };
 }
 
-function generateChartOptions(chartType, response, yColumns) {
+function generateChartOptions(chartType, response) {
     let option = {};
     switch (chartType) {
-        case 'negativBar':
-            // Sortiere die Daten nach Datum
-            response = sortDataByDate(response);
-            let growthRates = calculateGrowthRates(response);
-            console.log(growthRates); // Debugging-Ausgabe
+         case 'boxplot':
+            const boxplotData = processBoxplotData(response);
             option = {
-                title: { 
-                    left: 'center', 
-                    text: 'Monthly Sales Growth Rate',
-                    textStyle: {
-                        fontFamily: 'Arial, sans-serif',
-                        fontSize: 18,
-                        fontWeight: 'bold'
-                    }
+                title: {
+                    text: 'Preisverteilung der Pizzen',
+                    left: 'center'
                 },
                 tooltip: {
-                    trigger: 'axis',
-                    backgroundColor: 'rgba(50, 50, 50, 0.7)',
-                    textStyle: {
-                        color: '#fff'
+                    trigger: 'item',
+                    axisPointer: {
+                        type: 'shadow'
                     },
-                    formatter: function(params) {
-                        return `${params[0].name}: ${params[0].value.toFixed(2)}%`;
+                    formatter: function (params) {
+                        return [
+                            'Pizzas: ' + params.name,
+                            'Minimum: ' + params.value[1],
+                            'Q1: ' + params.value[2],
+                            'Median: ' + params.value[3],
+                            'Q3: ' + params.value[4],
+                            'Maximum: ' + params.value[5]
+                        ].join('<br/>');
                     }
                 },
                 xAxis: {
                     type: 'category',
-                    data: response.x,  // Alle Monate werden angezeigt
-                    axisLine: {
-                        lineStyle: {
-                            color: '#ccc'
-                        }
-                    },
+                    data: boxplotData.x,
                     axisLabel: {
-                        fontFamily: 'Arial, sans-serif',
-                        fontSize: 12
+                        interval: 0,
+                        rotate: 45
                     }
                 },
                 yAxis: {
-                    type: 'value',
-                    axisLabel: {
-                        formatter: '{value}%',
-                        fontFamily: 'Arial, sans-serif',
-                        fontSize: 12
-                    },
-                    splitLine: {
-                        lineStyle: {
-                            type: 'dashed',
-                            color: '#ccc'
-                        }
+                    type: 'value'
+                },
+                visualMap: {
+                    show: false,
+                    dimension: 2,
+                    min: Math.min(...boxplotData.y.flat()),
+                    max: Math.max(...boxplotData.y.flat()),
+                    inRange: {
+                        color: ['#D7DA8B', '#E15457']
                     }
                 },
                 series: [{
-                    data: growthRates,
+                    name: 'Preise',
+                    type: 'boxplot',
+                    data: boxplotData.y,
+                    itemStyle: {
+                        borderColor: '#8A2BE2',
+                        color: '#FFD700'
+                    },
+                    tooltip: {
+                        formatter: function (param) {
+                            return [
+                                'Pizzas: ' + param.name,
+                                'Min: ' + param.value[0],
+                                'Q1: ' + param.value[1],
+                                'Median: ' + param.value[2],
+                                'Q3: ' + param.value[3],
+                                'Max: ' + param.value[4]
+                            ].join('<br/>');
+                        }
+                    }
+                }]
+            };
+            break;
+        case 'bar':
+            const barData = processBarData(response);
+
+            option = {
+                title: {
+                    text: 'Most Popular Products based on $',
+                    left: 'center'
+                },
+                tooltip: { 
+                    trigger: 'axis',
+                    axisPointer: {
+                        type: 'cross',
+                        label: {
+                            backgroundColor: '#6a7985'
+                        }
+                    }
+                },
+                toolbox: {
+                    feature: {
+                        saveAsImage: {},
+                        myDarkMode: {
+                            show: true,
+                            title: 'Dark Mode',
+                            icon: 'path://M512 0C229.23072 0 0 229.23072 0 512s229.23072 512 512 512 512-229.23072 512-512S794.76928 0 512 0z m0 938.0864c-234.24 0-426.0864-191.8464-426.0864-426.0864S277.76 85.9136 512 85.9136c55.7312 0 111.4624 11.7248 163.6864 35.0208-32.768 56.32-87.04 94.72-151.0912 105.2672-78.4896 13.7216-147.2-12.288-199.7312-55.808 0 0-12.6976 80.9472-12.6976 119.296 0 136.3968 104.7552 247.9104 239.9232 261.8368 79.872 8.2944 152.576-24.7808 198.3488-80.64 28.2624 48.64 45.568 106.752 45.568 170.3424 0 234.24-191.8464 426.0864-426.0864 426.0864z',
+                            onclick: function () {
+                                darkMode = !darkMode;
+                                updateChartAppearance(chart);
+                            }
+                        },
+                        myDecalPattern: {
+                            show: true,
+                            title: 'Decal Pattern',
+                            icon: 'path://M50 250 Q 150 50 250 250 T 450 250',
+                            onclick: function () {
+                                decalPattern = !decalPattern;
+                                updateChartAppearance(chart);
+                            }
+                        },
+                        myShare: {
+                            show: true,
+                            title: 'Share',
+                            icon: 'path://M864 160h-192V96H352v64H160c-35.328 0-64 28.672-64 64v576c0 35.328 28.672 64 64 64h704c35.328 0 64-28.672 64-64V224c0-35.328-28.672-64-64-64z m0 640H160V224h192v64h320v-64h192v576z m-320-320h-64v192h-192V480h-64l160-160 160 160z',
+                            onclick: function () {
+                                const url = window.location.href;
+                                navigator.clipboard.writeText(url).then(function () {
+                                    alert('URL copied to clipboard');
+                                }, function (err) {
+                                    console.error('Could not copy URL: ', err);
+                                });
+                            }
+                        },
+                        myCloseChart: {
+                            show: true,
+                            title: 'Close Chart',
+                            icon: 'path://M512 512l212.48-212.48a32 32 0 0 0-45.248-45.248L512 421.504 299.52 209.024a32 32 0 1 0-45.248 45.248L466.752 512 254.272 724.48a32 32 0 1 0 45.248 45.248L512 602.496l212.48 212.48a32 32 0 0 0 45.248-45.248L557.248 512z',
+                            onclick: function() {
+                                chart.dispose();
+                            }
+                        }
+                    }
+                },
+                xAxis: {
+                    type: 'category',
+                    data: barData.x,
+                    axisLabel: {
+                        interval: 0,
+                        rotate: 45
+                    }
+                },
+                yAxis: {
+                    type: 'value'
+                },
+                series: [{
                     type: 'bar',
-                    barWidth: '60%',
+                    data: barData.y.map((y, index) => ({
+                        value: y,
+                        itemStyle: {
+                            color: response.colors ? response.colors[index] : null
+                        }
+                    }))
+                }]
+            };
+            break;
+        case 'dynamicBar':
+            const { years, seriesData, products } = processDynamicBarData(response);
+
+            option = {
+                title: {
+                    text: 'Sales by Product and Year',
+                    left: 'center'
+                },
+                tooltip: {
+                    trigger: 'item',
+                    axisPointer: {
+                        type: 'shadow'
+                    },
+                    formatter: function(params) {
+                        return `${params.seriesName}: ${params.value}`;
+                    }
+                },
+                legend: {
+                    top: '5%',
+                    data: products
+                },
+                toolbox: {
+                    show: true,
+                    orient: 'vertical',
+                    left: 'right',
+                    top: 'center',
+                    feature: {
+                        mark: { show: true },
+                        dataView: { show: true, readOnly: false },
+                        magicType: { show: true, type: ['line', 'bar', 'stack'] },
+                        restore: { show: true },
+                        saveAsImage: { show: true }
+                    }
+                },
+                xAxis: {
+                    type: 'category',
+                    axisTick: { show: false },
+                    data: years,
+                    axisLabel: {
+                        interval: 0,
+                        rotate: 45
+                    }
+                },
+                yAxis: {
+                    type: 'value'
+                },
+                series: seriesData.map(series => ({
+                    ...series,
+                    barGap: '10%',
+                    label: {
+                        show: false
+                    },
                     itemStyle: {
                         normal: {
-                            color: function(params) {
-                                return params.value < 0 ? '#ff6b6b' : '#1dd1a1'; // Modernere Farben: Rot für negative Werte, Grün für positive Werte
-                            },
                             barBorderRadius: [5, 5, 0, 0],
-                            shadowColor: 'rgba(0, 0, 0, 0.1)',
-                            shadowBlur: 10
-                        }
-                    },
-                    markLine: {
-                        data: [{ type: 'average', name: 'Average' }],
-                        lineStyle: {
-                            type: 'dashed',
-                            color: '#576574'
-                        },
-                        label: {
-                            formatter: '{b}: {c}%',
-                            fontFamily: 'Arial, sans-serif',
-                            fontSize: 12,
-                            color: '#576574'
                         }
                     }
-                }],
-                grid: {
-                    left: '3%',
-                    right: '4%',
-                    bottom: '3%',
-                    containLabel: true
-                },
-                backgroundColor: '#f5f6fa',
-                textStyle: {
-                    fontFamily: 'Arial, sans-serif',
-                    color: '#2f3542'
-                },
-                 toolbox: { 
-                    feature: getToolboxFeatures() 
-                },
-            };
-    break;
-
-        case 'pie':
-            option = {
-                title: { left: 'center', text: 'Donut Chart' },
-                tooltip: { 
-                    trigger: 'item',
-                    formatter: function(params) {
-                        const dataIndex = params.dataIndex;
-                        const y1Value = response.y1 ? response.y1[dataIndex] : 'N/A';
-                        return `${params.name}: ${params.value}<br>Number of Stores in State: ${y1Value}`;
-                    }
-                },
-                toolbox: { feature: getToolboxFeatures() },
-                legend: { top: '5%', left: 'center' },
-                series: [{
-                    name: 'Data',
-                    type: 'pie',
-                    radius: ['40%', '70%'],
-                    center: ['50%', '70%'],
-                    startAngle: 180,
-                    endAngle: 360,
-                    avoidLabelOverlap: false,
-                    label: { show: false, position: 'center' },
-                    emphasis: { label: { show: true, fontSize: '20', fontWeight: 'bold' } },
-                    labelLine: { show: false },
-                    data: response.x.map((x, index) => ({
-                        value: response.y0[index],
-                        name: x,
-                        itemStyle: highlightedPoints[`${response.chartId}-${index}`] ? {
-                            borderColor: 'black',
-                            borderWidth: 2
-                        } : {}
-                    }))
-                }]
-            };
-            break;
-            case 'donut':
-            option = {
-                title: { left: 'center', text: 'Donut Chart' },
-                tooltip: {
-                    trigger: 'item',
-                    formatter: function(params) {
-                        const dataIndex = params.dataIndex;
-                        const category = response.y1 ? response.y1[dataIndex] : 'N/A';
-                        return `${params.name}: ${params.value}<br>Category: ${category}`;
-                    }
-                },
-                toolbox: { feature: getToolboxFeatures() },
-                legend: { top: '5%', left: 'center' },
-                series: [{
-                    name: 'Data',
-                    type: 'pie',
-                    radius: ['40%', '70%'],
-                    avoidLabelOverlap: false,
-                    label: { show: false, position: 'center' },
-                    emphasis: { label: { show: true, fontSize: '20', fontWeight: 'bold' } },
-                    labelLine: { show: false },
-                    data: response.x.map((x, index) => ({
-                        value: response.y0[index],
-                        name: x,
-                        itemStyle: highlightedPoints[`${response.chartId}-${index}`] ? {
-                            borderColor: 'black',
-                            borderWidth: 2
-                        } : {}
-                    }))
-                }]
-            };
-            break;
-        case 'area':
-        case 'line':
-            option = {
-                title: { left: 'center', text: chartType === 'area' ? 'Large Scale Area Chart' : 'Line Chart' },
-                tooltip: { trigger: 'axis', axisPointer: { type: 'cross', label: { backgroundColor: '#6a7985' } } },
-                legend: { data: yColumns, top: '5%' },
-                xAxis: { type: 'category', boundaryGap: false, data: response.x },
-                yAxis: { type: 'value' },
-                series: yColumns.map((yColumn, seriesIndex) => ({
-                    name: yColumn,
-                    type: 'line',
-                    stack: 'total',
-                    areaStyle: chartType === 'area' ? {
-                        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                            { offset: 0, color: 'rgb(255, 158, 68)' },
-                            { offset: 1, color: 'rgb(255, 70, 131)' }
-                        ])
-                    } : undefined,
-                    emphasis: { focus: 'series' },
-                    itemStyle: { color: 'rgb(255, 70, 131)' },
-                    data: response[`y${seriesIndex}`].map((y, dataIndex) => ({
-                        value: y,
-                        itemStyle: highlightedPoints[`${response.chartId}-${seriesIndex}-${dataIndex}`] ? {
-                            borderColor: 'black',
-                            borderWidth: 2
-                        } : {}
-                    }))
-                })),
-                backgroundColor: darkMode ? '#333' : '#fff',
-                textStyle: { color: darkMode ? '#fff' : '#000' },
-                toolbox: { feature: getToolboxFeatures() },
-                dataZoom: [{ type: 'inside', start: 0, end: 100 }, { start: 0, end: 100 }]
-            };
-            break;
-        case 'scatter':
-            option = {
-                title: { left: 'center', text: 'Basic Scatter Chart' },
-                tooltip: {
-                    trigger: 'item',
-                    position: function(pt) { return [pt[0], '10%']; },
-                    formatter: function(params) {
-                        return `<strong>X:</strong> ${params.value[0]}<br><strong>Y:</strong> ${params.value[1]}`;
-                    }
-                },
-                toolbox: { feature: getToolboxFeatures() },
-                xAxis: { type: 'category' },
-                yAxis: { type: 'category' },
-                series: [{
-                    symbolSize: 20,
-                    data: response.x.map((x, index) => ({
-                        value: [x, response.y0[index]],
-                        itemStyle: highlightedPoints[`${response.chartId}-${index}`] ? {
-                            borderColor: 'black',
-                            borderWidth: 2
-                        } : {}
-                    })),
-                    type: 'scatter',
-                    itemStyle: { color: response.colors ? response.colors[0] : '#c23531' }
-                }],
-                backgroundColor: darkMode ? '#333' : '#fff',
-                textStyle: { color: darkMode ? '#fff' : '#000' }
-            };
-            break;
-        case 'stacked':
-            option = {
-                title: { left: 'center', text: 'Stacked Area Chart' },
-                tooltip: { trigger: 'axis', axisPointer: { type: 'cross', label: { backgroundColor: '#6a7985' } } },
-                legend: { top: '5%', left: 'center' },
-                xAxis: { type: 'category', data: response.x },
-                yAxis: { type: 'value' },
-                series: yColumns.map((yColumn, seriesIndex) => ({
-                    name: yColumn,
-                    type: 'line',
-                    areaStyle: {},
-                    emphasis: { focus: 'series' },
-                    data: response[`y${seriesIndex}`].map((y, dataIndex) => ({
-                        value: y,
-                        itemStyle: highlightedPoints[`${response.chartId}-${seriesIndex}-${dataIndex}`] ? {
-                            borderColor: 'black',
-                            borderWidth: 2
-                        } : {}
-                    })),
-                    itemStyle: { color: echarts.color.modifyHSL('#c23531', seriesIndex * 120) }
-                })),
-                backgroundColor: darkMode ? '#333' : '#fff',
-                textStyle: { color: darkMode ? '#fff' : '#000' },
-                toolbox: { feature: getToolboxFeatures() },
-                dataZoom: [{ type: 'inside', start: 0, end: 100 }, { start: 0, end: 100 }]
+                }))
             };
             break;
         default:
-            option = {
-                tooltip: { trigger: 'axis', axisPointer: { type: 'cross', label: { backgroundColor: '#6a7985' } } },
-                toolbox: { feature: getToolboxFeatures() },
-                xAxis: { type: 'category', data: response.x },
-                yAxis: { type: 'value' },
-                series: [{
-                    type: chartType,
-                    data: response.y0.map((y, index) => ({
-                        value: y,
-                        itemStyle: highlightedPoints[`${response.chartId}-${index}`] ? {
-                            borderColor: 'black',
-                            borderWidth: 2
-                        } : {}
-                    }))
-                }]
-            };
+            console.error("Unsupported chart type:", chartType);
     }
     return option;
 }
 
-function getToolboxFeatures() {
-    return {
-        saveAsImage: { show: true },
-        restore: { show: true },
-        dataView: { show: true, readOnly: false },
-        myDarkMode: {
-            show: true,
-            title: 'Dark Mode',
-            icon: 'path://M512 0C229.23072 0 0 229.23072 0 512s229.23072 512 512 512 512-229.23072 512-512S794.76928 0 512 0z m0 938.0864c-234.24 0-426.0864-191.8464-426.0864-426.0864S277.76 85.9136 512 85.9136c55.7312 0 111.4624 11.7248 163.6864 35.0208-32.768 56.32-87.04 94.72-151.0912 105.2672-78.4896 13.7216-147.2-12.288-199.7312-55.808 0 0-12.6976 80.9472-12.6976 119.296 0 136.3968 104.7552 247.9104 239.9232 261.8368 79.872 8.2944 152.576-24.7808 198.3488-80.64 28.2624 48.64 45.568 106.752 45.568 170.3424 0 234.24-191.8464 426.0864-426.0864 426.0864z',
-            onclick: function() {
-                darkMode = !darkMode;
-                updateChartAppearance();
-            }
-        },
-        myDecalPattern: {
-            show: true,
-            title: 'Decal Pattern',
-            icon: 'path://M50 250 Q 150 50 250 250 T 450 250',
-            onclick: function() {
-                decalPattern = !decalPattern;
-                updateChartAppearance();
-            }
-        },
-        myShare: {
-            show: true,
-            title: 'Share',
-            icon: 'path://M864 160h-192V96H352v64H160c-35.328 0-64 28.672-64 64v576c0 35.328 28.672 64 64 64h704c35.328 0 64-28.672 64-64V224c0-35.328-28.672-64-64-64z m0 640H160V224h192v64h320v-64h192v576z m-320-320h-64v192h-192V480h-64l160-160 160 160z',
-            onclick: function() {
-                const url = window.location.href;
-                navigator.clipboard.writeText(url).then(function() {
-                    alert('URL copied to clipboard');
-                }, function(err) {
-                    console.error('Could not copy URL: ', err);
-                });
-            }
-        },
-    };
-}
-
 async function initializeChart(config) {
+    console.log("Initializing chart with config:", config);
     const myChart = echarts.init(document.getElementById(config.id));
     const existingChart = charts.find(chartObj => chartObj.config.id === config.id);
     if (existingChart) {
@@ -411,23 +348,25 @@ async function initializeChart(config) {
 
     try {
         let response = await fetchData(requestData);
-        console.log(response);  // Debugging-Ausgabe
-
-        if (config.id === 'myChart1' || config.type === 'negativBar') {
-            response = sortDataByDate(response); // Sortiere die Daten nur für myChart1 und negativBar
-        }
+        console.log("Received response:", response);
 
         response.chartId = config.id;
 
-        // Überprüfe, ob genügend Daten vorhanden sind
         if (response.y0.length < 2) {
             console.error("Nicht genügend Daten für Wachstumsraten");
             return;
         }
 
         originalData[config.id] = response;
-        const option = generateChartOptions(config.type, response, config.columns.slice(1));
+        const option = generateChartOptions(config.type, response);
+        console.log("Chart options generated:", option);
         myChart.setOption(option);
+
+        if (config.type === 'dynamicBar') {
+            myChart.on('mouseover', params => handleMouseOver(myChart, config, params));
+            myChart.on('mouseout', params => handleMouseOut(myChart, config, params));
+        }
+
         myChart.on('click', params => handleChartClick(myChart, config, params));
     } catch (error) {
         console.error("Failed to initialize chart:", error);
@@ -435,216 +374,36 @@ async function initializeChart(config) {
 }
 
 
-function updateChartAppearance() {
-    charts.forEach(({ chart }) => {
-        const option = chart.getOption();
-        if (darkMode) {
-            option.backgroundColor = '#333';
-            option.textStyle = { color: '#fff' };
-        } else {
-            option.backgroundColor = '#fff';
-            option.textStyle = { color: '#000' };
-        }
-        if (decalPattern) {
-            option.series.forEach(series => {
-                series.itemStyle = series.itemStyle || {};
-                series.itemStyle.decal = { symbol: 'rect', symbolSize: 1, color: 'rgba(0, 0, 0, 0.1)' };
-            });
-        } else {
-            option.series.forEach(series => {
-                if (series.itemStyle) {
-                    series.itemStyle.decal = null;
+function handleMouseOver(chartInstance, config, params) {
+    if (params.componentType === 'series') {
+        const seriesName = params.seriesName;
+        charts.forEach(({ chart }) => {
+            const option = chart.getOption();
+            option.series.forEach((series, index) => {
+                if (series.name === seriesName) {
+                    series.itemStyle = series.itemStyle || {};
+                    series.itemStyle.opacity = 1;
+                } else {
+                    series.itemStyle = series.itemStyle || {};
+                    series.itemStyle.opacity = 0.3;
                 }
             });
-        }
+            chart.setOption(option);
+        });
+    }
+}
+
+function handleMouseOut(chartInstance, config, params) {
+    charts.forEach(({ chart }) => {
+        const option = chart.getOption();
+        option.series.forEach((series) => {
+            series.itemStyle = series.itemStyle || {};
+            series.itemStyle.opacity = 1;
+        });
         chart.setOption(option);
     });
 }
 
-async function initializeGeoChart(chartId, markerType, table, column, aggregation) {
-    return new Promise((resolve, reject) => {
-        const baseLayer = L.tileLayer(
-            'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors',
-                maxZoom: 18
-            }
-        );
-
-        const cfg = {
-            "radius": 0.2,
-            "maxOpacity": .8,
-            "scaleRadius": true,
-            "useLocalExtrema": true,
-            latField: 'lat',
-            lngField: 'lng',
-            valueField: 'count',
-            gradient: {
-                0.1: 'blue',
-                0.2: 'lime',
-                0.4: 'yellow',
-                0.6: 'orange',
-                0.8: 'red',
-                1.0: 'purple'
-            }
-        };
-
-        const heatmapLayer = new HeatmapOverlay(cfg);
-
-        const map = new L.Map(chartId, {
-            center: new L.LatLng(37.5, -117),
-            zoom: 6,
-            layers: [baseLayer]
-        });
-
-        const circleMarkerOptions = {
-            radius: 3,
-            fillColor: "#ff7800",
-            color: "#000",
-            weight: 1,
-            opacity: 1,
-            fillOpacity: 0.6
-        };
-
-        function createLegend(legendElement, gradient) {
-            for (const key in gradient) {
-                const color = gradient[key];
-                const div = document.createElement('div');
-                div.innerHTML = '<span style="background-color:' + color + ';"></span>' + key;
-                legendElement.appendChild(div);
-            }
-        }
-
-        const legendControl = L.control({ position: 'bottomright' });
-
-        legendControl.onAdd = function(map) {
-            const div = L.DomUtil.create('div', 'legend');
-            const gradient = cfg.gradient;
-            createLegend(div, gradient);
-            return div;
-        };
-
-        legendControl.addTo(map);
-
-        const requestData = {
-            tables: ['stores', 'stores', 'stores', table],
-            columns: ['storeID', 'longitude', 'latitude', column],
-            chartType: 'heatmap',
-            aggregations: ["", "X", "X", aggregation],
-            filters: filter
-        };
-
-        fetchData(requestData).then(responseData => {
-            if (!responseData.hasOwnProperty('x') || !responseData.hasOwnProperty('y0') || !responseData.hasOwnProperty('y1') || !responseData.hasOwnProperty('y2')) {
-                console.error('Data does not have the required properties:', responseData);
-                return;
-            }
-
-            const data = [];
-            for (let i = 0; i < responseData.x.length; i++) {
-                data.push({
-                    id: responseData.x[i],
-                    longitude: parseFloat(responseData.y0[i]),
-                    latitude: parseFloat(responseData.y1[i]),
-                    Aggregation: parseFloat(responseData.y2[i])
-                });
-            }
-
-            const bounds = [];
-            const heatmapPoints = [];
-
-            data.forEach(point => {
-                const marker = L.circleMarker([point.latitude, point.longitude], circleMarkerOptions);
-                marker.bindPopup(`<b>ID:</b> ${point.id}<br><b>Longitude:</b> ${point.longitude}<br><b>Latitude:</b> ${point.latitude}<br><b>Aggregation:</b> ${point.Aggregation}`);
-                marker.on('click', () => handleMarkerClick(marker, point));
-                map.addLayer(marker);
-                bounds.push([point.latitude, point.longitude]);
-
-                heatmapPoints.push({
-                    lat: point.latitude,
-                    lng: point.longitude,
-                    count: point.Aggregation
-                });
-            });
-
-            if (bounds.length > 0) {
-                map.fitBounds(bounds);
-            }
-
-            map.addLayer(heatmapLayer);
-            heatmapLayer.setData({
-                max: Math.max(...data.map(point => point.Aggregation)),
-                data: heatmapPoints
-            });
-
-            resolve();
-        }).catch(error => {
-            console.log('Error:', error);
-            reject(error);
-        });
-    });
-}
-
-async function loadDynamicMarkers(chartId, markerType, table, column, aggregation) {
-    const requestData = {
-        tables: ['stores', 'stores', 'stores', table],
-        columns: ['storeID', 'longitude', 'latitude', column],
-        chartType: 'dynamicMarkers',
-        aggregations: ['', 'X', 'X', aggregation],
-        filters: filter
-    };
-    if (markerType === 'stores') {
-        requestData.tables = ['stores', 'stores', 'stores', table];
-        requestData.columns = ['storeID', 'longitude', 'latitude', column];
-    } else if (markerType === 'customers') {
-        requestData.tables = ['customers', 'customers', 'customers', table];
-        requestData.columns = ['customerID', 'longitude', 'latitude', column];
-    }
-
-    fetchData(requestData).then(responseData => {
-        if (!responseData.hasOwnProperty('x') || !responseData.hasOwnProperty('y0') || !responseData.hasOwnProperty('y1') || !responseData.hasOwnProperty('y2')) {
-            console.error('Data does not have the required properties:', responseData);
-            return;
-        }
-
-        const data = responseData.x.map((x, index) => ({
-            id: x,
-            longitude: parseFloat(responseData.y0[index]),
-            latitude: parseFloat(responseData.y1[index]),
-            Aggregation: parseFloat(responseData.y2[index])
-        }));
-
-        const maxAggregation = Math.max(...data.map(point => point.Aggregation));
-
-        const map = new L.Map(chartId, {
-            center: new L.LatLng(37.5, -117),
-            zoom: 6,
-            layers: [L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors',
-                maxZoom: 18
-            })]
-        });
-
-        data.forEach(point => {
-            const scale = point.Aggregation / maxAggregation;
-            const markerOptions = {
-                radius: 3 + scale * 17,
-                fillColor: markerType === 'stores' ? 'blue' : 'pink',
-                color: "#000",
-                weight: 1,
-                opacity: 1,
-                fillOpacity: 0.6
-            };
-
-            const marker = L.circleMarker([point.latitude, point.longitude], markerOptions);
-            const popupContent = `<b>ID:</b> ${point.id}<br><b>Longitude:</b> ${point.longitude}<br><b>Latitude:</b> ${point.latitude}<br><b>Aggregation:</b> ${point.Aggregation}`;
-            marker.bindPopup(popupContent);
-            marker.on('click', () => handleMarkerClick(marker, point));
-            map.addLayer(marker);
-        });
-    }).catch(error => {
-        console.error('Error:', error);
-    });
-}
 
 function handleChartClick(chartInstance, config, params) {
     if (params.componentType === 'series') {
@@ -685,31 +444,6 @@ function handleChartClick(chartInstance, config, params) {
     }
 }
 
-
-function handleMarkerClick(marker, point) {
-    const key = `marker-${point.id}`;
-    if (highlightedPoints[key]) {
-        delete highlightedPoints[key];
-        filter = filter.filter(item => item.filterValue !== point.id);
-        if (Object.keys(highlightedPoints).length === 0) {
-            resetAllCharts();
-        } else {
-            updateAllCharts();
-        }
-        marker.setStyle({ color: '#000' });
-    } else {
-        highlightedPoints[key] = true;
-        filter.push({
-            chartId: marker.options.id,
-            filterTable: 'stores',
-            filterColumn: 'storeID',
-            filterValue: point.id
-        });
-        updateAllCharts();
-        marker.setStyle({ color: 'red' });
-    }
-}
-
 function updateHighlighting(chartInstance) {
     const series = chartInstance.getOption().series;
     series.forEach((serie, seriesIndex) => {
@@ -740,14 +474,12 @@ function updateAllCharts(excludeChartId) {
                 const option = generateChartOptions(config.type, data, config.columns.slice(1));
                 chart.setOption(option);
             } else {
-                // No applicable filters, keep the chart unchanged
                 const option = generateChartOptions(config.type, originalData[config.id], config.columns.slice(1));
                 chart.setOption(option);
             }
         }
     });
 }
-
 
 function applyFilters(data, applicableFilter) {
     if (applicableFilter.length === 0) {
@@ -777,7 +509,7 @@ function resetAllCharts() {
 }
 
 async function loadChartsSequentially(chartConfigs) {
-    charts = [];  // Clear existing charts
+    charts = [];
     for (const config of chartConfigs) {
         await initializeChart(config);
     }
@@ -791,17 +523,14 @@ document.getElementById('dropArea').addEventListener('drop', handleFileSelect);
 document.getElementById('fileSelectButton').addEventListener('click', () => document.getElementById('fileInput').click());
 document.getElementById('fileInput').addEventListener('change', handleFileUpload);
 
-
 function exportJson() {
-
     if (charts.length === 0) {
         alert("No JSON Data available to export.");
         return;
     }
-    // Aktuelle Diagrammkonfigurationen sammeln
     const chartConfigs = charts.map(chartObj => chartObj.config);
 
-    const jsonString = JSON.stringify(chartConfigs, null, 4); // 4 for proper formatting
+    const jsonString = JSON.stringify(chartConfigs, null, 4);
     const blob = new Blob([jsonString], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
