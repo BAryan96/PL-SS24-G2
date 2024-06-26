@@ -165,7 +165,7 @@ function generateChartOptions(chartType, response) {
 
             option = {
                 title: {
-                    text: 'Price vs Number of Ingredients',
+                    text: ' Correlation between Price vs Number of Ingredients',
                     left: 'center'
                 },
                 tooltip: {
