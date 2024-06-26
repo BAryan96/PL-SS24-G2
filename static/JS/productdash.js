@@ -9,7 +9,9 @@ $(document).ready(async function() {
     await loadChartsSequentially([
         { id: 'myChart1', tables: ['products', 'orders'], columns: ['name', 'total'], type: 'bar', aggregations: ['','Summe'], filters: [] },
         { id: 'myChart2', tables: ['orders', 'orders', 'products'], columns: ['orderDate-YYYY', 'total', 'name'], type: 'dynamicBar', aggregations: ['', 'Summe',''], filters: [] },
+        { id: 'myChart3', tables: ['products', 'products'], columns: ['price', 'ingredients'], type: 'scatter', aggregations: ['', ''], filters: [] },
         { id: 'myChart7', tables: ['products', 'products'], columns: ['name', 'price'], type: 'boxplot', aggregations: ['',''], filters: [] },
+
     ]);
 });
 
@@ -31,6 +33,16 @@ async function fetchData(requestData) {
         });
     });
 }
+
+function processScatterData(response) {
+    const data = response.x.map((price, index) => ({
+        value: [parseFloat(price), response.y0[index].split(',').length]
+        
+    }));
+
+    return data;
+}
+
 
 function processBoxplotData(response) {
     const dataMap = {};
@@ -131,9 +143,65 @@ function processDynamicBarData(response) {
     return { years, seriesData, products };
 }
 
+
+// Hilfsfunktion zur Generierung der Farbskala basierend auf der Anzahl der Zutaten
+function generateColorMap(data) {
+    const uniqueCounts = [...new Set(data.map(point => point.value[1]))];
+    const colorPalette = ['#1f78b4', '#33a02c', '#e31a1c', '#ff7f00', '#6a3d9a', '#b15928'];
+    const colorMap = {};
+
+    uniqueCounts.forEach((count, index) => {
+        colorMap[count] = colorPalette[index % colorPalette.length];
+    });
+
+    return colorMap;
+}
 function generateChartOptions(chartType, response) {
     let option = {};
     switch (chartType) {
+        case 'scatter':
+            const scatterData = processScatterData(response);
+            const colorMap = generateColorMap(scatterData);
+
+            option = {
+                title: {
+                    text: 'Price vs Number of Ingredients',
+                    left: 'center'
+                },
+                tooltip: {
+                    trigger: 'item',
+                    axisPointer: {
+                        type: 'cross'
+                    },
+                    formatter: function (params) {
+                        return [
+                            'Price: $' + params.value[0],
+                            'Number of Ingredients: ' + params.value[1]
+                        ].join('<br/>');
+                    }
+                },
+                xAxis: {
+                    type: 'value',
+                    name: 'Price ($)'
+                },
+                yAxis: {
+                    type: 'value',
+                    name: 'Number of Ingredients'
+                },
+                series: [
+                    {
+                        name: 'Pizzas',
+                        type: 'scatter',
+                        data: scatterData,
+                        itemStyle: {
+                            color: function(params) {
+                                return colorMap[params.value[1]];
+                            }
+                        }
+                    },
+                ]
+            };
+            break;
         case 'boxplot':
             const boxplotData = processBoxplotData(response);
             console.log('Boxplot Data:', boxplotData); // Debugging line to ensure data is correct
