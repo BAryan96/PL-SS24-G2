@@ -7,10 +7,9 @@ let originalData = {};
 
 $(document).ready(async function() {
     await loadChartsSequentially([
-        // { id: 'myChart1', tables: ['products', 'orders'], columns: ['name', 'total'], type: 'bar', aggregations: ['','Summe'], filters: [] },
-        // { id: 'myChart2', tables: ['orders', 'orders', 'products'], columns: ['orderDate-YYYY', 'total', 'name'], type: 'dynamicBar', aggregations: ['', 'Summe',''], filters: [] },
+        { id: 'myChart1', tables: ['products', 'orders'], columns: ['name', 'total'], type: 'bar', aggregations: ['','Summe'], filters: [] },
+        { id: 'myChart2', tables: ['orders', 'orders', 'products'], columns: ['orderDate-YYYY', 'total', 'name'], type: 'dynamicBar', aggregations: ['', 'Summe',''], filters: [] },
         { id: 'myChart7', tables: ['products', 'products'], columns: ['name', 'price'], type: 'boxplot', aggregations: ['',''], filters: [] },
-
     ]);
 });
 
@@ -35,28 +34,50 @@ async function fetchData(requestData) {
 
 function processBoxplotData(response) {
     const dataMap = {};
+
+    // Collect prices per name
     response.x.forEach((name, index) => {
         if (!dataMap[name]) {
             dataMap[name] = [];
         }
-        dataMap[name].push(response.y0[index]);
+        dataMap[name].push(parseFloat(response.y0[index]));
     });
+
+    console.log('Collected Data:', dataMap); // Debugging line
 
     const x = Object.keys(dataMap);
     const y = x.map(name => {
         const values = dataMap[name];
         values.sort((a, b) => a - b);
+
         const min = values[0];
         const max = values[values.length - 1];
-        const q1 = values[Math.floor((values.length / 4))];
-        const median = values[Math.floor((values.length / 2))];
-        const q3 = values[Math.floor((values.length * 3) / 4)];
-        return [min, q1, median, q3, max];
+
+        const q1 = getPercentile(values, 0.25);
+        const median = getPercentile(values, 0.5);
+        const q3 = getPercentile(values, 0.75);
+
+        console.log(`Pizza: ${name}, Min: ${min}, Q1: ${q1}, Median: ${median}, Q3: ${q3}, Max: ${max}`); // Debugging line
+
+        const lowerWhisker = min;
+        const upperWhisker = max;
+
+        return [lowerWhisker, q1, median, q3, upperWhisker];
     });
 
+    console.log('Processed Boxplot Data:', { x, y }); // Debugging line
     return { x, y };
 }
 
+function getPercentile(arr, percentile) {
+    const index = (arr.length - 1) * percentile;
+    const lower = Math.floor(index);
+    const upper = lower + 1;
+    const weight = index % 1;
+
+    if (upper >= arr.length) return arr[lower];
+    return arr[lower] * (1 - weight) + arr[upper] * weight;
+}
 
 function processBarData(response) {
     // Daten sortieren
@@ -113,11 +134,13 @@ function processDynamicBarData(response) {
 function generateChartOptions(chartType, response) {
     let option = {};
     switch (chartType) {
-         case 'boxplot':
+        case 'boxplot':
             const boxplotData = processBoxplotData(response);
+            console.log('Boxplot Data:', boxplotData); // Debugging line to ensure data is correct
+
             option = {
                 title: {
-                    text: 'Preisverteilung der Pizzen',
+                    text: 'Price distribution of the pizzas',
                     left: 'center'
                 },
                 tooltip: {
@@ -126,13 +149,14 @@ function generateChartOptions(chartType, response) {
                         type: 'shadow'
                     },
                     formatter: function (params) {
+                        const value = params.data; // Correct reference to the data
                         return [
-                            'Pizzas: ' + params.name,
-                            'Minimum: ' + params.value[1],
-                            'Q1: ' + params.value[2],
-                            'Median: ' + params.value[3],
-                            'Q3: ' + params.value[4],
-                            'Maximum: ' + params.value[5]
+                            'Pizza: ' + params.name,
+                            'Minimum: ' + value[1],
+                            'Q1: ' + value[2],
+                            'Median: ' + value[3],
+                            'Q3: ' + value[4],
+                            'Maximum: ' + value[5]
                         ].join('<br/>');
                     }
                 },
@@ -147,15 +171,6 @@ function generateChartOptions(chartType, response) {
                 yAxis: {
                     type: 'value'
                 },
-                visualMap: {
-                    show: false,
-                    dimension: 2,
-                    min: Math.min(...boxplotData.y.flat()),
-                    max: Math.max(...boxplotData.y.flat()),
-                    inRange: {
-                        color: ['#D7DA8B', '#E15457']
-                    }
-                },
                 series: [{
                     name: 'Preise',
                     type: 'boxplot',
@@ -163,18 +178,6 @@ function generateChartOptions(chartType, response) {
                     itemStyle: {
                         borderColor: '#8A2BE2',
                         color: '#FFD700'
-                    },
-                    tooltip: {
-                        formatter: function (param) {
-                            return [
-                                'Pizzas: ' + param.name,
-                                'Min: ' + param.value[0],
-                                'Q1: ' + param.value[1],
-                                'Median: ' + param.value[2],
-                                'Q3: ' + param.value[3],
-                                'Max: ' + param.value[4]
-                            ].join('<br/>');
-                        }
                     }
                 }]
             };
@@ -328,6 +331,7 @@ function generateChartOptions(chartType, response) {
     return option;
 }
 
+// Function call to initialize chart
 async function initializeChart(config) {
     console.log("Initializing chart with config:", config);
     const myChart = echarts.init(document.getElementById(config.id));
@@ -362,17 +366,10 @@ async function initializeChart(config) {
         console.log("Chart options generated:", option);
         myChart.setOption(option);
 
-        if (config.type === 'dynamicBar') {
-            myChart.on('mouseover', params => handleMouseOver(myChart, config, params));
-            myChart.on('mouseout', params => handleMouseOut(myChart, config, params));
-        }
-
-        myChart.on('click', params => handleChartClick(myChart, config, params));
     } catch (error) {
         console.error("Failed to initialize chart:", error);
     }
 }
-
 
 function handleMouseOver(chartInstance, config, params) {
     if (params.componentType === 'series') {
@@ -403,7 +400,6 @@ function handleMouseOut(chartInstance, config, params) {
         chart.setOption(option);
     });
 }
-
 
 function handleChartClick(chartInstance, config, params) {
     if (params.componentType === 'series') {
