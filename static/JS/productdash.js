@@ -7,7 +7,7 @@ let originalData = {};
 
 $(document).ready(async function() {
     await loadChartsSequentially([
-        { id: 'myChart1', tables: ['products', 'orders'], columns: ['name', 'total'], type: 'bar', aggregations: ['','Summe'], filters: [] },
+        { id: 'myChart1', tables: ['products', 'products', 'orders'], columns: ['name', 'size', 'total'], type: 'stackedBar', aggregations: ['','','Summe'], filters: [] },  // Neue Konfiguration für gestapeltes Balkendiagramm
         { id: 'myChart2', tables: ['orders', 'orders', 'products'], columns: ['orderDate-YYYY', 'total', 'name'], type: 'dynamicBar', aggregations: ['', 'Summe',''], filters: [] },
         { id: 'myChart3', tables: ['products', 'products'], columns: ['price', 'ingredients'], type: 'scatter', aggregations: ['', ''], filters: [] },
         { id: 'myChart7', tables: ['products', 'products'], columns: ['name', 'price'], type: 'boxplot', aggregations: ['',''], filters: [] },
@@ -156,9 +156,73 @@ function generateColorMap(data) {
 
     return colorMap;
 }
+function processstackedBarData(response) {
+    const nameSizeMap = {};
+
+    response.x.forEach((name, index) => {
+        const size = response.y0[index];
+        const total = parseFloat(response.y1[index]);
+
+        if (!nameSizeMap[name]) {
+            nameSizeMap[name] = {};
+        }
+
+        if (!nameSizeMap[name][size]) {
+            nameSizeMap[name][size] = 0;
+        }
+
+        nameSizeMap[name][size] += total;
+    });
+
+    const names = Object.keys(nameSizeMap);
+    const sizes = Array.from(new Set(response.y0));
+
+    const processedData = sizes.map(size => ({
+        name: size,
+        type: 'bar',
+        stack: 'total',
+        data: names.map(name => nameSizeMap[name][size] || 0)
+    }));
+
+    return { names, processedData, sizes };
+}
+
 function generateChartOptions(chartType, response) {
     let option = {};
     switch (chartType) {
+        case 'stackedBar':
+            const { names, processedData, sizes } = processstackedBarData(response);
+
+            option = {
+                title: {
+                    text: 'Most popular Products/Sizes based on $',
+                    left: 'center'
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: {
+                        type: 'shadow'
+                    }
+                },
+                legend: {
+                    data: sizes,
+                    top: 40,
+                    padding: [20, 5, 5, 5] 
+                },
+                xAxis: {
+                    type: 'category',
+                    data: names,
+                    axisLabel: {
+                        interval: 0,
+                        rotate: 45
+                    }
+                },
+                yAxis: {
+                    type: 'value'
+                },
+                series: processedData
+            };
+            break;
         case 'scatter':
             const scatterData = processScatterData(response);
             const colorMap = generateColorMap(scatterData);
@@ -438,6 +502,8 @@ async function initializeChart(config) {
         console.error("Failed to initialize chart:", error);
     }
 }
+
+
 
 function handleMouseOver(chartInstance, config, params) {
     if (params.componentType === 'series') {
