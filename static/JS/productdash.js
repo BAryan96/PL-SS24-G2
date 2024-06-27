@@ -4,6 +4,8 @@ let charts = [];
 let filter = [];
 let highlightedPoints = {};
 let originalData = {};
+let kpiData = {};
+
 
 $(document).ready(async function() {
     await loadChartsSequentially([
@@ -11,11 +13,154 @@ $(document).ready(async function() {
         { id: 'myChart2', tables: ['orders', 'orders', 'products'], columns: ['orderDate-YYYY', 'total', 'name'], type: 'dynamicBar', aggregations: ['', 'Summe',''], filters: [] },
         { id: 'myChart3', tables: ['products', 'products'], columns: ['price', 'ingredients'], type: 'scatter', aggregations: ['', ''], filters: [] },
         { id: 'myChart4', tables: ['products', 'products', 'orders'], columns: ['category', 'name', 'total'], type: 'treemap', aggregations: ['', '', 'Summe'], filters: [] },  // Neue Treemap-Konfiguration
+        { id: 'myChart5', tables: ['products','products','products','products','products','products'], columns: ['name', 'category', 'price', 'size', 'ingredients', 'launch'], type: 'kpi', aggregations: ['','','','','',''], filters: [] },
+        { id: 'myChart6', tables: ['products','products'], columns: ['launch','name'], type: 'bar', aggregations: ['','Anzahl'], filters: [] },
         { id: 'myChart7', tables: ['products', 'products'], columns: ['name', 'price'], type: 'boxplot', aggregations: ['',''], filters: [] },
 
 
     ]);
+    displayKPIs();
+
 });
+
+function transformData(response) {
+    if (!response || !response.x || !response.y0 || !response.y1 || !response.y2 || !response.y3 || !response.y4) {
+        console.error("Ungültiges Datenformat:", response);
+        return [];
+    }
+
+    const transformedData = response.x.map((name, index) => ({
+        name: response.x[index],
+        category: response.y0[index],
+        price: parseFloat(response.y1[index]),
+        size: response.y2[index],
+        ingredients: response.y3[index],
+        launch: new Date(response.y4[index])
+    }));
+    console.log("Transformed Data:", transformedData); // Debugging line
+    return transformedData;
+}
+
+
+function calculateKPIs(data) {
+    if (!data || data.length === 0) {
+        console.error("Keine Daten für KPI-Berechnungen verfügbar");
+        return {};
+    }
+
+    const kpis = {};
+
+    // Durchschnittlicher Verkaufspreis pro Kategorie
+    const pricesPerCategory = data.reduce((acc, product) => {
+        if (!acc[product.category]) {
+            acc[product.category] = [];
+        }
+        acc[product.category].push(product.price);
+        return acc;
+    }, {});
+
+    kpis.averagePricePerCategory = Object.keys(pricesPerCategory).map(category => {
+        const prices = pricesPerCategory[category];
+        return {
+            category,
+            averagePrice: prices.reduce((sum, price) => sum + price, 0) / prices.length
+        };
+    });
+
+    // Verteilung der Produkte nach Größe
+    kpis.sizeDistribution = data.reduce((acc, product) => {
+        if (!acc[product.size]) {
+            acc[product.size] = 0;
+        }
+        acc[product.size]++;
+        return acc;
+    }, {});
+
+    // Anzahl der Produkte pro Kategorie
+    kpis.productsPerCategory = data.reduce((acc, product) => {
+        if (!acc[product.category]) {
+            acc[product.category] = 0;
+        }
+        acc[product.category]++;
+        return acc;
+    }, {});
+
+    // Durchschnittlicher Preis pro Jahr
+    const validYears = [2018, 2019, 2020, 2021]; // Definieren Sie die gültigen Jahre
+
+    const pricesPerYear = data.reduce((acc, product) => {
+        const year = product.launch.getFullYear();
+        if (validYears.includes(year)) { // Nur gültige Jahre verarbeiten
+            if (!acc[year]) {
+                acc[year] = [];
+            }
+            acc[year].push(product.price);
+        }
+        return acc;
+    }, {});
+
+    kpis.averagePricePerYear = Object.keys(pricesPerYear).map(year => {
+        const prices = pricesPerYear[year];
+        return {
+            year: parseInt(year), // Sicherstellen, dass das Jahr als Zahl vorliegt
+            averagePrice: prices.reduce((sum, price) => sum + price, 0) / prices.length
+        };
+    });
+
+    // Top 5 teuerste Produkte
+    kpis.top5ExpensiveProducts = [...data].sort((a, b) => b.price - a.price).slice(0, 5);
+
+    return kpis;
+}
+
+
+
+function displayKPIs() {
+    if (!kpiData) {
+        console.error("Keine KPI-Daten verfügbar");
+        return;
+    }
+    
+    const data = transformData(kpiData);
+    console.log("Data for KPI calculations:", data); // Debugging line
+    const kpis = calculateKPIs(data);
+    console.log("Calculated KPIs:", kpis); // Debugging line
+
+    // Anzeigen der KPIs im Frontend
+    $('#averagePricePerCategory').html(renderKPIList(kpis.averagePricePerCategory, 'Average $ per Category'));
+    $('#sizeDistribution').html(renderKPIObject(kpis.sizeDistribution, 'Distribution per Size'));
+    $('#productsPerCategory').html(renderKPIObject(kpis.productsPerCategory, 'Products per Category'));
+    $('#averagePricePerYear').html(renderKPIList(kpis.averagePricePerYear, 'Average Annual Price'));
+    $('#top5ExpensiveProducts').html(renderKPIList(kpis.top5ExpensiveProducts, 'Top 5 Most Expensive Products', true));
+}
+
+function renderKPIList(kpiData, title, isProductList = false) {
+    let html = `<h4>${title}</h4><ul>`;
+    if (isProductList) {
+        kpiData.forEach(item => {
+            html += `<li>${item.name} - $${item.price.toFixed(2)}</li>`;
+        });
+    } else if (Array.isArray(kpiData)) {
+        kpiData.forEach(item => {
+            if (item.category !== undefined) {
+                html += `<li>${item.category}: $${item.averagePrice.toFixed(2)}</li>`;
+            } else if (item.year !== undefined) {
+                html += `<li>${item.year}: $${item.averagePrice.toFixed(2)}</li>`;
+            }
+        });
+    }
+    html += `</ul>`;
+    return html;
+}
+
+function renderKPIObject(kpiData, title) {
+    let html = `<h4>${title}</h4><ul>`;
+    Object.keys(kpiData).forEach(key => {
+        html += `<li>${key}: ${kpiData[key]}</li>`;
+    });
+    html += `</ul>`;
+    return html;
+}
 
 async function fetchData(requestData) {
     return new Promise((resolve, reject) => {
@@ -94,17 +239,20 @@ function getPercentile(arr, percentile) {
 }
 
 function processBarData(response) {
-    // Daten sortieren
-    const sortedData = response.x.map((name, index) => ({
+    // Daten sortieren und Daten mit None oder null herausfiltern
+    const filteredData = response.x.map((name, index) => ({
         name: name,
         value: response.y0[index]
-    })).sort((a, b) => b.value - a.value); // Sortieren in absteigender Reihenfolge
+    })).filter(data => data.name !== null && data.name !== undefined && data.value !== null && data.value !== undefined) // Hinzugefügt, um Daten mit None, null oder undefined zu entfernen
+      .sort((a, b) => b.value - a.value); // Sortieren in absteigender Reihenfolge
 
     return {
-        x: sortedData.map(data => data.name),
-        y: sortedData.map(data => data.value)
+        x: filteredData.map(data => data.name),
+        y: filteredData.map(data => data.value)
     };
 }
+
+
 
 function processDynamicBarData(response) {
     const yearProductMap = {};
@@ -416,7 +564,7 @@ function generateChartOptions(chartType, response) {
 
             option = {
                 title: {
-                    text: 'Most Popular Products based on $',
+                    text: response.chartId === 'myChart6' ? 'Launch Dates' : 'Most Popular Products based on $',
                     left: 'center'
                 },
                 tooltip: { 
@@ -428,6 +576,7 @@ function generateChartOptions(chartType, response) {
                         }
                     }
                 },
+                
                 toolbox: {
                     feature: {
                         saveAsImage: {},
@@ -590,9 +739,14 @@ async function initializeChart(config) {
         }
 
         originalData[config.id] = response;
-        const option = generateChartOptions(config.type, response);
-        console.log("Chart options generated:", option);
-        myChart.setOption(option);
+        if (config.id === 'myChart5') {
+            kpiData = response;
+            displayKPIs();
+        } else {
+            const option = generateChartOptions(config.type, response);
+            console.log("Chart options generated:", option);
+            myChart.setOption(option);
+        }
 
         if (config.id === 'myChart2') {
             myChart.on('mouseover', function(params) {
@@ -608,7 +762,6 @@ async function initializeChart(config) {
         console.error("Failed to initialize chart:", error);
     }
 }
-
 
 
 
