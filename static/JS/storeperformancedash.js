@@ -8,7 +8,7 @@ let originalData = {};
 $(document).ready(async function() {
     await loadChartsSequentially([
         { id: 'myChart1', tables: ['stores', 'stores', 'stores', 'orders'], columns: ['storeID', 'longitude', 'latitude', 'total'], type: 'heatmap', aggregations: ["", "X", "X", "Summe"], filters: filter },
-        { id: 'myChart2', tables: ['stores', 'orders'], columns: ['storeID', 'orders_total-YYYY'], type: 'bar', aggregations: ['', 'Summe'], filters: [] },
+        { id: 'myChart2', tables: ['stores', 'orders'], columns: ['storeID', 'total-YYYY'], type: 'bar', aggregations: ['', 'Summe'], filters: [] },
     ]);
 });
 
@@ -35,7 +35,7 @@ async function initializeChart(config) {
     console.log("Initializing chart with config:", config);
 
     if (config.type === 'heatmap') {
-        initializeHeatmap(config);
+        await initializeHeatmap(config);
         return;
     }
 
@@ -90,120 +90,124 @@ async function initializeChart(config) {
 }
 
 async function initializeHeatmap(config) {
-    const baseLayer = L.tileLayer(
-        'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '© OpenStreetMap contributors',
-            maxZoom: 18
+    return new Promise(async (resolve, reject) => {
+        const baseLayer = L.tileLayer(
+            'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 18
+            }
+        );
+
+        const cfg = {
+            "radius": 1,
+            "maxOpacity": .8,
+            "scaleRadius": true,
+            "useLocalExtrema": true,
+            latField: 'lat',
+            lngField: 'lng',
+            valueField: 'count',
+            gradient: {
+                0.1: 'blue',
+                0.2: 'lime',
+                0.4: 'yellow',
+                0.6: 'orange',
+                0.8: 'red',
+                1.0: 'purple'
+            }
+        };
+
+        const heatmapLayer = new HeatmapOverlay(cfg);
+
+        const map = new L.Map(config.id, {
+            center: new L.LatLng(37.5, -117),
+            zoom: 6,
+            layers: [baseLayer]
+        });
+
+        const circleMarkerOptions = {
+            radius: 3,
+            fillColor: "#ff7800",
+            color: "#000",
+            weight: 1,
+            opacity: 1,
+            fillOpacity: 0.6
+        };
+
+        function createLegend(legendElement, gradient) {
+            for (const key in gradient) {
+                const color = gradient[key];
+                const div = document.createElement('div');
+                div.innerHTML = '<span style="background-color:' + color + ';"></span>' + key;
+                legendElement.appendChild(div);
+            }
         }
-    );
 
-    const cfg = {
-        "radius": 1,
-        "maxOpacity": .8,
-        "scaleRadius": true,
-        "useLocalExtrema": true,
-        latField: 'lat',
-        lngField: 'lng',
-        valueField: 'count',
-        gradient: {
-            0.1: 'blue',
-            0.2: 'lime',
-            0.4: 'yellow',
-            0.6: 'orange',
-            0.8: 'red',
-            1.0: 'purple'
+        const legendControl = L.control({ position: 'bottomright' });
+
+        legendControl.onAdd = function(map) {
+            const div = L.DomUtil.create('div', 'legend');
+            const gradient = cfg.gradient;
+            createLegend(div, gradient);
+            return div;
+        };
+
+        legendControl.addTo(map);
+
+        const requestData = {
+            tables: config.tables,
+            columns: config.columns,
+            chartType: 'heatmap',
+            aggregations: config.aggregations,
+            filters: config.filters
+        };
+
+        try {
+            let response = await fetchData(requestData);
+            console.log("Received response:", response);
+
+            const data = [];
+            for (let i = 0; i < response.x.length; i++) {
+                data.push({
+                    id: response.x[i],
+                    longitude: parseFloat(response.y0[i]),
+                    latitude: parseFloat(response.y1[i]),
+                    Aggregation: parseFloat(response.y2[i])
+                });
+            }
+
+            const bounds = [];
+            const heatmapPoints = [];
+
+            data.forEach(point => {
+                const marker = L.circleMarker([point.latitude, point.longitude], circleMarkerOptions);
+                marker.bindPopup(`<b>ID:</b> ${point.id}<br><b>Longitude:</b> ${point.longitude}<br><b>Latitude:</b> ${point.latitude}<br><b>Aggregation:</b> ${point.Aggregation}`);
+                marker.on('click', () => handleMarkerClick(marker, point));
+                map.addLayer(marker);
+                bounds.push([point.latitude, point.longitude]);
+
+                heatmapPoints.push({
+                    lat: point.latitude,
+                    lng: point.longitude,
+                    count: point.Aggregation
+                });
+            });
+
+            if (bounds.length > 0) {
+                map.fitBounds(bounds);
+            }
+
+            map.addLayer(heatmapLayer);
+            heatmapLayer.setData({
+                max: Math.max(...data.map(point => point.Aggregation)),
+                data: heatmapPoints
+            });
+
+            resolve();
+        } catch (error) {
+            console.error("Failed to initialize heatmap:", error);
+            reject(error);
         }
-    };
-
-    const heatmapLayer = new HeatmapOverlay(cfg);
-
-    const map = new L.Map(config.id, {
-        center: new L.LatLng(37.5, -117),
-        zoom: 6,
-        layers: [baseLayer]
     });
-
-    const circleMarkerOptions = {
-        radius: 3,
-        fillColor: "#ff7800",
-        color: "#000",
-        weight: 1,
-        opacity: 1,
-        fillOpacity: 0.6
-    };
-
-    function createLegend(legendElement, gradient) {
-        for (const key in gradient) {
-            const color = gradient[key];
-            const div = document.createElement('div');
-            div.innerHTML = '<span style="background-color:' + color + ';"></span>' + key;
-            legendElement.appendChild(div);
-        }
-    }
-
-    const legendControl = L.control({ position: 'bottomright' });
-
-    legendControl.onAdd = function(map) {
-        const div = L.DomUtil.create('div', 'legend');
-        const gradient = cfg.gradient;
-        createLegend(div, gradient);
-        return div;
-    };
-
-    legendControl.addTo(map);
-
-    const requestData = {
-        tables: config.tables,
-        columns: config.columns,
-        chartType: 'heatmap',
-        aggregations: config.aggregations,
-        filters: config.filters
-    };
-
-    try {
-        let response = await fetchData(requestData);
-        console.log("Received response:", response);
-
-        const data = [];
-        for (let i = 0; i < response.x.length; i++) {
-            data.push({
-                id: response.x[i],
-                longitude: parseFloat(response.y0[i]),
-                latitude: parseFloat(response.y1[i]),
-                Aggregation: parseFloat(response.y2[i])
-            });
-        }
-
-        const bounds = [];
-        const heatmapPoints = [];
-
-        data.forEach(point => {
-            const marker = L.circleMarker([point.latitude, point.longitude], circleMarkerOptions);
-            marker.bindPopup(`<b>ID:</b> ${point.id}<br><b>Longitude:</b> ${point.longitude}<br><b>Latitude:</b> ${point.latitude}<br><b>Aggregation:</b> ${point.Aggregation}`);
-            marker.on('click', () => handleMarkerClick(marker, point));
-            map.addLayer(marker);
-            bounds.push([point.latitude, point.longitude]);
-
-            heatmapPoints.push({
-                lat: point.latitude,
-                lng: point.longitude,
-                count: point.Aggregation
-            });
-        });
-
-        if (bounds.length > 0) {
-            map.fitBounds(bounds);
-        }
-
-        map.addLayer(heatmapLayer);
-        heatmapLayer.setData({
-            max: Math.max(...data.map(point => point.Aggregation)),
-            data: heatmapPoints
-        });
-
-    } catch (error) {
-        console.error("Failed to initialize heatmap:", error);
-    }
 }
 
 async function loadChartsSequentially(chartConfigs) {

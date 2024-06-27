@@ -5,15 +5,16 @@ let filter = [];
 let highlightedPoints = {};
 let originalData = {};
 
- $(document).ready(async function() {
-     await loadChartsSequentially([
-              { id: 'myChart1', tables: ['orders','orders'], columns: ['orderDate-MM.YYYY', 'total'], type: 'bar', aggregations: ['', 'Summe'] , filters: [] },
-              { id: 'myChart2', tables: ['orders','orders'], columns: ['orderDate-MM.YYYY', 'total'], type: 'negativBar', aggregations: ['', 'Summe'] , filters: [] }, //in Prozent umrechnen.
-              { id: 'myChart3', tables: ['products','orders', 'products'], columns: ['Name', 'total', 'category'], type: 'donut', aggregations: ['', 'Summe', ''] , filters: [] },
-              { id: 'myChart4', tables: ['products','orders'], columns: ['category', 'total'], type: 'bar', aggregations: ['', 'Summe'] , filters: [] },
-              { id: 'myChart5', tables: ['stores', 'orders', 'stores'], 'columns': ['state', 'nItems', 'storeID'], type: 'pie', 'aggregations': ['', 'Summe', 'Diskrete Anzahl'], 'filters': []},
+$(document).ready(async function() {
+    await loadChartsSequentially([
+      /////  { id: 'myChart1', tables: ['orders', 'orders', 'stores', 'stores'], columns: ['orderDate-MM.YYYY', 'total', 'state', 'storeID'], type: 'stackedBar', aggregations: ['', 'Summe', '', ''], filters: [] },
+     //////   { id: 'myChart2', tables: ['orders', 'orders'], columns: ['orderDate-MM.YYYY', 'total'], type: 'negativBar', aggregations: ['', 'Summe'], filters: [] }, // in Prozent umrechnen.
+        //   { id: 'myChart3', tables: ['products','orders', 'products'], columns: ['Name', 'total', 'category'], type: 'donut', aggregations: ['', 'Summe', ''] , filters: [] },
+        //   { id: 'myChart4', tables: ['products','orders'], columns: ['category', 'total'], type: 'bar', aggregations: ['', 'Summe'] , filters: [] },
+        //   { id: 'myChart5', tables: ['stores', 'orders', 'stores'], 'columns': ['state', 'nItems', 'storeID'], type: 'pie', 'aggregations': ['', 'Summe', 'Diskrete Anzahl'], 'filters': []},
+     /////   { id: 'myChart7', tables: ['stores', 'stores', 'stores', 'orders'], columns: ['storeID', 'longitude', 'latitude', 'total'], type: 'heatmap', aggregations: ['', '', '', 'Summe'], filters: [] }
 
-     ]);
+    ]);
 });
 
 async function fetchData(requestData) {
@@ -35,21 +36,34 @@ async function fetchData(requestData) {
     });
 }
 
-function sortDataByDate(response) {
-    let sortedIndices = [...Array(response.x.length).keys()].sort((a, b) => {
-        const [monthA, yearA] = response.x[a].split('.').map(Number);
-        const [monthB, yearB] = response.x[b].split('.').map(Number);
-        return new Date(yearA, monthA - 1) - new Date(yearB, monthB - 1);
+
+function processStackedBarData(response) {
+    const states = [...new Set(response.y1)];
+    const months = [...new Set(response.x)];
+
+    let processedData = states.map(state => {
+        return {
+            name: state,
+            type: 'bar',
+            stack: 'total',
+            data: months.map(month => {
+                const index = response.x.findIndex((x, i) => x === month && response.y1[i] === state);
+                if (index !== -1) {
+                    return {
+                        value: response.y0[index],
+                        storeIDs: response.y2[index] || 'N/A'
+                    };
+                } else {
+                    return {
+                        value: 0,
+                        storeIDs: 'N/A'
+                    };
+                }
+            })
+        };
     });
 
-    let sortedX = sortedIndices.map(i => response.x[i]);
-    let sortedY0 = sortedIndices.map(i => response.y0[i]);
-
-    return {
-        ...response,
-        x: sortedX,
-        y0: sortedY0
-    };
+    return { months, processedData, states };
 }
 
 function calculateGrowthRates(data) {
@@ -68,17 +82,78 @@ function calculateGrowthRates(data) {
     return growthRates;
 }
 
+function sortDataByDate(response) {
+    let sortedIndices = [...Array(response.x.length).keys()].sort((a, b) => {
+        const [monthA, yearA] = response.x[a].split('.').map(Number);
+        const [monthB, yearB] = response.x[b].split('.').map(Number);
+        return new Date(yearA, monthA - 1) - new Date(yearB, monthB - 1);
+    });
+
+    let sortedX = sortedIndices.map(i => response.x[i]);
+    let sortedY0 = sortedIndices.map(i => response.y0[i]);
+
+    return {
+        ...response,
+        x: sortedX,
+        y0: sortedY0
+    };
+}
+
 function generateChartOptions(chartType, response, yColumns) {
     let option = {};
     switch (chartType) {
+        case 'stackedBar':
+            const { months, processedData, states } = processStackedBarData(response);
+
+            option = {
+                title: {
+                    text: 'Monthly Sales by State',
+                    left: 'center'
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    axisPointer: {
+                        type: 'shadow'
+                    },
+                    formatter: function(params) {
+                        let tooltipText = params[0].name + '<br>';
+                        params.forEach(param => {
+                            tooltipText += `${param.marker} ${param.seriesName}: ${param.value} (Store IDs: ${param.data.storeIDs})<br>`;
+                        });
+                        return tooltipText;
+                    }
+                },
+                legend: {
+                    data: states,
+                    top: 40,
+                    padding: [20, 5, 5, 5]
+                },
+                xAxis: {
+                    type: 'category',
+                    data: months,
+                    axisLabel: {
+                        interval: 0,
+                        rotate: 45
+                    }
+                },
+                yAxis: {
+                    type: 'value'
+                },
+                series: processedData,
+                backgroundColor: darkMode ? '#333' : '#fff',
+                textStyle: { color: darkMode ? '#fff' : '#000' },
+                toolbox: { feature: getToolboxFeatures() },
+            };
+            break;
+
         case 'negativBar':
             // Sortiere die Daten nach Datum
             response = sortDataByDate(response);
             let growthRates = calculateGrowthRates(response);
             console.log(growthRates); // Debugging-Ausgabe
             option = {
-                title: { 
-                    left: 'center', 
+                title: {
+                    left: 'center',
                     text: 'Monthly Sales Growth Rate',
                     textStyle: {
                         fontFamily: 'Arial, sans-serif',
@@ -98,7 +173,7 @@ function generateChartOptions(chartType, response, yColumns) {
                 },
                 xAxis: {
                     type: 'category',
-                    data: response.x,  // Alle Monate werden angezeigt
+                    data: response.x, // Alle Monate werden angezeigt
                     axisLine: {
                         lineStyle: {
                             color: '#ccc'
@@ -162,16 +237,16 @@ function generateChartOptions(chartType, response, yColumns) {
                     fontFamily: 'Arial, sans-serif',
                     color: '#2f3542'
                 },
-                 toolbox: { 
-                    feature: getToolboxFeatures() 
+                toolbox: {
+                    feature: getToolboxFeatures()
                 },
             };
-    break;
+            break;
 
         case 'pie':
             option = {
                 title: { left: 'center', text: 'Donut Chart' },
-                tooltip: { 
+                tooltip: {
                     trigger: 'item',
                     formatter: function(params) {
                         const dataIndex = params.dataIndex;
@@ -203,7 +278,7 @@ function generateChartOptions(chartType, response, yColumns) {
                 }]
             };
             break;
-            case 'donut':
+        case 'donut':
             option = {
                 title: { left: 'center', text: 'Donut Chart' },
                 tooltip: {
@@ -384,49 +459,115 @@ function getToolboxFeatures() {
         },
     };
 }
+// Funktion zum Initialisieren von Heatmap für myChart7
+async function initializeHeatmap(chartId, table, column, aggregation) {
+    return new Promise((resolve, reject) => {
+        const baseLayer = L.tileLayer(
+            'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 18
+            }
+        );
 
+        const cfg = {
+            "radius": 0.5,
+            "maxOpacity": .8,
+            "scaleRadius": true,
+            "useLocalExtrema": true,
+            latField: 'lat',
+            lngField: 'lng',
+            valueField: 'value'
+        };
+
+        const heatmapLayer = new HeatmapOverlay(cfg);
+
+        const map = new L.Map(chartId, {
+            center: new L.LatLng(37.5, -117),
+            zoom: 6,
+            layers: [baseLayer]
+        });
+
+        const requestData = {
+            tables: ['stores', 'stores', 'stores', table],
+            columns: ['storeID', 'longitude', 'latitude', column],
+            chartType: 'heatmap',
+            aggregations: ["", "", "", aggregation],
+            filters: filter
+        };
+
+        fetchData(requestData).then(responseData => {
+            if (!responseData.hasOwnProperty('x') || !responseData.hasOwnProperty('y0') || !responseData.hasOwnProperty('y1') || !responseData.hasOwnProperty('y2')) {
+                console.error('Data does not have the required properties:', responseData);
+                return;
+            }
+
+            const data = responseData.x.map((id, index) => ({
+                id,
+                lng: parseFloat(responseData.y0[index]),
+                lat: parseFloat(responseData.y1[index]),
+                value: parseFloat(responseData.y2[index])
+            }));
+
+            const heatmapData = {
+                max: Math.max(...data.map(point => point.value)),
+                data
+            };
+
+            heatmapLayer.setData(heatmapData);
+            map.addLayer(heatmapLayer);
+
+            resolve();
+        }).catch(error => {
+            console.log('Error:', error);
+            reject(error);
+        });
+    });
+}
 async function initializeChart(config) {
-    const myChart = echarts.init(document.getElementById(config.id));
-    const existingChart = charts.find(chartObj => chartObj.config.id === config.id);
-    if (existingChart) {
-        existingChart.chart.dispose();
-        charts = charts.filter(chartObj => chartObj.config.id !== config.id);
-    }
-    charts.push({ chart: myChart, config: config });
-
-    const requestData = {
-        tables: config.tables,
-        columns: config.columns,
-        chartType: config.type,
-        aggregations: config.aggregations,
-        filters: config.filters
-    };
-
-    try {
-        let response = await fetchData(requestData);
-        console.log(response);  // Debugging-Ausgabe
-
-        if (config.id === 'myChart1' || config.type === 'negativBar') {
-            response = sortDataByDate(response); // Sortiere die Daten nur für myChart1 und negativBar
+    if (config.type === 'heatmap') {
+        await initializeHeatmap(config.id, config.tables[3], config.columns[3], config.aggregations[3]);
+    } else {
+        const myChart = echarts.init(document.getElementById(config.id));
+        const existingChart = charts.find(chartObj => chartObj.config.id === config.id);
+        if (existingChart) {
+            existingChart.chart.dispose();
+            charts = charts.filter(chartObj => chartObj.config.id !== config.id);
         }
+        charts.push({ chart: myChart, config: config });
 
-        response.chartId = config.id;
+        const requestData = {
+            tables: config.tables,
+            columns: config.columns,
+            chartType: config.type,
+            aggregations: config.aggregations,
+            filters: config.filters
+        };
 
-        // Überprüfe, ob genügend Daten vorhanden sind
-        if (response.y0.length < 2) {
-            console.error("Nicht genügend Daten für Wachstumsraten");
-            return;
+        try {
+            let response = await fetchData(requestData);
+            console.log(response);  // Debugging-Ausgabe
+
+            if (config.type === 'negativBar' || config.type === 'stackedBar') {
+                response = sortDataByDate(response);
+            }
+
+            response.chartId = config.id;
+
+            // Überprüfe, ob genügend Daten vorhanden sind
+            if (response.y0.length < 2) {
+                console.error("Nicht genügend Daten für Wachstumsraten");
+                return;
+            }
+
+            originalData[config.id] = response;
+            const option = generateChartOptions(config.type, response, config.columns.slice(1));
+            myChart.setOption(option);
+            myChart.on('click', params => handleChartClick(myChart, config, params));
+        } catch (error) {
+            console.error("Failed to initialize chart:", error);
         }
-
-        originalData[config.id] = response;
-        const option = generateChartOptions(config.type, response, config.columns.slice(1));
-        myChart.setOption(option);
-        myChart.on('click', params => handleChartClick(myChart, config, params));
-    } catch (error) {
-        console.error("Failed to initialize chart:", error);
     }
 }
-
 
 function updateChartAppearance() {
     charts.forEach(({ chart }) => {
@@ -678,7 +819,6 @@ function handleChartClick(chartInstance, config, params) {
     }
 }
 
-
 function handleMarkerClick(marker, point) {
     const key = `marker-${point.id}`;
     if (highlightedPoints[key]) {
@@ -741,7 +881,6 @@ function updateAllCharts(excludeChartId) {
     });
 }
 
-
 function applyFilters(data, applicableFilter) {
     if (applicableFilter.length === 0) {
         return data;
@@ -770,7 +909,7 @@ function resetAllCharts() {
 }
 
 async function loadChartsSequentially(chartConfigs) {
-    charts = [];  // Clear existing charts
+    charts = []; // Clear existing charts
     for (const config of chartConfigs) {
         await initializeChart(config);
     }
@@ -784,9 +923,7 @@ document.getElementById('dropArea').addEventListener('drop', handleFileSelect);
 document.getElementById('fileSelectButton').addEventListener('click', () => document.getElementById('fileInput').click());
 document.getElementById('fileInput').addEventListener('change', handleFileUpload);
 
-
 function exportJson() {
-
     if (charts.length === 0) {
         alert("No JSON Data available to export.");
         return;
