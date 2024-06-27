@@ -7,12 +7,13 @@ let originalData = {};
 
 $(document).ready(async function() {
     await loadChartsSequentially([
-      /////  { id: 'myChart1', tables: ['orders', 'orders', 'stores', 'stores'], columns: ['orderDate-MM.YYYY', 'total', 'state', 'storeID'], type: 'stackedBar', aggregations: ['', 'Summe', '', ''], filters: [] },
-     //////   { id: 'myChart2', tables: ['orders', 'orders'], columns: ['orderDate-MM.YYYY', 'total'], type: 'negativBar', aggregations: ['', 'Summe'], filters: [] }, // in Prozent umrechnen.
+ { id: 'myChart1', tables: ['orders', 'orders', 'stores', 'stores'], columns: ['orderDate-MM.YYYY', 'total', 'state', 'storeID'], type: 'stackedBar', aggregations: ['', 'Summe', '', ''], filters: [] },
+ { id: 'myChart2', tables: ['orders', 'orders'], columns: ['orderDate-MM.YYYY', 'total'], type: 'negativBar', aggregations: ['', 'Summe'], filters: [] }, // in Prozent umrechnen.
         //   { id: 'myChart3', tables: ['products','orders', 'products'], columns: ['Name', 'total', 'category'], type: 'donut', aggregations: ['', 'Summe', ''] , filters: [] },
         //   { id: 'myChart4', tables: ['products','orders'], columns: ['category', 'total'], type: 'bar', aggregations: ['', 'Summe'] , filters: [] },
         //   { id: 'myChart5', tables: ['stores', 'orders', 'stores'], 'columns': ['state', 'nItems', 'storeID'], type: 'pie', 'aggregations': ['', 'Summe', 'Diskrete Anzahl'], 'filters': []},
      /////   { id: 'myChart7', tables: ['stores', 'stores', 'stores', 'orders'], columns: ['storeID', 'longitude', 'latitude', 'total'], type: 'heatmap', aggregations: ['', '', '', 'Summe'], filters: [] }
+                 /////   { id: 'myChart7', tables: ['stores', 'stores', 'stores', 'orders'], columns: ['storeID', 'longitude', 'latitude', 'total'], type: 'heatmap', aggregations: ['', '', '', 'Summe'], filters: [] }
 
     ]);
 });
@@ -524,50 +525,47 @@ async function initializeHeatmap(chartId, table, column, aggregation) {
     });
 }
 async function initializeChart(config) {
-    if (config.type === 'heatmap') {
-        await initializeHeatmap(config.id, config.tables[3], config.columns[3], config.aggregations[3]);
-    } else {
-        const myChart = echarts.init(document.getElementById(config.id));
-        const existingChart = charts.find(chartObj => chartObj.config.id === config.id);
-        if (existingChart) {
-            existingChart.chart.dispose();
-            charts = charts.filter(chartObj => chartObj.config.id !== config.id);
+    const myChart = echarts.init(document.getElementById(config.id));
+    const existingChart = charts.find(chartObj => chartObj.config.id === config.id);
+    if (existingChart) {
+        existingChart.chart.dispose();
+        charts = charts.filter(chartObj => chartObj.config.id !== config.id);
+    }
+    charts.push({ chart: myChart, config: config });
+
+    const requestData = {
+        tables: config.tables,
+        columns: config.columns,
+        chartType: config.type,
+        aggregations: config.aggregations,
+        filters: config.filters
+    };
+
+    try {
+        let response = await fetchData(requestData);
+        console.log(response);  // Debugging-Ausgabe
+
+        if (config.type === 'negativBar' || config.type === 'stackedBar') {
+            response = sortDataByDate(response);
         }
-        charts.push({ chart: myChart, config: config });
 
-        const requestData = {
-            tables: config.tables,
-            columns: config.columns,
-            chartType: config.type,
-            aggregations: config.aggregations,
-            filters: config.filters
-        };
+        response.chartId = config.id;
 
-        try {
-            let response = await fetchData(requestData);
-            console.log(response);  // Debugging-Ausgabe
-
-            if (config.type === 'negativBar' || config.type === 'stackedBar') {
-                response = sortDataByDate(response);
-            }
-
-            response.chartId = config.id;
-
-            // Überprüfe, ob genügend Daten vorhanden sind
-            if (response.y0.length < 2) {
-                console.error("Nicht genügend Daten für Wachstumsraten");
-                return;
-            }
-
-            originalData[config.id] = response;
-            const option = generateChartOptions(config.type, response, config.columns.slice(1));
-            myChart.setOption(option);
-            myChart.on('click', params => handleChartClick(myChart, config, params));
-        } catch (error) {
-            console.error("Failed to initialize chart:", error);
+        // Überprüfe, ob genügend Daten vorhanden sind
+        if (response.y0.length < 2) {
+            console.error("Nicht genügend Daten für Wachstumsraten");
+            return;
         }
+
+        originalData[config.id] = response;
+        const option = generateChartOptions(config.type, response, config.columns.slice(1));
+        myChart.setOption(option);
+        myChart.on('click', params => handleChartClick(myChart, config, params));
+    } catch (error) {
+        console.error("Failed to initialize chart:", error);
     }
 }
+
 
 function updateChartAppearance() {
     charts.forEach(({ chart }) => {
