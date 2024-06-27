@@ -1,12 +1,10 @@
 <!DOCTYPE html>
 <html lang="de">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Data Visualisation - DV</title>
+    <title>Geodaten Visualisierung</title>
     <link rel="stylesheet" href="/static/CSS/all.css">
-    <link rel="stylesheet" href="/static/CSS/stacked_chart_type.css">
     <link rel="stylesheet" href="/static/CSS/charts.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
@@ -71,6 +69,32 @@
         .chart-container #map {
             width: 100%;
             height: 600px;
+            position: relative;
+        }
+
+        .legend {
+            line-height: 18px;
+            color: #555;
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .legend h4 {
+            margin: 0 0 5px;
+        }
+
+        .legend div {
+            display: flex;
+            align-items: center;
+        }
+
+        .legend div span {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            margin-right: 5px;
         }
     </style>
 </head>
@@ -80,10 +104,20 @@
         <header>
             <div class="logo-area">
                 <span class="logo-circle"></span>
-                <span class="logo-text">Data Visualisation - DV</span>
+                <span class="logo-text">Geodaten Visualisierung</span>
             </div>
             <button class="menu-button">☰</button>
         </header>
+        <div class="side-menu" id="sideMenu">
+            <button class="close-button">X</button>
+            <h1>What would you like to See?</h1>
+            <a href="/charts">Chart Overview</a>
+            <a href="#">Edit/Clear Data</a>
+            <a href="#">Forecast</a>
+            <a href="#">My Profile</a>
+            <a href="/login">Sign In</a>
+            <a href="/">Log Out</a>
+        </div>
         <main class="main">
             <section class="data-selection">
                 <form id="dataForm" class="form-container">
@@ -91,20 +125,23 @@
                         <h2>Please Choose your Data for Markers</h2>
                         <label for="markerTypeSelect">Marker Based On</label>
                         <select id="markerTypeSelect" name="markerTypeSelect">
+                            <option value="">None</option>
                             <option value="stores">Store Locations</option>
                             <option value="customers">Customer Locations</option>
                         </select>
                         <label for="tableSelect">Table</label>
                         <select id="tableSelect" name="tableSelect">
                             <option value="">None</option>
+                            <!-- Dynamisch gefüllte Optionen -->
                         </select>
                         <label for="columnSelect">Column</label>
                         <select id="columnSelect" name="columnSelect">
                             <option value="">None</option>
+                            <!-- Dynamisch gefüllte Optionen -->
                         </select>
                         <label for="aggregationSelect">Aggregation</label>
                         <select id="aggregationSelect" name="aggregationSelect">
-                            <option value="">No Aggregation</option>
+                            <option value="">None</option>
                             <option value="Summe">Sum</option>
                             <option value="Max">Max</option>
                             <option value="Min">Min</option>
@@ -126,37 +163,88 @@
             </section>
         </main>
     </div>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
     <script src="https://unpkg.com/heatmap.js"></script>
     <script src="https://unpkg.com/leaflet-heatmap/leaflet-heatmap.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="/static/JS/sidemenu.js"></script>
+
     <script>
         $(document).ready(function () {
-            var map = L.map('map').setView([51.505, -0.09], 2); // Weltkarte initialisieren
-
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors'
-            }).addTo(map);
-
+            var baseLayer = L.tileLayer(
+                'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+                    attribution: '© OpenStreetMap contributors',
+                    maxZoom: 18
+                }
+            );
+    
+            var cfg = {
+                "radius": 0.2, // Sehr kleiner Radius für feine Details
+                "maxOpacity": .8,
+                "scaleRadius": true,
+                "useLocalExtrema": true,
+                latField: 'lat',
+                lngField: 'lng',
+                valueField: 'count',
+                gradient: {
+                    0.1: 'blue',
+                    0.2: 'lime',
+                    0.4: 'yellow',
+                    0.6: 'orange',
+                    0.8: 'red',
+                    1.0: 'purple'
+                }
+            };
+    
+            var heatmapLayer = new HeatmapOverlay(cfg);
+    
+            var map = new L.Map('map', {
+                center: new L.LatLng(37.5, -117), // Zentrum von Kalifornien, Nevada und Utah
+                zoom: 6, // Angepasste Zoomstufe
+                layers: [baseLayer]
+            });
+    
             var markers = L.markerClusterGroup();
-
             var circleMarkerOptions = {
-                radius: 5,
+                radius: 3,
                 fillColor: "#ff7800",
                 color: "#000",
                 weight: 1,
                 opacity: 1,
-                fillOpacity: 0.8
+                fillOpacity: 0.6
             };
-
+    
+            // Dynamische Legende erstellen
+            function createLegend(legendElement, gradient) {
+                for (var key in gradient) {
+                    var color = gradient[key];
+                    var div = document.createElement('div');
+                    div.innerHTML = '<span style="background-color:' + color + ';"></span>' + key;
+                    legendElement.appendChild(div);
+                }
+            }
+    
+            // Leaflet control für die Legende erstellen
+            var legendControl = L.control({ position: 'bottomright' });
+    
+            legendControl.onAdd = function (map) {
+                var div = L.DomUtil.create('div', 'legend');
+                var gradient = cfg.gradient;
+                createLegend(div, gradient);
+                return div;
+            };
+    
+            legendControl.addTo(map);
+    
             // Laden der verfügbaren Tabellen
             $.get("/tables", function(data) {
                 data.tables.forEach(table => {
                     $('#tableSelect').append(`<option value="${table}">${table}</option>`);
                 });
             });
-
+    
             // Laden der verfügbaren Spalten, wenn eine Tabelle ausgewählt wird
             $('#tableSelect').change(function() {
                 var table = $(this).val();
@@ -169,50 +257,153 @@
                     });
                 }
             });
-
-            $('#dataForm').submit(function (event) {
+    
+            $('#dataForm').submit(function(event) {
                 event.preventDefault();
                 var markerType = $('#markerTypeSelect').val();
                 var table = $('#tableSelect').val();
                 var column = $('#columnSelect').val();
                 var aggregation = $('#aggregationSelect').val();
-
-                $.ajax({
-                    url: '/get_geodata',
-                    method: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify({ type: markerType, table: table, column: column, aggregation: aggregation }),
-                    success: function (data) {
-                        markers.clearLayers();
-                        var bounds = [];
-                        var heatmapPoints = [];
-
-                        data.forEach(function (point) {
-                            var marker = L.circleMarker([point.latitude, point.longitude], circleMarkerOptions);
-                            markers.addLayer(marker);
-                            bounds.push([point.latitude, point.longitude]);
-
-                            // Für die Heatmap
-                            heatmapPoints.push([point.latitude, point.longitude, point.intensity]); // Intensity from the data
-                        });
-
-                        map.addLayer(markers);
-                        if (bounds.length > 0) {
-                            map.fitBounds(bounds); // Zoomt auf den Bereich, in dem sich die Punkte befinden
+    
+                if (markerType && !table && !column && !aggregation) {
+                    // Nur Marker anzeigen
+                    var tables = (markerType === "stores") ? ["stores", "stores", "stores"] : ["customers", "customers", "customers"];
+                    var columns = (markerType === "stores") ? ["storeID", "longitude", "latitude"] : ["customerID", "longitude", "latitude"];
+    
+                    var requestData = {
+                        tables: tables,
+                        columns: columns,
+                        chartType: 'markers',
+                        aggregations: ["", "", ""],
+                        filters: []
+                    };
+    
+                    $.ajax({
+                        url: '/getdata',
+                        method: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify(requestData),
+                        success: function(responseData) {
+                            if (!responseData.hasOwnProperty('x') || !responseData.hasOwnProperty('y0') || !responseData.hasOwnProperty('y1')) {
+                                console.error('Data does not have the required properties:', responseData);
+                                return;
+                            }
+    
+                            // Daten in das benötigte Format umwandeln
+                            var data = [];
+                            for (var i = 0; i < responseData.x.length; i++) {
+                                data.push({
+                                    id: responseData.x[i],
+                                    longitude: parseFloat(responseData.y0[i]),
+                                    latitude: parseFloat(responseData.y1[i])
+                                });
+                            }
+    
+                            showMarkersOnly(data);
+                        },
+                        error: function(error) {
+                            console.log('Error:', error);
                         }
-
-                        // Hinzufügen der Heatmap
-                        var heat = L.heatLayer(heatmapPoints, { radius: 25 }).addTo(map);
-                    },
-                    error: function (error) {
-                        console.log('Error:', error);
-                    }
-                });
+                    });
+                } else if (markerType && table && column && aggregation) {
+                    // Daten mit Heatmap anzeigen
+                    var tables = (markerType === "stores") ? ["stores", "stores", "stores"] : ["customers", "customers", "customers"];
+                    var columns = (markerType === "stores") ? ["storeID", "longitude", "latitude"] : ["customerID", "longitude", "latitude"];
+                    tables.push(table);
+                    columns.push(column);
+    
+                    var requestData = {
+                        tables: tables,
+                        columns: columns,
+                        chartType: 'heatmap',
+                        aggregations: ["", "X", "X", aggregation],
+                        filters: []
+                    };
+    
+                    $.ajax({
+                        url: '/getdata',
+                        method: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify(requestData),
+                        success: function(responseData) {
+                            if (!responseData.hasOwnProperty('x') || !responseData.hasOwnProperty('y0') || !responseData.hasOwnProperty('y1') || !responseData.hasOwnProperty('y2')) {
+                                console.error('Data does not have the required properties:', responseData);
+                                return;
+                            }
+    
+                            // Daten in das benötigte Format umwandeln
+                            var data = [];
+                            for (var i = 0; i < responseData.x.length; i++) {
+                                data.push({
+                                    id: responseData.x[i],
+                                    longitude: parseFloat(responseData.y0[i]),
+                                    latitude: parseFloat(responseData.y1[i]),
+                                    Aggregation: parseFloat(responseData.y2[i])
+                                });
+                            }
+    
+                            markers.clearLayers();
+                            var bounds = [];
+                            var heatmapPoints = [];
+    
+                            data.forEach(function(point) {
+                                var marker = L.circleMarker([point.latitude, point.longitude], circleMarkerOptions);
+                                marker.bindPopup(`<b>ID:</b> ${point.id}<br><b>Longitude:</b> ${point.longitude}<br><b>Latitude:</b> ${point.latitude}<br><b>Aggregation:</b> ${point.Aggregation}`);
+                                markers.addLayer(marker);
+                                bounds.push([point.latitude, point.longitude]);
+    
+                                // Für die Heatmap
+                                heatmapPoints.push({
+                                    lat: point.latitude,
+                                    lng: point.longitude,
+                                    count: point.Aggregation // Aggregation from the data
+                                });
+                            });
+    
+                            map.addLayer(markers);
+                            if (bounds.length > 0) {
+                                map.fitBounds(bounds); // Zoomt auf den Bereich, in dem sich die Punkte befinden
+                            }
+    
+                            map.addLayer(heatmapLayer);
+                            heatmapLayer.setData({
+                                max: Math.max(...data.map(point => point.Aggregation)), // Dynamische Anpassung des maximalen Werts
+                                data: heatmapPoints
+                            });
+                        },
+                        error: function(error) {
+                            console.log('Error:', error);
+                        }
+                    });
+                } else {
+                    alert('Please select all required fields.');
+                }
             });
+    
+            function showMarkersOnly(data) {
+                markers.clearLayers();
+                var bounds = [];
+    
+                data.forEach(function(point) {
+                    var marker = L.circleMarker([point.latitude, point.longitude], circleMarkerOptions);
+                    marker.bindPopup(`<b>ID:</b> ${point.id}<br><b>Longitude:</b> ${point.longitude}<br><b>Latitude:</b> ${point.latitude}`);
+                    markers.addLayer(marker);
+                    bounds.push([point.latitude, point.longitude]);
+                });
+    
+                map.addLayer(markers);
+                if (bounds.length > 0) {
+                    map.fitBounds(bounds); // Zoomt auf den Bereich, in dem sich die Punkte befinden
+                }
+    
+                if (map.hasLayer(heatmapLayer)) {
+                    map.removeLayer(heatmapLayer);
+                }
+            }
         });
-
-        
     </script>
-</body>
+    
 
+</body>
 </html>
+

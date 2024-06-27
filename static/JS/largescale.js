@@ -65,8 +65,8 @@ function updateChart(chartInstance, chartType) {
             data: JSON.stringify(requestData),
             success: function(response) {
                 console.log("Received response:", response); // Debugging-Meldung
-                const dataX = response.dataX;
-                const dataY = response.dataY;
+                const dataX = response.x;
+                const dataY = response.y0;
 
                 const series = [{
                     name: yColumn,
