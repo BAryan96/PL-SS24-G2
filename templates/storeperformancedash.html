@@ -6,43 +6,147 @@
     <title>Data Visualisation - DV</title>
     <link rel="stylesheet" href="/static/CSS/all.css">
     <style>
-        .chart-container {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-        }
-        .chart {
-            width: 48%;
-            height: 400px;
-            margin-bottom: 20px;
-            background-color: #f0f0f0;
-            border: 1px solid #ccc;
-        }
-        #chart5 {
-            width: 100%;
-            height: 600px; /* Optional: Adjust the height as needed */
-        }
-        .legend {
-            line-height: 18px;
-            color: #555;
-            background: white;
-            padding: 10px;
-            border-radius: 5px;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
-        }
-        .legend h4 {
-            margin: 0 0 5px;
-        }
-        .legend div {
-            display: flex;
-            align-items: center;
-        }
-        .legend div span {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            margin-right: 5px;
-        }
+.button-container {
+    text-align: center; /* Container mittig ausrichten */
+    margin-top: 10px; /* Abstand oberhalb der Buttons */
+}
+
+.modern-button {
+    background-color: coral; /* Green */
+    border: none;
+    color: white;
+    padding: 10px 20px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 12px;
+    margin: 4px 2px;
+    cursor: pointer;
+    border-radius: 12px;
+    transition-duration: 0.4s;
+}
+
+.modern-button:hover {
+    background-color: white;
+    color: black;
+    border: 2px solid coral;
+}
+
+.popup {
+    display: none;
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.5);
+}
+
+.popup-content {
+    background-color: #fefefe;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 600px;
+    text-align: center;
+    border-radius: 12px;
+}
+
+.schließen-button {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.schließen-button:hover,
+.schließen-button:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.drop-area {
+    border: 2px dashed #ccc;
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+}
+
+.drop-area p {
+    margin: 0;
+    font-size: 16px;
+}
+
+.chart-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+}
+
+.chart {
+    width: 48%;
+    height: 450px;
+    margin-bottom: 20px;
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+}
+
+.chart:nth-child(5),
+.chart:nth-child(6),
+.chart:nth-child(7){
+    width: 100%;
+}
+
+.chart-full {
+    width: 100%;
+    height: 200px;
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    margin-bottom: 20px;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    padding: 10px;
+}
+
+
+.dashboard-title {
+    text-align: center; /* Mittig ausrichten */
+}
+
+.legend {
+    line-height: 18px;
+    color: #555;
+    background: white;
+    padding: 10px;
+    border-radius: 5px;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+}
+
+.legend h4 {
+    margin: 0 0 5px;
+}
+
+.legend div {
+    display: flex;
+    align-items: center;
+}
+
+.legend div span {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    margin-right: 5px;
+}
+#importJsonPopup {
+    z-index: 1000; /* Ein hoher Wert, damit das Popup über der Karte liegt */
+}
+
     </style>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
@@ -68,7 +172,7 @@
             <div class="menu-item has-submenu">
                 <a href="#">Customer Dashboard</a>
                 <div class="submenu">
-                    <a href="/salesperformancedash">Store Performance Dashboard</a>
+                    <a href="/salesperformancedash">Sales Performance Dashboard</a>
                     <a href="#">Customer Insights Dashboard</a>
                     <a href="#">Product Performance Dashboard</a>
                     <a href="#">Store Performance Dashboard</a>
@@ -80,6 +184,20 @@
     <main class="main">
         <section class="data-selection">
             <h1 class="dashboard-title">Store Performance Dashboard</h1>
+            <div class="button-container">
+                <button id="exportJsonButton" class="modern-button">Export JSON</button>
+                <button id="importJsonButton" class="modern-button">Import JSON</button>
+                <input type="file" id="fileInput" style="display: none;" />
+            </div>
+            <div id="importJsonPopup" class="popup">
+                <div class="popup-content">
+                    <span class="schließen-button">&times;</span>
+                    <h2>Drag and Drop JSON File Here</h2>
+                    <div id="dropArea" class="drop-area">
+                        <p>Drop your JSON file here or <button id="fileSelectButton" class="modern-button">Select File</button></p>
+                    </div>
+                </div>
+            </div>
             <div class="chart-container">
                 <div id="chart1" class="chart">
                     <div id="myChart1" style="width: 100%; height: 100%;"></div>
@@ -93,8 +211,14 @@
                 <div id="chart4" class="chart">
                     <div id="myChart4" style="width: 100%; height: 100%;"></div>
                 </div>
-                <div id="chart5" class="chart">
-                    <div id="myChart5" style="width: 100%; height: 100%;"></div>
+                <div id="chart5" class="chart-full">
+                    <div id="myChart5"></div>
+                </div>    
+                <div id="chart6" class="chart">
+                    <div id="myChart6" style="width: 100%; height: 100%;"></div>
+                </div>
+                <div id="chart7" class="chart">
+                    <div id="myChart7" style="width: 100%; height: 100%;"></div>
                 </div>
             </div>
         </section>
@@ -107,8 +231,8 @@
     <script src="https://unpkg.com/heatmap.js"></script>
     <script src="https://unpkg.com/leaflet-heatmap/leaflet-heatmap.js"></script>
     <script src="/static/JS/storeperformancedash.js"></script>
-    <script>
 
+    <script>
     </script>
 </body>
 </html>
