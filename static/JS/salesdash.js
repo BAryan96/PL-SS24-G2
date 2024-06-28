@@ -11,6 +11,9 @@ $(document).ready(async function() {
 { id: 'myChart2', tables: ['orders', 'orders'], columns: ['orderDate-MM.YYYY', 'total'], type: 'negativBar', aggregations: ['', 'Summe'], filters: [] ,orderby:['ASC',''] }, // in Prozent umrechnen.
 { id: 'myChart3', tables: ['orders','orders', 'orders'], columns: ['orderDate-YYYY','orderDate-MM', 'total'], type: 'stacked', aggregations: ['','', 'Summe'],filters: [],orderby:['ASC','ASC','']  }, // in Prozent umrechnen.
 { id: 'myChart4', tables: ['products', 'orders'], columns: ['name', 'orderID',], type: 'pie', aggregations: ['', 'Anzahl'], filters: []}, // in Prozent umrechnen.
+{ id: 'myChart5', tables: ['stores', 'stores', 'stores', 'orders'], columns: ['storeID', 'longitude', 'latitude', 'total'], type: 'heatmap', aggregations: ['', '', '', 'Summe'], filters: [] },
+{ id: 'myChart6', tables: ['customers', 'customers', 'customers', 'orders'], columns: ['customerID', 'longitude', 'latitude', 'total'], type: 'heatmap', aggregations: ['', '', '', 'Summe'], filters: [] },
+{ id: 'myChart7', tables: ['products','orders'], columns: ['category', 'total'], type: 'bar', aggregations: ['', 'Summe'] , filters: [] },
 
         //   { id: 'myChart3', tables: ['products','orders', 'products'], columns: ['Name', 'total', 'category'], type: 'donut', aggregations: ['', 'Summe', ''] , filters: [] },
         //   { id: 'myChart4', tables: ['products','orders'], columns: ['category', 'total'], type: 'bar', aggregations: ['', 'Summe'] , filters: [] },
@@ -487,7 +490,6 @@ function getToolboxFeatures() {
         },
     };
 }
-// Funktion zum Initialisieren von Heatmap für myChart7
 async function initializeHeatmap(chartId, table, column, aggregation) {
     return new Promise((resolve, reject) => {
         const baseLayer = L.tileLayer(
@@ -498,7 +500,7 @@ async function initializeHeatmap(chartId, table, column, aggregation) {
         );
 
         const cfg = {
-            "radius": 0.5,
+            "radius": chartId === 'myChart6' ? 0.3 : 0.5, // Feiner für Kunden
             "maxOpacity": .8,
             "scaleRadius": true,
             "useLocalExtrema": true,
@@ -515,9 +517,18 @@ async function initializeHeatmap(chartId, table, column, aggregation) {
             layers: [baseLayer]
         });
 
+        let tables, columns;
+        if (chartId === 'myChart5') {
+            tables = ['stores', 'stores', 'stores', table];
+            columns = ['storeID', 'longitude', 'latitude', column];
+        } else if (chartId === 'myChart6') {
+            tables = ['customers', 'customers', 'customers', table];
+            columns = ['customerID', 'longitude', 'latitude', column];
+        }
+
         const requestData = {
-            tables: ['stores', 'stores', 'stores', table],
-            columns: ['storeID', 'longitude', 'latitude', column],
+            tables: tables,
+            columns: columns,
             chartType: 'heatmap',
             aggregations: ["", "", "", aggregation],
             filters: filter
@@ -544,6 +555,27 @@ async function initializeHeatmap(chartId, table, column, aggregation) {
             heatmapLayer.setData(heatmapData);
             map.addLayer(heatmapLayer);
 
+            // Add store/customer location markers with popups
+            data.forEach(point => {
+                const marker = L.circleMarker([point.lat, point.lng], {
+                    radius: 3,
+                    fillColor: "#3388ff",
+                    color: "#000",
+                    weight: 1,
+                    opacity: 1,
+                    fillOpacity: 0.8
+                });
+
+                const popupContent = `
+                    <b>ID:</b> ${point.id}<br>
+                    <b>Longitude:</b> ${point.lng}<br>
+                    <b>Latitude:</b> ${point.lat}<br>
+                    <b>Total:</b> ${point.value}
+                `;
+                marker.bindPopup(popupContent);
+                marker.addTo(map);
+            });
+
             resolve();
         }).catch(error => {
             console.log('Error:', error);
@@ -551,45 +583,50 @@ async function initializeHeatmap(chartId, table, column, aggregation) {
         });
     });
 }
+
+
 async function initializeChart(config) {
-    const myChart = echarts.init(document.getElementById(config.id));
-    const existingChart = charts.find(chartObj => chartObj.config.id === config.id);
-    if (existingChart) {
-        existingChart.chart.dispose();
-        charts = charts.filter(chartObj => chartObj.config.id !== config.id);
-    }
-    charts.push({ chart: myChart, config: config });
-
-    const requestData = {
-        tables: config.tables,
-        columns: config.columns,
-        chartType: config.type,
-        aggregations: config.aggregations,
-        filters: config.filters,
-        orderby: config.orderby
-    };
-
-    try {
-        let response = await fetchData(requestData);
-        console.log(response);  // Debugging-Ausgabe
-
-        response.chartId = config.id;
-
-        // Überprüfe, ob genügend Daten vorhanden sind
-        if (response.y0.length < 2) {
-            console.error("Nicht genügend Daten für die Diagrammerstellung");
-            return;
+    if (config.type === 'heatmap') {
+        await initializeHeatmap(config.id, config.tables[3], config.columns[3], config.aggregations[3]);
+    } else {
+        const myChart = echarts.init(document.getElementById(config.id));
+        const existingChart = charts.find(chartObj => chartObj.config.id === config.id);
+        if (existingChart) {
+            existingChart.chart.dispose();
+            charts = charts.filter(chartObj => chartObj.config.id !== config.id);
         }
+        charts.push({ chart: myChart, config: config });
 
-        originalData[config.id] = response;
-        const option = generateChartOptions(config.type, response, config.columns.slice(1));
-        myChart.setOption(option);
-        myChart.on('click', params => handleChartClick(myChart, config, params));
-    } catch (error) {
-        console.error("Failed to initialize chart:", error);
+        const requestData = {
+            tables: config.tables,
+            columns: config.columns,
+            chartType: config.type,
+            aggregations: config.aggregations,
+            filters: config.filters,
+            orderby: config.orderby
+        };
+
+        try {
+            let response = await fetchData(requestData);
+            console.log(response);  // Debugging-Ausgabe
+
+            response.chartId = config.id;
+
+            // Überprüfe, ob genügend Daten vorhanden sind
+            if (response.y0.length < 2) {
+                console.error("Nicht genügend Daten für die Diagrammerstellung");
+                return;
+            }
+
+            originalData[config.id] = response;
+            const option = generateChartOptions(config.type, response, config.columns.slice(1));
+            myChart.setOption(option);
+            myChart.on('click', params => handleChartClick(myChart, config, params));
+        } catch (error) {
+            console.error("Failed to initialize chart:", error);
+        }
     }
 }
-
 
 
 function updateChartAppearance() {
@@ -617,7 +654,6 @@ function updateChartAppearance() {
         chart.setOption(option);
     });
 }
-
 
 function updateChartAppearance() {
     charts.forEach(({ chart }) => {
@@ -710,8 +746,8 @@ async function initializeGeoChart(chartId, markerType, table, column, aggregatio
         legendControl.addTo(map);
 
         const requestData = {
-            tables: ['stores', 'stores', 'stores', table],
-            columns: ['storeID', 'longitude', 'latitude', column],
+            tables: ['customers', 'customers', 'customers', table],
+            columns: ['customerID', 'longitude', 'latitude', column],
             chartType: 'heatmap',
             aggregations: ["", "X", "X", aggregation],
             filters: filter
