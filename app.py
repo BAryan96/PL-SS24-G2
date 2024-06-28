@@ -62,13 +62,12 @@ def productdash():
     return render_template('productdash.html')
 
 @app.route("/storeperformancedash")
-def productstoreperformancedashdash():
+def storeperformancedash():
     return render_template('storeperformancedash.html')
 
 @app.route("/orderdetailsdash")
 def orderdetailsdash():
     return render_template('orderdetailsdash.html')
-
 
 @app.route("/tables")
 def get_tables():
@@ -89,10 +88,10 @@ def get_data():
         return jsonify({"error": "Request data must be JSON"}), 415
 
     data = request.get_json()
-    print("Received JSON data:", data)
 
-    #data =  {'tables': ['customers', 'orders-Right'], 'columns': ['customerID', 'orderID'], 'chartType': 'bar', 'aggregations': ['', 'Anzahl'], 'filters': []}
-    #data =  {'tables': ['orders', 'orders'], 'columns': ['orderDate-MM', 'total'], 'chartType': 'bar', 'aggregations': ['', 'Summe'], 'filters': []}
+    #data =  {'tables': ['orders', 'orders'], 'columns': ['orderDate-MM.YYYY', 'total'], 'chartType': 'bar', 'aggregations': ['', 'Summe'], 'filters': [] }
+   #data =  Received JSON data: {'tables': ['stores', 'orders'], 'columns': ['state', 'total'], 'chartType': 'bar', 'aggregations': ['', 'Summe'], 'filters': []}
+    print("Received JSON data:", data)
 
     required_fields = ['tables', 'columns', 'chartType', 'aggregations']
     missing_fields = [field for field in required_fields if field not in data]
@@ -105,9 +104,10 @@ def get_data():
     chart_type = data['chartType']
     aggregations = data['aggregations']
     filters = data.get('filters', [])
+    orderby = data.get('orderby', [])
 
-    if not isinstance(tables, list) or not isinstance(columns, list) or not isinstance(aggregations, list):
-        return jsonify({"error": "Tables, columns, and aggregations must be lists"}), 400
+    if not isinstance(tables, list) or not isinstance(columns, list) or not isinstance(aggregations, list) or not isinstance(orderby, list):
+        return jsonify({"error": "Tables, columns, aggregations, and orderby must be lists"}), 400
 
     if len(aggregations) < len(columns):
         aggregations.extend([""] * (len(columns) - len(aggregations)))
@@ -144,6 +144,7 @@ def get_data():
         '-DD.MM': '%d.%m',
         '-DD.YYYY': '%d.%Y',
         '-MM.YYYY': '%m.%Y',
+        '-YYYY.MM': '%Y.%m',
         '-DD': '%d',
         '-MM': '%m',
         '-YYYY': '%Y',
@@ -171,7 +172,17 @@ def get_data():
                 filter_value = filter.get('filterValue')
                 if not filter_table or not filter_column or filter_value is None:
                     return jsonify({"error": "Each filter must have filterTable, filterColumn, and filterValue"}), 400
-                filter_clauses.append(f"{filter_table}.{filter_column} = '{filter_value}'")
+                
+                full_column_name = None
+                for suffix, date_format in date_formats.items():
+                    if filter_column.endswith(suffix):
+                        filter_column = filter_column[: -len(suffix)]
+                        full_column_name = f"DATE_FORMAT({filter_table}.{filter_column}, '{date_format}')"
+                        break
+                if not full_column_name:
+                    full_column_name = f"{filter_table}.{filter_column}"
+
+                filter_clauses.append(f"{full_column_name} = '{filter_value}'")
             else:
                 or_clauses = []
                 for filter in chart_filter_list:
@@ -180,7 +191,17 @@ def get_data():
                     filter_value = filter.get('filterValue')
                     if not filter_table or not filter_column or filter_value is None:
                         return jsonify({"error": "Each filter must have filterTable, filterColumn, and filterValue"}), 400
-                    or_clauses.append(f"{filter_table}.{filter_column} = '{filter_value}'")
+                    
+                    full_column_name = None
+                    for suffix, date_format in date_formats.items():
+                        if filter_column.endswith(suffix):
+                            filter_column = filter_column[: -len(suffix)]
+                            full_column_name = f"DATE_FORMAT({filter_table}.{filter_column}, '{date_format}')"
+                            break
+                    if not full_column_name:
+                        full_column_name = f"{filter_table}.{filter_column}"
+
+                    or_clauses.append(f"{full_column_name} = '{filter_value}'")
                 filter_clauses.append(f"({' OR '.join(or_clauses)})")
 
         if filter_clauses:
@@ -291,6 +312,24 @@ def get_data():
     if group_by_columns:
         query += f" GROUP BY {group_by_query}"
 
+    if orderby:
+        orderby_columns = []
+        for table, col, orby in zip(tables, columns, orderby):
+            if orby:
+                table = table.split('-')[0]  # Remove join suffix for SQL usage
+                full_column_name = None
+                for suffix, date_format in date_formats.items():
+                    if col.endswith(suffix):
+                        col = col[: -len(suffix)]
+                        full_column_name = f"DATE_FORMAT({table}.{col}, '{date_format}')"
+                        break
+                if not full_column_name:
+                    full_column_name = f"{table}.{col}"
+                
+                orderby_columns.append(f"{full_column_name} {orby.upper()}")
+        if orderby_columns:
+            query += f" ORDER BY {', '.join(orderby_columns)}"
+
     print("Generated SQL Query:", query)
     cur.execute(query)
     data = cur.fetchall()
@@ -308,6 +347,7 @@ def get_data():
 
     print(response)
     return jsonify(response)
+
 
 @app.route("/test")
 def test():

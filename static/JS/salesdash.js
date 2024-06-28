@@ -7,8 +7,10 @@ let originalData = {};
 
 $(document).ready(async function() {
     await loadChartsSequentially([
- { id: 'myChart1', tables: ['orders', 'orders', 'stores', 'stores'], columns: ['orderDate-MM.YYYY', 'total', 'state', 'storeID'], type: 'stackedBar', aggregations: ['', 'Summe', '', ''], filters: [] },
- { id: 'myChart2', tables: ['orders', 'orders'], columns: ['orderDate-MM.YYYY', 'total'], type: 'negativBar', aggregations: ['', 'Summe'], filters: [] }, // in Prozent umrechnen.
+{ id: 'myChart1', tables: ['orders','stores','orders'], columns: ['orderDate-MM.YYYY','state','total'], type: 'stackedBar', aggregations: ['','', 'Summe'], filters: [],orderby:['ASC','','']  },
+{ id: 'myChart2', tables: ['orders', 'orders'], columns: ['orderDate-MM.YYYY', 'total'], type: 'negativBar', aggregations: ['', 'Summe'], filters: [] ,orderby:['ASC',''] }, // in Prozent umrechnen.
+{ id: 'myChart3', tables: ['orders','orders', 'orders'], columns: ['orderDate-YYYY','orderDate-MM', 'total'], type: 'stacked', aggregations: ['','', 'Summe'],filters: [],orderby:['ASC','ASC','']  }, // in Prozent umrechnen.
+
         //   { id: 'myChart3', tables: ['products','orders', 'products'], columns: ['Name', 'total', 'category'], type: 'donut', aggregations: ['', 'Summe', ''] , filters: [] },
         //   { id: 'myChart4', tables: ['products','orders'], columns: ['category', 'total'], type: 'bar', aggregations: ['', 'Summe'] , filters: [] },
         //   { id: 'myChart5', tables: ['stores', 'orders', 'stores'], 'columns': ['state', 'nItems', 'storeID'], type: 'pie', 'aggregations': ['', 'Summe', 'Diskrete Anzahl'], 'filters': []},
@@ -39,33 +41,29 @@ async function fetchData(requestData) {
 
 
 function processStackedBarData(response) {
-    const states = [...new Set(response.y1)];
-    const months = [...new Set(response.x)];
+    const months2 = [...new Set(response.x)];
+    const states = [...new Set(response.y0)];
 
     let processedData = states.map(state => {
         return {
             name: state,
             type: 'bar',
             stack: 'total',
-            data: months.map(month => {
-                const index = response.x.findIndex((x, i) => x === month && response.y1[i] === state);
-                if (index !== -1) {
-                    return {
-                        value: response.y0[index],
-                        storeIDs: response.y2[index] || 'N/A'
-                    };
-                } else {
-                    return {
-                        value: 0,
-                        storeIDs: 'N/A'
-                    };
-                }
+            data: months2.map(month => {
+                const totalSum = response.x.reduce((sum, val, index) => {
+                    if (val === month && response.y0[index] === state) {
+                        return sum + response.y1[index];
+                    }
+                    return sum;
+                }, 0);
+                return totalSum;
             })
         };
     });
 
-    return { months, processedData, states };
+    return { months2, processedData, states };
 }
+
 
 function calculateGrowthRates(data) {
     let growthRates = [];
@@ -83,7 +81,7 @@ function calculateGrowthRates(data) {
     return growthRates;
 }
 
-function sortDataByDate(response) {
+function sortDataByYearMonth(response, isChart2 = false) {
     let sortedIndices = [...Array(response.x.length).keys()].sort((a, b) => {
         const [monthA, yearA] = response.x[a].split('.').map(Number);
         const [monthB, yearB] = response.x[b].split('.').map(Number);
@@ -92,19 +90,23 @@ function sortDataByDate(response) {
 
     let sortedX = sortedIndices.map(i => response.x[i]);
     let sortedY0 = sortedIndices.map(i => response.y0[i]);
+    let sortedY1 = isChart2 ? response.y1 : sortedIndices.map(i => response.y1[i]);
 
     return {
         ...response,
         x: sortedX,
-        y0: sortedY0
+        y0: sortedY0,
+        y1: sortedY1
     };
 }
+
+
 
 function generateChartOptions(chartType, response, yColumns) {
     let option = {};
     switch (chartType) {
         case 'stackedBar':
-            const { months, processedData, states } = processStackedBarData(response);
+            const { months2, processedData, states } = processStackedBarData(response);
 
             option = {
                 title: {
@@ -116,13 +118,6 @@ function generateChartOptions(chartType, response, yColumns) {
                     axisPointer: {
                         type: 'shadow'
                     },
-                    formatter: function(params) {
-                        let tooltipText = params[0].name + '<br>';
-                        params.forEach(param => {
-                            tooltipText += `${param.marker} ${param.seriesName}: ${param.value} (Store IDs: ${param.data.storeIDs})<br>`;
-                        });
-                        return tooltipText;
-                    }
                 },
                 legend: {
                     data: states,
@@ -131,7 +126,7 @@ function generateChartOptions(chartType, response, yColumns) {
                 },
                 xAxis: {
                     type: 'category',
-                    data: months,
+                    data: months2,
                     axisLabel: {
                         interval: 0,
                         rotate: 45
@@ -147,102 +142,100 @@ function generateChartOptions(chartType, response, yColumns) {
             };
             break;
 
-        case 'negativBar':
-            // Sortiere die Daten nach Datum
-            response = sortDataByDate(response);
-            let growthRates = calculateGrowthRates(response);
-            console.log(growthRates); // Debugging-Ausgabe
-            option = {
-                title: {
-                    left: 'center',
-                    text: 'Monthly Sales Growth Rate',
-                    textStyle: {
-                        fontFamily: 'Arial, sans-serif',
-                        fontSize: 18,
-                        fontWeight: 'bold'
-                    }
-                },
-                tooltip: {
-                    trigger: 'axis',
-                    backgroundColor: 'rgba(50, 50, 50, 0.7)',
-                    textStyle: {
-                        color: '#fff'
-                    },
-                    formatter: function(params) {
-                        return `${params[0].name}: ${params[0].value.toFixed(2)}%`;
-                    }
-                },
-                xAxis: {
-                    type: 'category',
-                    data: response.x, // Alle Monate werden angezeigt
-                    axisLine: {
-                        lineStyle: {
-                            color: '#ccc'
-                        }
-                    },
-                    axisLabel: {
-                        fontFamily: 'Arial, sans-serif',
-                        fontSize: 12
-                    }
-                },
-                yAxis: {
-                    type: 'value',
-                    axisLabel: {
-                        formatter: '{value}%',
-                        fontFamily: 'Arial, sans-serif',
-                        fontSize: 12
-                    },
-                    splitLine: {
-                        lineStyle: {
-                            type: 'dashed',
-                            color: '#ccc'
-                        }
-                    }
-                },
-                series: [{
-                    data: growthRates,
-                    type: 'bar',
-                    barWidth: '60%',
-                    itemStyle: {
-                        normal: {
-                            color: function(params) {
-                                return params.value < 0 ? '#ff6b6b' : '#1dd1a1'; // Modernere Farben: Rot für negative Werte, Grün für positive Werte
-                            },
-                            barBorderRadius: [5, 5, 0, 0],
-                            shadowColor: 'rgba(0, 0, 0, 0.1)',
-                            shadowBlur: 10
-                        }
-                    },
-                    markLine: {
-                        data: [{ type: 'average', name: 'Average' }],
-                        lineStyle: {
-                            type: 'dashed',
-                            color: '#576574'
-                        },
-                        label: {
-                            formatter: '{b}: {c}%',
+            case 'negativBar':
+                let growthRates = calculateGrowthRates(response);
+                console.log(growthRates); // Debugging-Ausgabe
+                option = {
+                    title: {
+                        left: 'center',
+                        text: 'Monthly Sales Growth Rate',
+                        textStyle: {
                             fontFamily: 'Arial, sans-serif',
-                            fontSize: 12,
-                            color: '#576574'
+                            fontSize: 18,
+                            fontWeight: 'bold'
                         }
-                    }
-                }],
-                grid: {
-                    left: '3%',
-                    right: '4%',
-                    bottom: '3%',
-                    containLabel: true
-                },
-                backgroundColor: '#f5f6fa',
-                textStyle: {
-                    fontFamily: 'Arial, sans-serif',
-                    color: '#2f3542'
-                },
-                toolbox: {
-                    feature: getToolboxFeatures()
-                },
-            };
-            break;
+                    },
+                    tooltip: {
+                        trigger: 'axis',
+                        backgroundColor: 'rgba(50, 50, 50, 0.7)',
+                        textStyle: {
+                            color: '#fff'
+                        },
+                        formatter: function(params) {
+                            return `${params[0].name}: ${params[0].value.toFixed(2)}%`;
+                        }
+                    },
+                    xAxis: {
+                        type: 'category',
+                        data: response.x, // Alle Monate werden angezeigt
+                        axisLine: {
+                            lineStyle: {
+                                color: '#ccc'
+                            }
+                        },
+                        axisLabel: {
+                            fontFamily: 'Arial, sans-serif',
+                            fontSize: 12
+                        }
+                    },
+                    yAxis: {
+                        type: 'value',
+                        axisLabel: {
+                            formatter: '{value}%',
+                            fontFamily: 'Arial, sans-serif',
+                            fontSize: 12
+                        },
+                        splitLine: {
+                            lineStyle: {
+                                type: 'dashed',
+                                color: '#ccc'
+                            }
+                        }
+                    },
+                    series: [{
+                        data: growthRates,
+                        type: 'bar',
+                        barWidth: '60%',
+                        itemStyle: {
+                            normal: {
+                                color: function(params) {
+                                    return params.value < 0 ? '#ff6b6b' : '#1dd1a1'; // Modernere Farben: Rot für negative Werte, Grün für positive Werte
+                                },
+                                barBorderRadius: [5, 5, 0, 0],
+                                shadowColor: 'rgba(0, 0, 0, 0.1)',
+                                shadowBlur: 10
+                            }
+                        },
+                        markLine: {
+                            data: [{ type: 'average', name: 'Average' }],
+                            lineStyle: {
+                                type: 'dashed',
+                                color: '#576574'
+                            },
+                            label: {
+                                formatter: '{b}: {c}%',
+                                fontFamily: 'Arial, sans-serif',
+                                fontSize: 12,
+                                color: '#576574'
+                            }
+                        }
+                    }],
+                    grid: {
+                        left: '3%',
+                        right: '4%',
+                        bottom: '3%',
+                        containLabel: true
+                    },
+                    backgroundColor: '#f5f6fa',
+                    textStyle: {
+                        fontFamily: 'Arial, sans-serif',
+                        color: '#2f3542'
+                    },
+                    toolbox: {
+                        feature: getToolboxFeatures()
+                    },
+                };
+                break;
 
         case 'pie':
             option = {
@@ -374,33 +367,35 @@ function generateChartOptions(chartType, response, yColumns) {
                 textStyle: { color: darkMode ? '#fff' : '#000' }
             };
             break;
-        case 'stacked':
-            option = {
-                title: { left: 'center', text: 'Stacked Area Chart' },
-                tooltip: { trigger: 'axis', axisPointer: { type: 'cross', label: { backgroundColor: '#6a7985' } } },
-                legend: { top: '5%', left: 'center' },
-                xAxis: { type: 'category', data: response.x },
-                yAxis: { type: 'value' },
-                series: yColumns.map((yColumn, seriesIndex) => ({
-                    name: yColumn,
+            case 'stacked':
+                // Extrahiere die verschiedenen Jahre und Monate aus den Daten
+                const years = [...new Set(response.x)];
+                const months = response.y0.slice(0, 12); // Da jeder Monat einmal pro Jahr vorkommt
+            
+                // Erstelle die Datenstruktur für die einzelnen Jahre
+                const seriesData = years.map(year => ({
+                    name: year,
                     type: 'line',
                     areaStyle: {},
                     emphasis: { focus: 'series' },
-                    data: response[`y${seriesIndex}`].map((y, dataIndex) => ({
-                        value: y,
-                        itemStyle: highlightedPoints[`${response.chartId}-${seriesIndex}-${dataIndex}`] ? {
-                            borderColor: 'black',
-                            borderWidth: 2
-                        } : {}
-                    })),
-                    itemStyle: { color: echarts.color.modifyHSL('#c23531', seriesIndex * 120) }
-                })),
-                backgroundColor: darkMode ? '#333' : '#fff',
-                textStyle: { color: darkMode ? '#fff' : '#000' },
-                toolbox: { feature: getToolboxFeatures() },
-                dataZoom: [{ type: 'inside', start: 0, end: 100 }, { start: 0, end: 100 }]
-            };
-            break;
+                    data: response.y1.filter((_, index) => response.x[index] === year),
+                    itemStyle: { color: echarts.color.modifyHSL('#c23531', years.indexOf(year) * 120) }
+                }));
+            
+                option = {
+                    title: { left: 'center', text: 'Stacked Area Chart' },
+                    tooltip: { trigger: 'axis', axisPointer: { type: 'cross', label: { backgroundColor: '#6a7985' } } },
+                    legend: { top: '5%', left: 'center' },
+                    xAxis: { type: 'category', data: months },
+                    yAxis: { type: 'value' },
+                    series: seriesData,
+                    backgroundColor: darkMode ? '#333' : '#fff',
+                    textStyle: { color: darkMode ? '#fff' : '#000' },
+                    toolbox: { feature: getToolboxFeatures() },
+                    dataZoom: [{ type: 'inside', start: 0, end: 100 }, { start: 0, end: 100 }]
+                };
+                break;
+            
         default:
             option = {
                 tooltip: { trigger: 'axis', axisPointer: { type: 'cross', label: { backgroundColor: '#6a7985' } } },
@@ -538,16 +533,13 @@ async function initializeChart(config) {
         columns: config.columns,
         chartType: config.type,
         aggregations: config.aggregations,
-        filters: config.filters
+        filters: config.filters,
+        orderby: config.orderby
     };
 
     try {
         let response = await fetchData(requestData);
         console.log(response);  // Debugging-Ausgabe
-
-        if (config.type === 'negativBar' || config.type === 'stackedBar') {
-            response = sortDataByDate(response);
-        }
 
         response.chartId = config.id;
 
@@ -557,6 +549,11 @@ async function initializeChart(config) {
             return;
         }
 
+        // Sortiere die Daten für myChart1 und myChart2
+        if (config.id === 'myChart1' || config.id === 'myChart2') {
+            response = sortDataByYearMonth(response, config.id === 'myChart2');
+        }
+
         originalData[config.id] = response;
         const option = generateChartOptions(config.type, response, config.columns.slice(1));
         myChart.setOption(option);
@@ -564,6 +561,34 @@ async function initializeChart(config) {
     } catch (error) {
         console.error("Failed to initialize chart:", error);
     }
+}
+
+
+
+function updateChartAppearance() {
+    charts.forEach(({ chart }) => {
+        const option = chart.getOption();
+        if (darkMode) {
+            option.backgroundColor = '#333';
+            option.textStyle = { color: '#fff' };
+        } else {
+            option.backgroundColor = '#fff';
+            option.textStyle = { color: '#000' };
+        }
+        if (decalPattern) {
+            option.series.forEach(series => {
+                series.itemStyle = series.itemStyle || {};
+                series.itemStyle.decal = { symbol: 'rect', symbolSize: 1, color: 'rgba(0, 0, 0, 0.1)' };
+            });
+        } else {
+            option.series.forEach(series => {
+                if (series.itemStyle) {
+                    series.itemStyle.decal = null;
+                }
+            });
+        }
+        chart.setOption(option);
+    });
 }
 
 
@@ -817,6 +842,7 @@ function handleChartClick(chartInstance, config, params) {
     }
 }
 
+
 function handleMarkerClick(marker, point) {
     const key = `marker-${point.id}`;
     if (highlightedPoints[key]) {
@@ -884,13 +910,16 @@ function applyFilters(data, applicableFilter) {
         return data;
     }
 
-    const filteredData = { x: [], y0: [] };
+    const filteredData = { x: [], y0: [], y1: [] };
 
     data.x.forEach((x, index) => {
         const match = applicableFilter.some(f => f.filterValue === x);
         if (match) {
             filteredData.x.push(x);
             filteredData.y0.push(data.y0[index]);
+            if (data.y1) {
+                filteredData.y1.push(data.y1[index]);
+            }
         }
     });
 
