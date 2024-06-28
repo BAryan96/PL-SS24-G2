@@ -51,27 +51,25 @@ def basicbarchart():
 def heatmap():
     return render_template('heatmap.html')
 
-@app.route("/boxplot")
-def boxplot():
-    return render_template('boxplot.html')
-
 @app.route("/salesperformancedash")
 def salesperformancedash():
     return render_template('salesperformancedash.html')
 
-@app.route("/customerdash", methods=['GET', 'POST'])
+@app.route("/customerdash")
 def customerdash():
     return render_template('customerdash.html')
 
-@app.route('/k', methods=['GET'])
-def salesperformancedash():
-    start_date = request.args.get('start_date')
-    end_date = request.args.get('end_date')
-    store_id = request.args.get('store_id')
-    product_category = request.args.get('product_category')
-    
-    kpis = calculate_kpis(start_date, end_date, store_id, product_category, None, None)
-    return jsonify(kpis)
+@app.route("/productdash")
+def productdash():
+    return render_template('productdash.html')
+
+@app.route("/storeperformancedash")
+def productstoreperformancedashdash():
+    return render_template('storeperformancedash.html')
+
+@app.route("/orderdetailsdash")
+def orderdetailsdash():
+    return render_template('orderdetailsdash.html')
 
 @app.route("/tables")
 def get_tables():
