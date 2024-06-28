@@ -9,17 +9,10 @@ $(document).ready(async function() {
     await loadChartsSequentially([
 { id: 'myChart1', tables: ['orders','stores','orders'], columns: ['orderDate-MM.YYYY','state','total'], type: 'stackedBar', aggregations: ['','', 'Summe'], filters: [],orderby:['ASC','','']  },
 { id: 'myChart2', tables: ['orders', 'orders'], columns: ['orderDate-MM.YYYY', 'total'], type: 'negativBar', aggregations: ['', 'Summe'], filters: [] ,orderby:['ASC',''] }, // in Prozent umrechnen.
-{ id: 'myChart3', tables: ['orders','orders', 'orders'], columns: ['orderDate-YYYY','orderDate-MM', 'total'], type: 'stacked', aggregations: ['','', 'Summe'],filters: [],orderby:['ASC','ASC','']  }, // in Prozent umrechnen.
+{ id: 'myChart3', tables: ['orders','orders', 'orders'], columns: ['orderDate-YYYY','orderDate-MM', 'total'], type: 'line', aggregations: ['','', 'Summe'],filters: [],orderby:['ASC','ASC','']  }, // in Prozent umrechnen.
 { id: 'myChart4', tables: ['products', 'orders'], columns: ['name', 'orderID',], type: 'pie', aggregations: ['', 'Anzahl'], filters: []}, // in Prozent umrechnen.
 { id: 'myChart5', tables: ['stores', 'stores', 'stores', 'orders'], columns: ['storeID', 'longitude', 'latitude', 'total'], type: 'heatmap', aggregations: ['', '', '', 'Summe'], filters: [] },
 { id: 'myChart6', tables: ['customers', 'customers', 'customers', 'orders'], columns: ['customerID', 'longitude', 'latitude', 'total'], type: 'heatmap', aggregations: ['', '', '', 'Summe'], filters: [] },
-{ id: 'myChart7', tables: ['products','orders'], columns: ['category', 'total'], type: 'bar', aggregations: ['', 'Summe'] , filters: [] },
-
-        //   { id: 'myChart3', tables: ['products','orders', 'products'], columns: ['Name', 'total', 'category'], type: 'donut', aggregations: ['', 'Summe', ''] , filters: [] },
-        //   { id: 'myChart4', tables: ['products','orders'], columns: ['category', 'total'], type: 'bar', aggregations: ['', 'Summe'] , filters: [] },
-        //   { id: 'myChart5', tables: ['stores', 'orders', 'stores'], 'columns': ['state', 'nItems', 'storeID'], type: 'pie', 'aggregations': ['', 'Summe', 'Diskrete Anzahl'], 'filters': []},
-     /////   { id: 'myChart7', tables: ['stores', 'stores', 'stores', 'orders'], columns: ['storeID', 'longitude', 'latitude', 'total'], type: 'heatmap', aggregations: ['', '', '', 'Summe'], filters: [] }
-                 /////   { id: 'myChart7', tables: ['stores', 'stores', 'stores', 'orders'], columns: ['storeID', 'longitude', 'latitude', 'total'], type: 'heatmap', aggregations: ['', '', '', 'Summe'], filters: [] }
 
     ]);
 });
@@ -130,6 +123,105 @@ function processPieChartData(response) {
 function generateChartOptions(chartType, response, yColumns) {
     let option = {};
     switch (chartType) {
+        case 'line':
+            // Gruppiere die Daten nach Jahren
+            const uniqueYears = [...new Set(response.x)]; // Extrahiere die verschiedenen Jahre
+            const monthsData = response.y0.slice(0, 12); // Nehme die ersten 12 Monate an
+            
+            const lineSeriesData = uniqueYears.map(year => ({
+                name: year,
+                type: 'line',
+                data: response.y1.filter((_, index) => response.x[index] === year),
+                itemStyle: { color: echarts.color.modifyHSL('#c23531', (uniqueYears.indexOf(year) * 120) % 360) }
+            }));
+            
+            option = {
+                title: { left: 'center', text: 'Total Revenue per Year' },
+                tooltip: { trigger: 'axis', axisPointer: { type: 'cross', label: { backgroundColor: '#6a7985' } } },
+                legend: { data: uniqueYears, top: '5%' },
+                xAxis: { type: 'category', boundaryGap: false, data: monthsData },
+                yAxis: { type: 'value' },
+                series: lineSeriesData,
+                backgroundColor: darkMode ? '#333' : '#fff',
+                textStyle: { color: darkMode ? '#fff' : '#000' },
+                toolbox: { feature: getToolboxFeatures() },
+                dataZoom: [{ type: 'inside', start: 0, end: 100 }, { start: 0, end: 100 }]
+            };
+            break;
+case 'boxplot':
+    // Group data by product name
+    const groupedData = response.x.reduce((acc, year, index) => {
+        const productName = response.y1[index];
+        const total = response.y3[index];
+
+        if (!acc[productName]) {
+            acc[productName] = [];
+        }
+
+        acc[productName].push(total);
+        return acc;
+    }, {});
+
+    // Format data for boxplot
+    const boxplotData = Object.entries(groupedData).map(([productName, totals]) => {
+        totals.sort((a, b) => a - b);
+
+        const min = Math.min(...totals);
+        const max = Math.max(...totals);
+        const q1 = d3.quantile(totals, 0.25);
+        const median = d3.quantile(totals, 0.5);
+        const q3 = d3.quantile(totals, 0.75);
+
+        return {
+            name: productName,
+            value: [min, q1, median, q3, max],
+            category: response.y2[response.y1.indexOf(productName)]
+        };
+    });
+
+    option = {
+        title: {
+            text: 'Boxplot of Product Sales by Year',
+            left: 'center'
+        },
+        tooltip: {
+            trigger: 'item',
+            formatter: function(params) {
+                return `
+                    Product: ${params.name}<br/>
+                    Category: ${params.data.category}<br/>
+                    Min: ${params.value[1]}<br/>
+                    Q1: ${params.value[2]}<br/>
+                    Median: ${params.value[3]}<br/>
+                    Q3: ${params.value[4]}<br/>
+                    Max: ${params.value[5]}
+                `;
+            }
+        },
+        xAxis: {
+            type: 'category',
+            data: boxplotData.map(item => item.name),
+            axisLabel: {
+                interval: 0,
+                rotate: 45
+            }
+        },
+        yAxis: {
+            type: 'value',
+            name: 'Total Sales'
+        },
+        series: [{
+            name: 'Boxplot',
+            type: 'boxplot',
+            data: boxplotData.map(item => item.value)
+        }],
+        backgroundColor: darkMode ? '#333' : '#fff',
+        textStyle: { color: darkMode ? '#fff' : '#000' },
+        toolbox: { feature: getToolboxFeatures() }
+    };
+    break;
+
+
         case 'stackedBar':
             const { months2, processedData, states } = processStackedBarData(response);
 
@@ -501,7 +593,7 @@ async function initializeHeatmap(chartId, table, column, aggregation) {
 
         const cfg = {
             "radius": chartId === 'myChart6' ? 0.3 : 0.5, // Feiner für Kunden
-            "maxOpacity": .8,
+            "maxOpacity": chartId === 'myChart6' ? .5 : .8,
             "scaleRadius": true,
             "useLocalExtrema": true,
             latField: 'lat',
@@ -516,6 +608,22 @@ async function initializeHeatmap(chartId, table, column, aggregation) {
             zoom: 6,
             layers: [baseLayer]
         });
+
+        // Hier wird die Überschrift hinzugefügt
+        const titleText = chartId === 'myChart5' ? 'Store Locations based on Total Revenue' : 'Customer Locations based on Total Revenue';
+        const title = L.control({ position: 'topright' });
+
+        title.onAdd = function(map) {
+            const div = L.DomUtil.create('div', 'map-title');
+            div.innerHTML = `<h2>${titleText}</h2>`;
+            div.style.backgroundColor = 'transparent';
+            div.style.padding = '10px';
+            div.style.fontFamily = 'Arial, sans-serif';
+            div.style.fontSize = '12px';
+            return div;
+        };
+
+        title.addTo(map);
 
         let tables, columns;
         if (chartId === 'myChart5') {
@@ -583,6 +691,7 @@ async function initializeHeatmap(chartId, table, column, aggregation) {
         });
     });
 }
+
 
 
 async function initializeChart(config) {

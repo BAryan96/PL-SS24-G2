@@ -11,7 +11,7 @@ $(document).ready(async function() {
     await loadChartsSequentially([
         { id: 'myChart1', tables: ['products', 'products', 'orders'], columns: ['name', 'size', 'total'], type: 'stackedBar', aggregations: ['','','Summe'], filters: [] },  // Neue Konfiguration für gestapeltes Balkendiagramm
         { id: 'myChart2', tables: ['orders', 'orders', 'products'], columns: ['orderDate-YYYY', 'total', 'name'], type: 'dynamicBar', aggregations: ['', 'Summe',''], filters: [] },
-        { id: 'myChart3', tables: ['products', 'products'], columns: ['price', 'ingredients'], type: 'scatter', aggregations: ['', ''], filters: [] },
+        { id: 'myChart3', tables: ['products', 'products', 'products', 'products'], columns: ['price', 'ingredients','size','name'], type: 'scatter', aggregations: ['', '','',''], filters: [] },
         { id: 'myChart4', tables: ['products', 'products', 'orders'], columns: ['category', 'name', 'total'], type: 'treemap', aggregations: ['', '', 'Summe'], filters: [] },  // Neue Treemap-Konfiguration
         { id: 'myChart5', tables: ['products','products','products','products','products','products'], columns: ['name', 'category', 'price', 'size', 'ingredients', 'launch'], type: 'kpi', aggregations: ['','','','','',''], filters: [] },
         { id: 'myChart6', tables: ['products','products'], columns: ['launch','name'], type: 'bar', aggregations: ['','Anzahl'], filters: [] },
@@ -180,15 +180,24 @@ async function fetchData(requestData) {
         });
     });
 }
+const sizeColors = {
+    'Small': '#1f78b4',
+    'Medium': '#33a02c',
+    'Large': '#e31a1c',
+    'Extra Large': '#ff7f00'
+};
 
 function processScatterData(response) {
     const data = response.x.map((price, index) => ({
-        value: [parseFloat(price), response.y0[index].split(',').length]
-        
+        value: [response.y0[index].split(',').length, parseFloat(price)],  // Achsen vertauschen
+        size: response.y1[index],
+        name: response.y2[index]  // Produktname hinzufügen
     }));
-
+    console.log("Processed Scatter Data: ", data); // Debugging line
     return data;
 }
+
+
 
 
 function processBoxplotData(response) {
@@ -294,18 +303,20 @@ function processDynamicBarData(response) {
 }
 
 
-// Hilfsfunktion zur Generierung der Farbskala basierend auf der Anzahl der Zutaten
+
 function generateColorMap(data) {
-    const uniqueCounts = [...new Set(data.map(point => point.value[1]))];
-    const colorPalette = ['#1f78b4', '#33a02c', '#e31a1c', '#ff7f00', '#6a3d9a', '#b15928'];
     const colorMap = {};
-
-    uniqueCounts.forEach((count, index) => {
-        colorMap[count] = colorPalette[index % colorPalette.length];
+    data.forEach(point => {
+        const size = point.size;
+        if (sizeColors[size]) {
+            colorMap[size] = sizeColors[size];
+        } else {
+            colorMap[size] = '#000000'; // Standardfarbe, falls die Größe nicht erkannt wird
+        }
     });
-
     return colorMap;
 }
+
 function processstackedBarData(response) {
     const nameSizeMap = {};
 
@@ -331,11 +342,15 @@ function processstackedBarData(response) {
         name: size,
         type: 'bar',
         stack: 'total',
-        data: names.map(name => nameSizeMap[name][size] || 0)
+        data: names.map(name => nameSizeMap[name][size] || 0),
+        itemStyle: {
+            color: sizeColors[size]  // Hier die Farben zuweisen
+        }
     }));
 
     return { names, processedData, sizes };
 }
+
 function processTreemapData(response) {
     const categoryMap = {};
 
@@ -435,7 +450,7 @@ function generateChartOptions(chartType, response) {
                 }]
             };
             break;
-        case 'stackedBar':
+            case 'stackedBar':
             const { names, processedData, sizes } = processstackedBarData(response);
 
             option = {
@@ -447,6 +462,29 @@ function generateChartOptions(chartType, response) {
                     trigger: 'axis',
                     axisPointer: {
                         type: 'shadow'
+                    },
+                    formatter: function(params) {
+                        let tooltipText = `<strong>${params[0].name}</strong><br/>`; // Produktname hinzufügen
+
+                        // Feste Reihenfolge der Größen
+                        const sizeOrder = ['Small', 'Medium', 'Large', 'Extra Large'];
+                        let sortedParams = [];
+
+                        // Sortiere params entsprechend der Größe
+                        sizeOrder.forEach(size => {
+                            params.forEach(param => {
+                                if (param.seriesName === size) {
+                                    sortedParams.push(param);
+                                }
+                            });
+                        });
+
+                        // Füge die sortierten Größen und Werte hinzu
+                        sortedParams.forEach(param => {
+                            tooltipText += `<span style="color:${param.color}; font-weight:bold;">${param.seriesName}:</span> $${param.value}<br/>`;
+                        });
+
+                        return tooltipText;
                     }
                 },
                 legend: {
@@ -468,13 +506,12 @@ function generateChartOptions(chartType, response) {
                 series: processedData
             };
             break;
-        case 'scatter':
+            case 'scatter':
             const scatterData = processScatterData(response);
-            const colorMap = generateColorMap(scatterData);
 
             option = {
                 title: {
-                    text: ' Correlation between Price vs Number of Ingredients',
+                    text: 'Correlation between Number of Ingredients vs Price',
                     left: 'center'
                 },
                 tooltip: {
@@ -482,33 +519,33 @@ function generateChartOptions(chartType, response) {
                     axisPointer: {
                         type: 'cross'
                     },
-                    formatter: function (params) {
+                    formatter: function(params) {
                         return [
-                            'Price: $' + params.value[0],
-                            'Number of Ingredients: ' + params.value[1]
+                            'Product Name: ' + params.data.name,  // Produktname hinzufügen
+                            'Number of Ingredients: ' + params.value[0],  // Achsen vertauschen
+                            'Price: $' + params.value[1],  // Achsen vertauschen
+                            'Size: ' + params.data.size
                         ].join('<br/>');
                     }
                 },
                 xAxis: {
                     type: 'value',
-                    name: 'Price ($)'
+                    name: 'Ingredients'  // Achsen vertauschen
                 },
                 yAxis: {
                     type: 'value',
-                    name: 'Number of Ingredients'
+                    name: 'Price ($)'  // Achsen vertauschen
                 },
-                series: [
-                    {
-                        name: 'Pizzas',
-                        type: 'scatter',
-                        data: scatterData,
-                        itemStyle: {
-                            color: function(params) {
-                                return colorMap[params.value[1]];
-                            }
+                series: [{
+                    name: 'Pizzas',
+                    type: 'scatter',
+                    data: scatterData,
+                    itemStyle: {
+                        color: function(params) {
+                            return sizeColors[params.data.size];  // Einheitliche Farbzuweisung
                         }
-                    },
-                ]
+                    }
+                }]
             };
             break;
         case 'boxplot':
@@ -711,7 +748,13 @@ function generateChartOptions(chartType, response) {
 
 async function initializeChart(config) {
     console.log("Initializing chart with config:", config);
-    const myChart = echarts.init(document.getElementById(config.id));
+    const chartElement = document.getElementById(config.id);
+    if (!chartElement) {
+        console.error("Chart element with ID " + config.id + " not found.");
+        return;
+    }
+
+    const myChart = echarts.init(chartElement);
     const existingChart = charts.find(chartObj => chartObj.config.id === config.id);
     if (existingChart) {
         existingChart.chart.dispose();
@@ -729,7 +772,7 @@ async function initializeChart(config) {
 
     try {
         let response = await fetchData(requestData);
-        console.log("Received response:", response);
+        console.log("Received response for chart ID " + config.id, response); // Debugging line
 
         response.chartId = config.id;
 
@@ -747,17 +790,6 @@ async function initializeChart(config) {
             console.log("Chart options generated:", option);
             myChart.setOption(option);
         }
-
-        if (config.id === 'myChart2') {
-            myChart.on('mouseover', function(params) {
-                handleMouseOver(myChart, config, params);
-            });
-
-            myChart.on('mouseout', function(params) {
-                handleMouseOut(myChart, config, params);
-            });
-        }
-        
     } catch (error) {
         console.error("Failed to initialize chart:", error);
     }
