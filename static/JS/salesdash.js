@@ -10,6 +10,7 @@ $(document).ready(async function() {
 { id: 'myChart1', tables: ['orders','stores','orders'], columns: ['orderDate-MM.YYYY','state','total'], type: 'stackedBar', aggregations: ['','', 'Summe'], filters: [],orderby:['ASC','','']  },
 { id: 'myChart2', tables: ['orders', 'orders'], columns: ['orderDate-MM.YYYY', 'total'], type: 'negativBar', aggregations: ['', 'Summe'], filters: [] ,orderby:['ASC',''] }, // in Prozent umrechnen.
 { id: 'myChart3', tables: ['orders','orders', 'orders'], columns: ['orderDate-YYYY','orderDate-MM', 'total'], type: 'stacked', aggregations: ['','', 'Summe'],filters: [],orderby:['ASC','ASC','']  }, // in Prozent umrechnen.
+{ id: 'myChart4', tables: ['products', 'orders'], columns: ['name', 'orderID',], type: 'pie', aggregations: ['', 'Anzahl'], filters: []}, // in Prozent umrechnen.
 
         //   { id: 'myChart3', tables: ['products','orders', 'products'], columns: ['Name', 'total', 'category'], type: 'donut', aggregations: ['', 'Summe', ''] , filters: [] },
         //   { id: 'myChart4', tables: ['products','orders'], columns: ['category', 'total'], type: 'bar', aggregations: ['', 'Summe'] , filters: [] },
@@ -100,6 +101,27 @@ function sortDataByYearMonth(response, isChart2 = false) {
     };
 }
 
+function processPieChartData(response) {
+    // Berechnung der Gesamtanzahl pro Produkt
+    const productCount = {};
+    for (let i = 0; i < response.x.length; i++) {
+        const productName = response.x[i];  // Produktname
+        const orderCount = response.y0[i];  // Anzahl der Bestellungen
+
+        productCount[productName] = orderCount;  // Gesamtanzahl der Bestellungen für das Produkt
+    }
+
+    // Berechnung der Gesamtanzahl aller Bestellungen
+    const totalOrders = Object.values(productCount).reduce((sum, count) => sum + count, 0);
+
+    // Umwandlung in ein für das Pie-Chart geeignetes Format und Berechnung des prozentualen Anteils
+    const pieData = Object.keys(productCount).map(productName => ({
+        name: productName,
+        value: productCount[productName]  // Gesamtanzahl der Bestellungen für das Pie-Chart
+    }));
+
+    return pieData;
+}
 
 
 function generateChartOptions(chartType, response, yColumns) {
@@ -237,41 +259,51 @@ function generateChartOptions(chartType, response, yColumns) {
                 };
                 break;
 
-        case 'pie':
-            option = {
-                title: { left: 'center', text: 'Donut Chart' },
-                tooltip: {
-                    trigger: 'item',
-                    formatter: function(params) {
-                        const dataIndex = params.dataIndex;
-                        const y1Value = response.y1 ? response.y1[dataIndex] : 'N/A';
-                        return `${params.name}: ${params.value}<br>Number of Stores in State: ${y1Value}`;
-                    }
-                },
-                toolbox: { feature: getToolboxFeatures() },
-                legend: { top: '5%', left: 'center' },
-                series: [{
-                    name: 'Data',
-                    type: 'pie',
-                    radius: ['40%', '70%'],
-                    center: ['50%', '70%'],
-                    startAngle: 180,
-                    endAngle: 360,
-                    avoidLabelOverlap: false,
-                    label: { show: false, position: 'center' },
-                    emphasis: { label: { show: true, fontSize: '20', fontWeight: 'bold' } },
-                    labelLine: { show: false },
-                    data: response.x.map((x, index) => ({
-                        value: response.y0[index],
-                        name: x,
-                        itemStyle: highlightedPoints[`${response.chartId}-${index}`] ? {
-                            borderColor: 'black',
-                            borderWidth: 2
-                        } : {}
-                    }))
-                }]
-            };
-            break;
+                case 'pie':
+                    const pieData = processPieChartData(response);
+                    option = {
+                        title: {
+                            text: 'Product Popularity',
+                            left: 'center'
+                        },
+                        tooltip: {
+                            trigger: 'item',
+                            formatter: '{a} <br/>{b} : {c} ({d}%)'  // Anzeigen der Produktnamen und des prozentualen Anteils
+                        },
+                        legend: {
+                            orient: 'vertical',
+                            left: 'right',
+                            top: 'middle',
+                            data: response.x  // Anzeige aller Produktnamen in der Legende
+                        },
+                        series: [
+                            {
+                                name: 'Product Popularity',
+                                type: 'pie',
+                                radius: '55%',
+                                center: ['50%', '60%'],
+                                data: pieData,
+                                emphasis: {
+                                    itemStyle: {
+                                        shadowBlur: 10,
+                                        shadowOffsetX: 0,
+                                        shadowColor: 'rgba(0, 0, 0, 0.5)'
+                                    }
+                                },
+                                label: {
+                                    show: true,
+                                    formatter: '{b}: {d}%'  // Anzeigen der Produktnamen und des prozentualen Anteils
+                                },
+                                labelLine: {
+                                    show: true
+                                }
+                            }
+                        ],
+                        backgroundColor: darkMode ? '#333' : '#fff',
+                        textStyle: { color: darkMode ? '#fff' : '#000' },
+                        toolbox: { feature: getToolboxFeatures() }
+                    };
+                    break;
         case 'donut':
             option = {
                 title: { left: 'center', text: 'Donut Chart' },
@@ -545,13 +577,8 @@ async function initializeChart(config) {
 
         // Überprüfe, ob genügend Daten vorhanden sind
         if (response.y0.length < 2) {
-            console.error("Nicht genügend Daten für Wachstumsraten");
+            console.error("Nicht genügend Daten für die Diagrammerstellung");
             return;
-        }
-
-        // Sortiere die Daten für myChart1 und myChart2
-        if (config.id === 'myChart1' || config.id === 'myChart2') {
-            response = sortDataByYearMonth(response, config.id === 'myChart2');
         }
 
         originalData[config.id] = response;
