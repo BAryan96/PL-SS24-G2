@@ -8,7 +8,7 @@ let originalData = {};
 $(document).ready(async function() {
     await loadChartsSequentially([
         { id: 'myChart1', tables: ['stores', 'stores', 'stores', 'orders'], columns: ['storeID', 'longitude', 'latitude', 'total'], type: 'heatmap', aggregations: ["", "X", "X", "Summe"], filters: filter },
-        { id: 'myChart2', tables: ['stores', 'customers'], columns: ['storeID', 'customerID'], type: 'bar', aggregations: ['', 'Anzahl'], filters: []},
+        { id: 'storeChartsContainer', tables: ['stores', 'orders', 'orders'], columns: ['storeID', 'total', 'orderDate-YYYY'], type: 'storeCharts', aggregations: ['', 'Summe', ''], filters: [] },
     ]);
 });
 
@@ -31,66 +31,38 @@ async function fetchData(requestData) {
     });
 }
 
-function generateChartOptions(config, response) {
-    switch (config.type) {
-        case 'bar':
-            return {
-                title: {
-                    text: 'Order per Store',
-                    left: 'center'
-                },
-                tooltip: {
-                    trigger: 'item',
-                    formatter: function(info) {
-                        const value = response.y0[info.dataIndex]; // Use y0 values from response
-                        return `${info.name}<br>Customer Orders in Store : ${value.toFixed(2)}`;
-                    }
-                },
-                xAxis: {
-                    type: 'category',
-                    data: response.x, // Assuming response.x contains categories (store IDs)
-                    axisPointer: {
-                        type: 'cross'
-                    }
-                },
-                yAxis: {
-                    type: 'value',
-                    axisPointer: {
-                        type: 'cross'
-                    }
-                },
-                series: [{
-                    name: 'Total Orders',
-                    data: response.y0, // Assuming response.y0 contains values (orders total-YYYY)
-                    type: 'bar',
-                }]
-            };
-        default:
-            console.error("Unknown chart type:", config.type);
-            return {};
-    }
+function generateChartOptions(response, storeData) {
+    storeData.sort((a, b) => a.year - b.year); // Sort by year
+
+    return {
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: {
+                type: 'cross'
+            }
+        },
+        xAxis: {
+            type: 'category',
+            data: storeData.map(data => data.year),
+            axisPointer: {
+                type: 'shadow'
+            }
+        },
+        yAxis: {
+            type: 'value'
+        },
+        series: [{
+            name: 'Total Revenue per Year',
+            data: storeData.map(data => data.total),
+            type: 'line',
+            smooth: true,
+            areaStyle: {}
+        }]
+    };
 }
-
-
-
-
-
 
 async function initializeChart(config) {
     console.log("Initializing chart with config:", config);
-
-    if (config.type === 'heatmap') {
-        await initializeHeatmap(config);
-        return;
-    }
-
-    const myChart = echarts.init(document.getElementById(config.id));
-    const existingChart = charts.find(chartObj => chartObj.config.id === config.id);
-    if (existingChart) {
-        existingChart.chart.dispose();
-        charts = charts.filter(chartObj => chartObj.config.id !== config.id);
-    }
-    charts.push({ chart: myChart, config: config });
 
     const requestData = {
         tables: config.tables,
@@ -107,8 +79,53 @@ async function initializeChart(config) {
         response.chartId = config.id;
         originalData[config.id] = response;
 
-        let option = generateChartOptions(config, response);
-        myChart.setOption(option);
+        if (config.type === 'storeCharts') {
+            const storeChartsContainer = document.getElementById('storeChartsContainer');
+            storeChartsContainer.innerHTML = '';
+
+            // Überschrift hinzufügen
+            const titleElement = document.createElement('h3');
+            titleElement.textContent = 'Store Wise Performance';
+            storeChartsContainer.appendChild(titleElement);
+
+            const storeIDs = [...new Set(response.x)];
+
+            storeIDs.forEach(storeID => {
+                const storeData = response.x.map((id, index) => ({
+                    storeID: id,
+                    total: response.y0[index],
+                    year: response.y1[index]
+                })).filter(data => data.storeID === storeID);
+
+                storeData.sort((a, b) => a.year - b.year); // Sort by year
+
+                const total = storeData.reduce((sum, data) => sum + parseFloat(data.total), 0);
+                let changePercentage = 0;
+                if (storeData.length > 1) {
+                    const previousTotal = storeData[storeData.length - 2].total;
+                    const currentTotal = storeData[storeData.length - 1].total;
+                    changePercentage = ((currentTotal - previousTotal) / previousTotal) * 100;
+                }
+
+                const performanceClass = changePercentage > 0 ? 'positive-change' : 'negative-change';
+
+                const chartContainer = document.createElement('div');
+                chartContainer.className = 'store-chart-container';
+                chartContainer.innerHTML = `
+                    <div class="store-title">Store ID${storeID}</div>
+                    <div class="store-performance">$${(total / 1e6).toFixed(2)}M</div>
+                    <div class="store-change ${performanceClass}">${changePercentage.toFixed(1)}%</div>
+                    <div id="storeChart_${storeID}" class="store-chart"></div>
+                `;
+                storeChartsContainer.appendChild(chartContainer);
+
+                const myChart = echarts.init(document.getElementById(`storeChart_${storeID}`));
+                charts.push({ chart: myChart, config: config });
+
+                let option = generateChartOptions(response, storeData);
+                myChart.setOption(option);
+            });
+        }
     } catch (error) {
         console.error("Failed to initialize chart:", error);
     }
@@ -244,11 +261,14 @@ async function initializeHeatmap(config) {
     });
 }
 
-
 async function loadChartsSequentially(chartConfigs) {
     charts = [];
     for (const config of chartConfigs) {
-        await initializeChart(config);
+        if (config.type === 'heatmap') {
+            await initializeHeatmap(config);
+        } else {
+            await initializeChart(config);
+        }
     }
 }
 
@@ -314,7 +334,6 @@ function handleFileSelect(event) {
         alert("Please drop a valid JSON file.");
     }
 }
-
 
 function handleFileUpload(event) {
     const files = event.target.files;
