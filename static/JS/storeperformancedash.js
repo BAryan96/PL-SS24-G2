@@ -8,7 +8,7 @@ let originalData = {};
 $(document).ready(async function() {
     await loadChartsSequentially([
         { id: 'myChart1', tables: ['stores', 'stores', 'stores', 'orders'], columns: ['storeID', 'longitude', 'latitude', 'total'], type: 'heatmap', aggregations: ["", "X", "X", "Summe"], filters: filter },
-        { id: 'myChart2', tables: ['stores', 'orders'], columns: ['storeID', 'total-YYYY'], type: 'bar', aggregations: ['', 'Summe'], filters: [] },
+        { id: 'myChart2', tables: ['stores', 'customers'], columns: ['storeID', 'customerID'], type: 'bar', aggregations: ['', 'Anzahl'], filters: []},
     ]);
 });
 
@@ -30,6 +30,51 @@ async function fetchData(requestData) {
         });
     });
 }
+
+function generateChartOptions(config, response) {
+    switch (config.type) {
+        case 'bar':
+            return {
+                title: {
+                    text: 'Order per Store',
+                    left: 'center'
+                },
+                tooltip: {
+                    trigger: 'item',
+                    formatter: function(info) {
+                        const value = response.y0[info.dataIndex]; // Use y0 values from response
+                        return `${info.name}<br>Customer Orders in Store : ${value.toFixed(2)}`;
+                    }
+                },
+                xAxis: {
+                    type: 'category',
+                    data: response.x, // Assuming response.x contains categories (store IDs)
+                    axisPointer: {
+                        type: 'cross'
+                    }
+                },
+                yAxis: {
+                    type: 'value',
+                    axisPointer: {
+                        type: 'cross'
+                    }
+                },
+                series: [{
+                    name: 'Total Orders',
+                    data: response.y0, // Assuming response.y0 contains values (orders total-YYYY)
+                    type: 'bar',
+                }]
+            };
+        default:
+            console.error("Unknown chart type:", config.type);
+            return {};
+    }
+}
+
+
+
+
+
 
 async function initializeChart(config) {
     console.log("Initializing chart with config:", config);
@@ -62,27 +107,7 @@ async function initializeChart(config) {
         response.chartId = config.id;
         originalData[config.id] = response;
 
-        let option = {};
-        switch(config.type) {
-            case 'bar':
-                option = {
-                    xAxis: {
-                        type: 'category',
-                        data: response.x // Assuming response.x contains categories (store IDs)
-                    },
-                    yAxis: {
-                        type: 'value'
-                    },
-                    series: [{
-                        data: response.y0, // Assuming response.y0 contains values (orders total-YYYY)
-                        type: 'bar'
-                    }]
-                };
-                break;
-            default:
-                console.error("Unknown chart type:", config.type);
-        }
-
+        let option = generateChartOptions(config, response);
         myChart.setOption(option);
     } catch (error) {
         console.error("Failed to initialize chart:", error);
@@ -123,6 +148,15 @@ async function initializeHeatmap(config) {
             zoom: 6,
             layers: [baseLayer]
         });
+
+        // Titel hinzufügen
+        const title = L.control({ position: 'topright' });
+        title.onAdd = function(map) {
+            const div = L.DomUtil.create('div', 'map-title');
+            div.innerHTML = '<h3>Stores Locations based on Total Revenue</h3>';
+            return div;
+        };
+        title.addTo(map);
 
         const circleMarkerOptions = {
             radius: 3,
@@ -180,7 +214,7 @@ async function initializeHeatmap(config) {
 
             data.forEach(point => {
                 const marker = L.circleMarker([point.latitude, point.longitude], circleMarkerOptions);
-                marker.bindPopup(`<b>ID:</b> ${point.id}<br><b>Longitude:</b> ${point.longitude}<br><b>Latitude:</b> ${point.latitude}<br><b>Aggregation:</b> ${point.Aggregation}`);
+                marker.bindPopup(`<b>ID:</b> ${point.id}<br><b>Longitude:</b> ${point.longitude}<br><b>Latitude:</b> ${point.latitude}<br><b>Total Revenue:</b> ${point.Aggregation}`);
                 marker.on('click', () => handleMarkerClick(marker, point));
                 map.addLayer(marker);
                 bounds.push([point.latitude, point.longitude]);
@@ -209,6 +243,7 @@ async function initializeHeatmap(config) {
         }
     });
 }
+
 
 async function loadChartsSequentially(chartConfigs) {
     charts = [];
