@@ -86,6 +86,10 @@ async function initializeChart(config) {
             // Überschrift hinzufügen
             const titleElement = document.createElement('h3');
             titleElement.textContent = 'Store Wise Performance';
+            titleElement.style.position = 'absolute';
+            titleElement.style.top = '10px';
+            titleElement.style.left = '10px';
+            titleElement.style.fontSize = '16px';
             storeChartsContainer.appendChild(titleElement);
 
             const storeIDs = [...new Set(response.x)];
