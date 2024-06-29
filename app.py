@@ -7,6 +7,10 @@ app = Flask(__name__)
 conn = connect_to_database()
 cur = get_cursor(conn)
 
+@app.route("/kpitest")
+def kpitest():
+    return render_template('kpitest.html')
+
 @app.route("/")
 def landingpage():
     return render_template('landingpage.html')
@@ -348,11 +352,12 @@ def fetch_data(query, params=None):
     conn.close()
     return pd.DataFrame(rows)
 
-def calculate_kpis(start_date, end_date, store_id, product_category, store_location, customer_id):
+def calculate_kpis():
     query = """
-        SELECT o.orderID, o.orderDate, o.storeID, o.total, oi.SKU, p.Category, oi.quantity, p.price,
+        SELECT o.orderID, o.orderDate, o.storeID, o.total, oi.SKU, p.Category, o.nItems AS quantity, p.price,
                o.customerID, c.latitude AS customer_lat, c.longitude AS customer_lon, 
-               s.latitude AS store_lat, s.longitude AS store_lon
+               s.latitude AS store_lat, s.longitude AS store_lon, s.city, s.state,
+               p.name, p.size
         FROM orders o
         JOIN orderitems oi ON o.orderID = oi.orderID
         JOIN products p ON oi.SKU = p.SKU
@@ -361,29 +366,8 @@ def calculate_kpis(start_date, end_date, store_id, product_category, store_locat
         WHERE 1=1
     """
     
-    filters = []
-    params = []
-    if start_date and end_date:
-        filters.append("o.orderDate BETWEEN %s AND %s")
-        params.extend([start_date, end_date])
-    if store_id:
-        filters.append("o.storeID = %s")
-        params.append(store_id)
-    if product_category:
-        filters.append("p.Category = %s")
-        params.append(product_category)
-    if store_location:
-        filters.append("s.city = %s OR s.state = %s")
-        params.extend([store_location, store_location])
-    if customer_id:
-        filters.append("o.customerID = %s")
-        params.append(customer_id)
-    
-    if filters:
-        query += " AND " + " AND ".join(filters)
-    
     # Fetch data
-    df = fetch_data(query, params)
+    df = fetch_data(query)
     
     # Sales Performance KPIs
     revenue = df['total'].sum()
@@ -406,23 +390,28 @@ def calculate_kpis(start_date, end_date, store_id, product_category, store_locat
     
     customer_orders = df.groupby('customerID').size()
     regular_customers = (customer_orders > 5).sum()
-    occasional_customers = ((customer_orders > 1) & (customer_orders <= 5)).sum() #andere definition von occasional (puffer)
+    occasional_customers = ((customer_orders > 1) & (customer_orders <= 5)).sum() 
     one_time_customers = (customer_orders == 1).sum()
     potential_customers = (customer_orders == 0).sum()
-    
+
     # Product Performance KPIs
-    product_performance = df.groupby('SKU').agg({
+    product_performance = df.groupby(['SKU', 'name', 'Category', 'size']).agg({
         'quantity': 'sum',
         'total': 'sum'
     }).rename(columns={'quantity': 'units_sold', 'total': 'revenue'}).reset_index()
+    
+    product_performance['order_frequency'] = df['orderDate'].diff().mean().total_seconds() / 60 / product_performance['units_sold']
     
     top_3_units_sold = product_performance.nlargest(3, 'units_sold')
     top_3_revenue = product_performance.nlargest(3, 'revenue')
     bottom_3_units_sold = product_performance.nsmallest(3, 'units_sold')
     bottom_3_revenue = product_performance.nsmallest(3, 'revenue')
     
+    df['order_time_minutes'] = pd.to_datetime(df['orderDate']).astype(int) // 10**9 // 60
+    product_performance['order_frequency_minutes'] = df.groupby('SKU')['order_time_minutes'].apply(lambda x: x.diff().mean()).reset_index(drop=True)
+    
     # Store Performance KPIs
-    store_performance = df.groupby('storeID').agg({
+    store_performance = df.groupby(['storeID', 'city', 'state']).agg({
         'quantity': 'sum',
         'total': 'sum'
     }).rename(columns={'quantity': 'units_sold', 'total': 'revenue'}).reset_index()
@@ -433,115 +422,96 @@ def calculate_kpis(start_date, end_date, store_id, product_category, store_locat
     reorder_df = df.groupby(['storeID', 'customerID']).size().reset_index(name='orders')
     store_reorder_rate = reorder_df.groupby('storeID')['orders'].mean().reset_index()
     best_store_reorder_rate = store_reorder_rate.nlargest(1, 'orders')
-    
-    #product name, product category, product size (alles in Minuten)
+
     top_3_units_sold_stores = store_performance.nlargest(3, 'units_sold')
     top_3_revenue_stores = store_performance.nlargest(3, 'revenue')
-
-    #tabelle mit name, category, cities (city per store), stores
     bottom_3_units_sold_stores = store_performance.nsmallest(3, 'units_sold')
     bottom_3_revenue_stores = store_performance.nsmallest(3, 'revenue')
     
     # Order Details KPIs
-
-    # Häufigkeiten der big orders --> Anzahl der Bestellungen, Wahrscheinlichkeit der Bestellungen, Zeitangabe (Rhythmus der Bestellungen)
     top_5_biggest_orders = df.nlargest(5, 'quantity')[['orderID', 'quantity']]
+    top_5_biggest_orders['order_probability'] = (top_5_biggest_orders['quantity'] / df['quantity'].sum()) * 100
+    top_5_biggest_orders['order_frequency_hours'] = (df['orderDate'].max() - df['orderDate'].min()).total_seconds() / 3600 / top_5_biggest_orders['quantity']
+
     average_order_size = df['quantity'].mean()
     
-    #was sind rush hours, wann sind die meisten bestellungen, wann sind die popular minuten innerhalb einer stunde #23
-    # top 5 Uhrzeiten
     df['order_time'] = pd.to_datetime(df['orderDate']).dt.time
     popular_order_time = df['order_time'].mode()[0]
+    popular_order_minute = df['order_time'].dt.minute.mode()[0]
     
-    #week days, month days
     df['order_month'] = pd.to_datetime(df['orderDate']).dt.month
     popular_order_month = df['order_month'].mode()[0]
+    df['order_week'] = pd.to_datetime(df['orderDate']).dt.isocalendar().week
+    popular_order_week = df['order_week'].mode()[0]
+    df['order_day'] = pd.to_datetime(df['orderDate']).dt.day
+    popular_order_day = df['order_day'].mode()[0]
     
     return {
         # Sales Performance KPIs
-        'revenue': revenue, #sum total 1
-        'units_sold': units_sold, #count orders 2
-        'avg_order_value': avg_order_value, #average total per count order 3 
-        'reorder_rate': reorder_rate, #one-time customer 4
+        'revenue': revenue,
+        'units_sold': units_sold,
+        'avg_order_value': avg_order_value,
+        'reorder_rate': reorder_rate,
         # Customer Insights KPIs
-        'average_distance': average_distance, #average distance between customer and store 5
-        'average_clv': average_clv, #average customer lifetime value 6
-        'regular_customers': regular_customers, 
-        'occasional_customers': occasional_customers, #ab wann regular ab wann occasional? 7
-        'one_time_customers': one_time_customers, # 8
-        'potential_customers' : potential_customers, # 9
+        'average_distance': average_distance,
+        'average_clv': average_clv,
+        'regular_customers': regular_customers,
+        'occasional_customers': occasional_customers,
+        'one_time_customers': one_time_customers,
+        'potential_customers' : potential_customers,
         # Product Performance KPIs
-        'top_3_units_sold': top_3_units_sold.to_dict('records'), #tabelle mit name, category 10
-        'top_3_revenue': top_3_revenue.to_dict('records'), #Anm. 11
-        'bottom_3_units_sold': bottom_3_units_sold.to_dict('records'), #12
-        'bottom_3_revenue': bottom_3_revenue.to_dict('records'), #13
+        'top_3_units_sold': top_3_units_sold.to_dict('records'),
+        'top_3_revenue': top_3_revenue.to_dict('records'),
+        'bottom_3_units_sold': bottom_3_units_sold.to_dict('records'),
+        'bottom_3_revenue': bottom_3_revenue.to_dict('records'),
+        'product_order_frequency_minutes': product_performance[['SKU', 'name', 'order_frequency_minutes']].to_dict('records'),
         # Store Performance KPIs
-        'best_store_revenue': best_store_revenue.to_dict('records'), #14
-        'most_ordered_store': most_ordered_store.to_dict('records'), #tabelle mit cities (city per store), stores #15
-        'best_store_reorder_rate': best_store_reorder_rate.to_dict('records'), #in minuten #16
-        'top_3_units_sold_stores': top_3_units_sold_stores.to_dict('records'), #17
-        'top_3_revenue_stores': top_3_revenue_stores.to_dict('records'), #18
-        'bottom_3_units_sold_stores': bottom_3_units_sold_stores.to_dict('records'), #19
-        'bottom_3_revenue_stores': bottom_3_revenue_stores.to_dict('records'), #20
+        'best_store_revenue': best_store_revenue.to_dict('records'),
+        'most_ordered_store': most_ordered_store.to_dict('records'),
+        'best_store_reorder_rate': best_store_reorder_rate.to_dict('records'),
+        'top_3_units_sold_stores': top_3_units_sold_stores.to_dict('records'),
+        'top_3_revenue_stores': top_3_revenue_stores.to_dict('records'),
+        'bottom_3_units_sold_stores': bottom_3_units_sold_stores.to_dict('records'),
+        'bottom_3_revenue_stores': bottom_3_revenue_stores.to_dict('records'),
         # Order Details KPIs
-        'top_5_biggest_orders': top_5_biggest_orders.to_dict('records'), #21
-        # Häufigkeiten der big orders --> Anzahl der Bestellungen, Wahrscheinlichkeit der Bestellungen, Zeitangabe (Rhythmus der Bestellungen)
-        'average_order_size': average_order_size, #22
-        'popular_order_time': popular_order_time.strftime("%H:%M:%S"), #was sind rush hours, wann sind die meisten bestellungen, wann sind die popular minuten innerhalb einer stunde #23
-        # top 5 Uhrzeiten
-        'popular_order_month': popular_order_month #week days, month days #24
+        'top_5_biggest_orders': top_5_biggest_orders.to_dict('records'),
+        'average_order_size': average_order_size,
+        'popular_order_time': popular_order_time.strftime("%H:%M:%S"),
+        'popular_order_minute': popular_order_minute,
+        'popular_order_month': popular_order_month,
+        'popular_order_week': popular_order_week,
+        'popular_order_day': popular_order_day
     }
+
 
 @app.route('/kpiforsalesperformancedash', methods=['GET'])
 def kpiforsalesperformancedash():
-    start_date = request.args.get('start_date')
-    end_date = request.args.get('end_date')
-    store_id = request.args.get('store_id')
-    product_category = request.args.get('product_category')
-    
-    kpis = calculate_kpis(start_date, end_date, store_id, product_category, None, None)
+    kpis = calculate_kpis()
     limited_kpis = dict(list(kpis.items())[:4])  # Select only the first 4 KPIs
     return jsonify(limited_kpis)
 
 @app.route('/kpiforcustomerdash', methods=['GET'])
 def kpiforcustomerdash():
-    start_date = request.args.get('start_date')
-    end_date = request.args.get('end_date')
-    store_location = request.args.get('store_location')
-
-    kpis = calculate_kpis(start_date, end_date, None, None, store_location, None)
-    limited_kpis = dict(list(kpis.items())[4:9])  # Select only KPI 5-9
+    kpis = calculate_kpis()
+    limited_kpis = dict(list(kpis.items())[4:10])  # Select only KPI 5-10
     return jsonify(limited_kpis)
 
 @app.route('/kpiforproductdash', methods=['GET'])
 def kpiforproductdash():
-    start_date = request.args.get('start_date')
-    end_date = request.args.get('end_date')
-    product_category = request.args.get('product_category')
-    
-    kpis = calculate_kpis(start_date, end_date, None, product_category, None, None)
-    limited_kpis = dict(list(kpis.items())[9:13]) # Select only KPI 10-13
+    kpis = calculate_kpis()
+    limited_kpis = dict(list(kpis.items())[10:15]) # Select only KPI 11-15
     return jsonify(limited_kpis)
 
 @app.route('/kpiforstoredash', methods=['GET'])
 def kpiforstoredash():
-    start_date = request.args.get('start_date')
-    end_date = request.args.get('end_date')
-    store_location = request.args.get('store_location')
-    
-    kpis = calculate_kpis(start_date, end_date, None, None, store_location, None)
-    limited_kpis = dict(list(kpis.items())[13:20]) # Select only KPI 14-20
+    kpis = calculate_kpis()
+    limited_kpis = dict(list(kpis.items())[15:22]) # Select only KPI 16-22
     return jsonify(limited_kpis)
 
 @app.route('/kpifororderdash', methods=['GET'])
 def kpifororderdash():
-    start_date = request.args.get('start_date')
-    end_date = request.args.get('end_date')
-    store_id = request.args.get('store_id')
-    customer_id = request.args.get('customer_id')
-    
-    kpis = calculate_kpis(start_date, end_date, store_id, None, customer_id, None)
-    limited_kpis = dict(list(kpis.items())[20:24]) # Select only KPI 21-24
+    kpis = calculate_kpis()
+    limited_kpis = dict(list(kpis.items())[22:29]) # Select only KPI 23-29
     return jsonify(limited_kpis)
 
 
