@@ -9,6 +9,7 @@ $(document).ready(async function() {
     await loadChartsSequentially([
         { id: 'myChart1', tables: ['stores', 'stores', 'stores', 'orders'], columns: ['storeID', 'longitude', 'latitude', 'total'], type: 'heatmap', aggregations: ["", "X", "X", "Summe"], filters: filter },
         { id: 'storeChartsContainer', tables: ['stores', 'orders', 'orders'], columns: ['storeID', 'total', 'orderDate-YYYY'], type: 'storeCharts', aggregations: ['', 'Summe', ''], filters: [] },
+        { id: 'myChart3', tables: ['orders', 'orders'], columns: ['orderDate-DD.MM.YYYY', 'orderID'], type: 'dayWiseHeatmap', aggregations: ['', 'Anzahl'], filters: [] }
     ]);
 });
 
@@ -129,6 +130,8 @@ async function initializeChart(config) {
                 let option = generateChartOptions(response, storeData);
                 myChart.setOption(option);
             });
+        } else if (config.type === 'dayWiseHeatmap') {
+            initializeDayWiseHeatmap(config, response);
         }
     } catch (error) {
         console.error("Failed to initialize chart:", error);
@@ -263,6 +266,81 @@ async function initializeHeatmap(config) {
             reject(error);
         }
     });
+}
+
+function initializeDayWiseHeatmap(config, response) {
+    const myChart = echarts.init(document.getElementById(config.id));
+
+    const daysOfWeek = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
+
+    const data = response.x.map((date, index) => {
+        const [day, month, year] = date.split('.');
+        const dateObj = new Date(`${year}-${month}-${day}`);
+        return [
+            `${year}-${month}`,
+            daysOfWeek[dateObj.getDay() - 1],
+            response.y0[index]
+        ];
+    });
+
+    // Sort data by month and day of week
+    data.sort((a, b) => a[0].localeCompare(b[0]) || daysOfWeek.indexOf(a[1]) - daysOfWeek.indexOf(b[1]));
+
+    const uniqueMonths = [...new Set(data.map(item => item[0]))];
+    const formattedData = data.map(item => [uniqueMonths.indexOf(item[0]), daysOfWeek.indexOf(item[1]), item[2]]);
+
+    const option = {
+        title: {
+            text: 'Heatmap for Orders per Weekday',
+            left: 'center'
+        },
+        tooltip: {
+            position: 'top'
+        },
+        grid: {
+            height: '50%',
+            top: '10%'
+        },
+        xAxis: {
+            type: 'category',
+            data: uniqueMonths.filter((_, i) => i % Math.ceil(uniqueMonths.length / 10) === 0), // Display fewer x-axis labels
+            splitArea: {
+                show: true
+            }
+        },
+        yAxis: {
+            type: 'category',
+            data: daysOfWeek,
+            splitArea: {
+                show: true
+            }
+        },
+        visualMap: {
+            min: 0,
+            max: Math.max(...response.y0),
+            calculable: true,
+            orient: 'horizontal',
+            left: 'center',
+            bottom: '15%'
+        },
+        series: [{
+            name: 'Order Count',
+            type: 'heatmap',
+            data: formattedData,
+            label: {
+                show: false // Hide the labels on the heatmap cells
+            },
+            emphasis: {
+                itemStyle: {
+                    shadowBlur: 10,
+                    shadowColor: 'rgba(0, 0, 0, 0.5)'
+                }
+            }
+        }]
+    };
+
+    myChart.setOption(option);
+    charts.push({ chart: myChart, config: config });
 }
 
 async function loadChartsSequentially(chartConfigs) {
