@@ -9,9 +9,12 @@ $(document).ready(async function() {
     await loadChartsSequentially([
         { id: 'myChart1', tables: ['stores', 'stores', 'stores', 'orders'], columns: ['storeID', 'longitude', 'latitude', 'total'], type: 'heatmap', aggregations: ["", "X", "X", "Summe"], filters: filter },
         { id: 'storeChartsContainer', tables: ['stores', 'orders', 'orders'], columns: ['storeID', 'total', 'orderDate-YYYY'], type: 'storeCharts', aggregations: ['', 'Summe', ''], filters: [] },
-        { id: 'myChart3', tables: ['orders', 'orders'], columns: ['orderDate-DD.MM.YYYY', 'orderID'], type: 'dayWiseHeatmap', aggregations: ['', 'Anzahl'], filters: [] }
+        { id: 'myChart3', tables: ['orders', 'orders'], columns: ['orderDate-DD.MM.YYYY', 'orderID'], type: 'dayWiseHeatmap', aggregations: ['', 'Anzahl'], filters: [] },
+        { id: 'myChart4', tables: ['orders', 'orders'], columns: ['orderDate-DD.MM.YYYY HH24:MI', 'orderID'], type: 'bar', aggregations: ['', 'Anzahl'], filters: [] }
     ]);
+
 });
+
 
 async function fetchData(requestData) {
     return new Promise((resolve, reject) => {
@@ -61,7 +64,56 @@ function generateChartOptions(response, storeData) {
         }]
     };
 }
+function initializeBarChart(config, response) {
+    const myChart = echarts.init(document.getElementById(config.id));
 
+    const timeData = response.x.map(item => item.split(' ')[1]); // Extract HH24:MI part
+    const orderCounts = response.y0;
+
+    const ordersPerHour = Array.from({ length: 24 }, () => 0);
+
+    timeData.forEach((time, index) => {
+        const hour = parseInt(time.split(':')[0], 10);
+        ordersPerHour[hour] += orderCounts[index];
+    });
+
+    const option = {
+        title: {
+            text: 'Orders Per Hour',
+            left: 'center'
+        },
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: {
+                type: 'shadow'
+            },
+            formatter: '{b}: {c} orders'
+        },
+        xAxis: {
+            type: 'category',
+            data: Array.from({ length: 24 }, (_, i) => `${i}:00`),
+            axisLabel: {
+                interval: 0,
+                rotate: 45
+            }
+        },
+        yAxis: {
+            type: 'value',
+            minInterval: 1
+        },
+        series: [{
+            name: 'Orders',
+            type: 'bar',
+            data: ordersPerHour,
+            itemStyle: {
+                color: '#73c0de'
+            }
+        }]
+    };
+
+    myChart.setOption(option);
+    charts.push({ chart: myChart, config: config });
+}
 async function initializeChart(config) {
     console.log("Initializing chart with config:", config);
 
@@ -83,15 +135,6 @@ async function initializeChart(config) {
         if (config.type === 'storeCharts') {
             const storeChartsContainer = document.getElementById('storeChartsContainer');
             storeChartsContainer.innerHTML = '';
-
-            // Überschrift hinzufügen
-            const titleElement = document.createElement('h3');
-            titleElement.textContent = 'Store Wise Performance';
-            titleElement.style.position = 'absolute';
-            titleElement.style.top = '10px';
-            titleElement.style.left = '10px';
-            titleElement.style.fontSize = '16px';
-            storeChartsContainer.appendChild(titleElement);
 
             const storeIDs = [...new Set(response.x)];
 
@@ -117,7 +160,7 @@ async function initializeChart(config) {
                 const chartContainer = document.createElement('div');
                 chartContainer.className = 'store-chart-container';
                 chartContainer.innerHTML = `
-                    <div class="store-title">Store ID${storeID}</div>
+                    <div class="store-title">Store ID ${storeID}</div>
                     <div class="store-performance">$${(total / 1e6).toFixed(2)}M</div>
                     <div class="store-change ${performanceClass}">${changePercentage.toFixed(1)}%</div>
                     <div id="storeChart_${storeID}" class="store-chart"></div>
@@ -133,6 +176,10 @@ async function initializeChart(config) {
         } else if (config.type === 'dayWiseHeatmap') {
             initializeDayWiseHeatmap(config, response);
         }
+        else if (config.type === 'bar') {
+            initializeBarChart(config, response);
+        }
+        
     } catch (error) {
         console.error("Failed to initialize chart:", error);
     }
@@ -330,6 +377,10 @@ function initializeDayWiseHeatmap(config, response) {
             label: {
                 show: false // Hide the labels on the heatmap cells
             },
+            itemStyle: {
+                borderColor: '#fff', // Add border color to cells
+                borderWidth: 1
+            },
             emphasis: {
                 itemStyle: {
                     shadowBlur: 10,
@@ -342,6 +393,10 @@ function initializeDayWiseHeatmap(config, response) {
     myChart.setOption(option);
     charts.push({ chart: myChart, config: config });
 }
+
+
+
+
 
 async function loadChartsSequentially(chartConfigs) {
     charts = [];
