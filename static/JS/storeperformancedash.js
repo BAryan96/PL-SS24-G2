@@ -508,8 +508,6 @@ function initializeKPI(config, response) {
     `;
 }
 
-
-
 async function loadChartsSequentially(chartConfigs) {
     charts = [];
     for (const config of chartConfigs) {
