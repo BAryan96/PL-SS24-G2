@@ -6,7 +6,6 @@ let darkMode = false;
 let decalPattern = false;
 
 $(document).ready(function() {
-    // Lädt die verfügbaren Tabellen vom Backend beim Laden der Seite
     $.get("/tables", function(data) {
         availableTables = data.tables;
         populateTableOptions();
@@ -25,7 +24,7 @@ function populateTableOptions() {
 document.getElementById('dataForm').addEventListener('submit', function(event) {
     event.preventDefault();
     if (chartCount < maxCharts) {
-        addChart('line'); // oder 'area', 'bar', etc.
+        addChart('line');
     } else {
         alert('Maximum number of charts reached.');
     }
@@ -56,7 +55,7 @@ function updateChart(chartInstance, chartType) {
             aggregations: ["", aggregation]
         };
 
-        console.log("Sending request data:", requestData); // Debugging-Meldung
+        console.log("Sending request data:", requestData);
 
         $.ajax({
             url: "/getdata",
@@ -64,7 +63,7 @@ function updateChart(chartInstance, chartType) {
             contentType: "application/json",
             data: JSON.stringify(requestData),
             success: function(response) {
-                console.log("Received response:", response); // Debugging-Meldung
+                console.log("Received response:", response);
                 const dataX = response.x;
                 const dataY = response.y0;
 

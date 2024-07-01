@@ -37,9 +37,9 @@ def donutchart():
 def basicscatterchart():
     return render_template('basicscatterchart.html')
 
-@app.route("/map")
-def morphingmap():
-    return render_template('map.html')
+@app.route("/interactivemap")
+def interactivemap():
+    return render_template('interactivemap.html')
 
 @app.route("/basicbarchart")
 def basicbarchart():

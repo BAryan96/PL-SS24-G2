@@ -7,23 +7,6 @@
     <link rel="stylesheet" href="/static/CSS/landingpage.css">
     <link rel="stylesheet" href="/static/CSS/all.css">
     <style>
-        .submenu {
-            display: none;
-            padding-left: 20px;
-        }
-
-        .submenu a {
-            display: block;
-        }
-
-        .menu-item.has-submenu > span::after {
-            content: ' ▼';
-            font-size: 0.8em;
-        }
-
-        .menu-item.has-submenu.open > span::after {
-            content: ' ▲';
-        }
     </style>
 </head>
 <body>
@@ -47,16 +30,6 @@
             <a href="#">My Profile</a>
             <a href="/login">Sign In</a>
             <a href="/">Log Out</a>
-            <div class="menu-item has-submenu">
-                <span>Customer Dashboard</span>
-                <div class="submenu">
-                    <a href="/salesperformancedash">Sales Performance Dashboard</a>
-                    <a href="#">Customer Insights Dashboard</a>
-                    <a href="#">Product Performance Dashboard</a>
-                    <a href="#">Store Performance Dashboard</a>
-                    <a href="#">Order Details Dashboard</a>
-                </div>
-            </div>
         </div>
         <main>
             <div class="content-section">

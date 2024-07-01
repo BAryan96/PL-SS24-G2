@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="de">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,8 +8,6 @@
     <link rel="stylesheet" href="/static/CSS/all.css">
     <link rel="stylesheet" href="/static/CSS/charts.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
     <style>
         .color-picker {
             margin: 10px 0;
@@ -71,31 +70,6 @@
             height: 600px;
             position: relative;
         }
-
-        .legend {
-            line-height: 18px;
-            color: #555;
-            background: white;
-            padding: 10px;
-            border-radius: 5px;
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
-        }
-
-        .legend h4 {
-            margin: 0 0 5px;
-        }
-
-        .legend div {
-            display: flex;
-            align-items: center;
-        }
-
-        .legend div span {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            margin-right: 5px;
-        }
     </style>
 </head>
 
@@ -104,7 +78,7 @@
         <header>
             <div class="logo-area">
                 <span class="logo-circle"></span>
-                <span class="logo-text">Geodaten Visualisierung</span>
+                <span class="logo-text">Data Visualisation - DV</span>
             </div>
             <button class="menu-button">☰</button>
         </header>
@@ -123,12 +97,12 @@
                 <form id="dataForm" class="form-container">
                     <div>
                         <h2>Please Choose your Data for Markers</h2>
-                        <label for="markerTypeSelect">Marker Based On</label>
-                        <select id="markerTypeSelect" name="markerTypeSelect">
-                            <option value="">None</option>
-                            <option value="stores">Store Locations</option>
-                            <option value="customers">Customer Locations</option>
-                        </select>
+                        <label>
+                            <input type="checkbox" id="markerStores" name="markerType" value="stores"> Store Locations
+                        </label>
+                        <label>
+                            <input type="checkbox" id="markerCustomers" name="markerType" value="customers"> Customer Locations
+                        </label>
                         <label for="tableSelect">Table</label>
                         <select id="tableSelect" name="tableSelect">
                             <option value="">None</option>
@@ -161,12 +135,15 @@
             </section>
         </main>
     </div>
+
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
-    <script src="https://unpkg.com/heatmap.js"></script>
-    <script src="https://unpkg.com/leaflet-heatmap/leaflet-heatmap.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="/static/JS/sidemenu.js"></script>
-    <script src="/static/JS/overviewheatmap.js"></script>
+    <script src="/static/JS/overviewinteractivemap.js"></script>
+
+    <script>
+    </script>
+
 </body>
+
 </html>
