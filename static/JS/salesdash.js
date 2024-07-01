@@ -8,8 +8,8 @@ let originalData = {};
 $(document).ready(async function() {
     await loadChartsSequentially([
 { id: 'myChart1', tables: ['orders','stores','orders'], columns: ['orderDate-MM.YYYY','state','total'], type: 'stackedBar', aggregations: ['','', 'Summe'], filters: [],orderby:['ASC','','']  },
-{ id: 'myChart2', tables: ['orders', 'orders'], columns: ['orderDate-MM.YYYY', 'total'], type: 'negativBar', aggregations: ['', 'Summe'], filters: [] ,orderby:['ASC',''] }, // in Prozent umrechnen.
-{ id: 'myChart3', tables: ['orders','orders', 'orders'], columns: ['orderDate-YYYY','orderDate-MM', 'total'], type: 'line', aggregations: ['','', 'Summe'],filters: [],orderby:['ASC','ASC','']  }, // in Prozent umrechnen.
+{ id: 'myChart2', tables: ['orders', 'orders'], columns: ['orderDate-MM.YYYY', 'total'], type: 'negativBar', aggregations: ['', 'Summe'], filters: [] ,orderby:['ASC',''] },
+{ id: 'myChart3', tables: ['orders','orders', 'orders'], columns: ['orderDate-YYYY','orderDate-MM', 'total'], type: 'line', aggregations: ['','', 'Summe'],filters: [],orderby:['ASC','ASC','']  },
 { id: 'myChart4', tables: ['products', 'orders'], columns: ['name', 'orderID',], type: 'pie', aggregations: ['', 'Anzahl'], filters: []},
 { id: 'myChart5', tables: ['stores', 'stores', 'stores', 'orders'], columns: ['storeID', 'longitude', 'latitude', 'total'], type: 'heatmap', aggregations: ['', '', '', 'Summe'], filters: [] },
 { id: 'myChart6', tables: ['customers', 'customers', 'customers', 'orders'], columns: ['customerID', 'longitude', 'latitude', 'total'], type: 'heatmap', aggregations: ['', '', '', 'Summe'], filters: [] },
@@ -698,6 +698,7 @@ async function initializeHeatmap(chartId, table, column, aggregation) {
 async function initializeChart(config) {
     if (config.type === 'heatmap') {
         await initializeHeatmap(config.id, config.tables[3], config.columns[3], config.aggregations[3]);
+        charts.push({ chart: config.id, config: config });
     } else if (config.type === 'kpi') {
         try {
             let response = await fetchData({
@@ -714,6 +715,7 @@ async function initializeChart(config) {
 
             // Initialisiere KPI
             initializeKPI(config, response);
+            charts.push({ chart: config.id, config: config });
         } catch (error) {
             console.error("Failed to initialize KPI chart:", error);
         }
@@ -756,6 +758,7 @@ async function initializeChart(config) {
         }
     }
 }
+
 
 
 
@@ -1189,6 +1192,7 @@ function exportJson() {
     a.click();
     document.body.removeChild(a);
 }
+
 
 function openImportPopup() {
     document.getElementById('importJsonPopup').style.display = 'block';
