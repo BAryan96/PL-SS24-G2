@@ -4,6 +4,8 @@ let charts = [];
 let filter = [];
 let highlightedPoints = {};
 let originalData = {};
+let chartConfigs = [];
+
 
 $(document).ready(async function() {
     await loadChartsSequentially([
@@ -11,7 +13,7 @@ $(document).ready(async function() {
         { id: 'myChart2', tables: ['orders','customers'], columns: ['orderDate-MM.YYYY','customerID'], type: 'line', aggregations: ['','Anzahl'], filters: [], orderby: ['ASC',''] },
         { id: 'myChart3', tables: ['orders','customers'], columns: ['orderDate-YYYY','customerID'], type: 'treemap', aggregations: ['','Anzahl'], filters: []},
         { id: 'myChart4', tables: ['orders','customers-Right'], columns: ['customerID','customerID'], type: 'pie', aggregations: ['','Anzahl'], filters: []},
-
+        { id: 'myChart5', tables: ['customers','customers','stores','stores'], columns: ['latitude','longitude','latitude','longitude'], type: 'kpi', aggregations: ['','','',''], filters: []},
         { id: 'myChart7', tables: ['customers','customser','customers'], columns: ['customerID', 'longitude', 'latitude'], type: 'dynamicMarkers', aggregations: ['', 'X', 'X'], filters: [] },
 
     ]);
@@ -773,10 +775,83 @@ async function loadDynamicMarkers(chartId) {
     });
 }
 
+function haversineDistance(lat1, lon1, lat2, lon2) {
+    function toRadians(degrees) {
+        return degrees * Math.PI / 180;
+    }
+
+    const R = 6371; // Radius of the Earth in kilometers
+    const dLat = toRadians(lat2 - lat1);
+    const dLon = toRadians(lon2 - lon1);
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) *
+              Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const distance = R * c;
+    return distance;
+}
+
+function initializeKPI(config, averageDistanceKm, averageDistanceMiles) {
+    const kpiContainer = document.getElementById(config.id);
+    kpiContainer.innerHTML = `
+        <div class="kpi-section" style="margin-bottom: 20px;">
+            <h3 style="font-size: 24px;">Durchschnittliche Entfernung</h3>
+            <p style="font-size: 20px; font-weight: bold;">
+                ${averageDistanceKm.toFixed(2)} km / ${averageDistanceMiles.toFixed(2)} miles
+            </p>
+        </div>
+    `;
+}
 
 async function initializeChart(config) {
     if (config.type === 'dynamicMarkers') {
         await loadDynamicMarkers(config.id);
+    } else if (config.type === 'kpi') {
+        try {
+            let response = await fetchData({
+                tables: config.tables,
+                columns: config.columns,
+                chartType: config.type,
+                aggregations: config.aggregations,
+                filters: config.filters
+            });
+
+            const customerLatitudes = response.x.map(parseFloat);
+            const customerLongitudes = response.y0.map(parseFloat);
+            const storeLatitudes = response.y1.map(parseFloat);
+            const storeLongitudes = response.y2.map(parseFloat);
+
+            let totalDistanceKm = 0;
+            let count = 0;
+
+            customerLatitudes.forEach((custLat, index) => {
+                const custLon = customerLongitudes[index];
+                let minDistanceKm = Infinity;
+
+                storeLatitudes.forEach((storeLat, sIndex) => {
+                    const storeLon = storeLongitudes[sIndex];
+                    const distanceKm = haversineDistance(custLat, custLon, storeLat, storeLon);
+                    if (distanceKm < minDistanceKm) {
+                        minDistanceKm = distanceKm;
+                    }
+                });
+
+                if (minDistanceKm !== Infinity) {
+                    totalDistanceKm += minDistanceKm;
+                    count++;
+                }
+            });
+
+            const averageDistanceKm = totalDistanceKm / count;
+            const averageDistanceMiles = averageDistanceKm * 0.621371;
+
+            response.chartId = config.id;
+            originalData[config.id] = response;
+
+            initializeKPI(config, averageDistanceKm, averageDistanceMiles);
+        } catch (error) {
+            console.error("Failed to initialize KPI chart:", error);
+        }
     } else {
         const myChart = echarts.init(document.getElementById(config.id));
         const existingChart = charts.find(chartObj => chartObj.config.id === config.id);
@@ -1001,12 +1076,14 @@ function resetAllCharts() {
     });
 }
 
-async function loadChartsSequentially(chartConfigs) {
+async function loadChartsSequentially(configs) {
     charts = []; // Clear existing charts
-    for (const config of chartConfigs) {
+    chartConfigs = configs; // Store the configurations for export
+    for (const config of configs) {
         await initializeChart(config);
     }
 }
+
 
 document.getElementById('exportJsonButton').addEventListener('click', exportJson);
 document.getElementById('importJsonButton').addEventListener('click', openImportPopup);
@@ -1017,13 +1094,10 @@ document.getElementById('fileSelectButton').addEventListener('click', () => docu
 document.getElementById('fileInput').addEventListener('change', handleFileUpload);
 
 function exportJson() {
-    if (charts.length === 0) {
+    if (chartConfigs.length === 0) {
         alert("No JSON Data available to export.");
         return;
     }
-    // Aktuelle Diagrammkonfigurationen sammeln
-    const chartConfigs = charts.map(chartObj => chartObj.config);
-
     const jsonString = JSON.stringify(chartConfigs, null, 4); // 4 for proper formatting
     const blob = new Blob([jsonString], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -1034,6 +1108,7 @@ function exportJson() {
     a.click();
     document.body.removeChild(a);
 }
+
 
 function openImportPopup() {
     document.getElementById('importJsonPopup').style.display = 'block';
