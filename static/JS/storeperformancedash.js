@@ -12,7 +12,7 @@ $(document).ready(async function() {
         { id: 'myChart3', tables: ['orders', 'orders'], columns: ['orderDate-DD.MM.YYYY', 'orderID'], type: 'dayWiseHeatmap', aggregations: ['', 'Anzahl'], filters: [] },
         { id: 'myChart4', tables: ['orders', 'orders'], columns: ['orderDate-DD.MM.YYYY HH24:MI', 'orderID'], type: 'bar', aggregations: ['', 'Anzahl'], filters: [] },
     //  { id: 'myChart5', tables: ['stores', 'orders', 'products','products'], columns: ['storeID', 'total','name','name'], type: 'stackedBar', aggregations: ['', 'Summe','',''], filters: [] },
-        { id: 'myChart7', tables: ['stores', 'orders', 'orders','stores', 'stores'], columns: ['storeID', 'orderID', 'total','state','city'], type: 'kpi', aggregations: ['', 'Anzahl','Summe','',''], filters: [] }
+        { id: 'myChart6', tables: ['stores', 'orders', 'orders','stores', 'stores'], columns: ['storeID', 'orderID', 'total','state','city'], type: 'kpi', aggregations: ['', 'Anzahl','Summe','',''], filters: [] }
 
     ]);
 
