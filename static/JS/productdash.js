@@ -13,13 +13,12 @@ $(document).ready(async function() {
         { id: 'myChart2', tables: ['orders', 'orders', 'products'], columns: ['orderDate-YYYY', 'total', 'name'], type: 'dynamicBar', aggregations: ['', 'Summe',''], filters: [] },
         { id: 'myChart3', tables: ['products', 'products', 'products', 'products'], columns: ['price', 'ingredients','size','name'], type: 'scatter', aggregations: ['', '','',''], filters: [] },
         { id: 'myChart4', tables: ['products', 'products', 'orders'], columns: ['category', 'name', 'total'], type: 'treemap', aggregations: ['', '', 'Summe'], filters: [] },  // Neue Treemap-Konfiguration
-        { id: 'myChart5', tables: ['products','products','products','products','products','products'], columns: ['name', 'category', 'price', 'size', 'ingredients', 'launch'], type: 'kpi', aggregations: ['','','','','',''], filters: [] },
+        { id: 'myChart5', tables: ['products', 'orders','orders','products'], columns: ['name', 'orderID','total','size'], type: 'kpi', aggregations: ['','Anzahl','Summe',''], filters: [] },
         { id: 'myChart6', tables: ['products','products'], columns: ['launch','name'], type: 'bar', aggregations: ['','Anzahl'], filters: [] },
         { id: 'myChart7', tables: ['products', 'products'], columns: ['name', 'price'], type: 'boxplot', aggregations: ['',''], filters: [] },
 
 
     ]);
-    displayKPIs();
 
 });
 
@@ -42,125 +41,7 @@ function transformData(response) {
 }
 
 
-function calculateKPIs(data) {
-    if (!data || data.length === 0) {
-        console.error("Keine Daten für KPI-Berechnungen verfügbar");
-        return {};
-    }
 
-    const kpis = {};
-
-    // Durchschnittlicher Verkaufspreis pro Kategorie
-    const pricesPerCategory = data.reduce((acc, product) => {
-        if (!acc[product.category]) {
-            acc[product.category] = [];
-        }
-        acc[product.category].push(product.price);
-        return acc;
-    }, {});
-
-    kpis.averagePricePerCategory = Object.keys(pricesPerCategory).map(category => {
-        const prices = pricesPerCategory[category];
-        return {
-            category,
-            averagePrice: prices.reduce((sum, price) => sum + price, 0) / prices.length
-        };
-    });
-
-    // Verteilung der Produkte nach Größe
-    kpis.sizeDistribution = data.reduce((acc, product) => {
-        if (!acc[product.size]) {
-            acc[product.size] = 0;
-        }
-        acc[product.size]++;
-        return acc;
-    }, {});
-
-    // Anzahl der Produkte pro Kategorie
-    kpis.productsPerCategory = data.reduce((acc, product) => {
-        if (!acc[product.category]) {
-            acc[product.category] = 0;
-        }
-        acc[product.category]++;
-        return acc;
-    }, {});
-
-    // Durchschnittlicher Preis pro Jahr
-    const validYears = [2018, 2019, 2020, 2021]; // Definieren Sie die gültigen Jahre
-
-    const pricesPerYear = data.reduce((acc, product) => {
-        const year = product.launch.getFullYear();
-        if (validYears.includes(year)) { // Nur gültige Jahre verarbeiten
-            if (!acc[year]) {
-                acc[year] = [];
-            }
-            acc[year].push(product.price);
-        }
-        return acc;
-    }, {});
-
-    kpis.averagePricePerYear = Object.keys(pricesPerYear).map(year => {
-        const prices = pricesPerYear[year];
-        return {
-            year: parseInt(year), // Sicherstellen, dass das Jahr als Zahl vorliegt
-            averagePrice: prices.reduce((sum, price) => sum + price, 0) / prices.length
-        };
-    });
-
-    // Top 5 teuerste Produkte
-    kpis.top5ExpensiveProducts = [...data].sort((a, b) => b.price - a.price).slice(0, 5);
-
-    return kpis;
-}
-
-
-
-function displayKPIs() {
-    if (!kpiData) {
-        console.error("Keine KPI-Daten verfügbar");
-        return;
-    }
-    
-    const data = transformData(kpiData);
-    console.log("Data for KPI calculations:", data); // Debugging line
-    const kpis = calculateKPIs(data);
-    console.log("Calculated KPIs:", kpis); // Debugging line
-
-    // Anzeigen der KPIs im Frontend
-    $('#averagePricePerCategory').html(renderKPIList(kpis.averagePricePerCategory, 'Average $ per Category'));
-    $('#sizeDistribution').html(renderKPIObject(kpis.sizeDistribution, 'Distribution per Size'));
-    $('#productsPerCategory').html(renderKPIObject(kpis.productsPerCategory, 'Products per Category'));
-    $('#averagePricePerYear').html(renderKPIList(kpis.averagePricePerYear, 'Average Annual Price'));
-    $('#top5ExpensiveProducts').html(renderKPIList(kpis.top5ExpensiveProducts, 'Top 5 Most Expensive Products', true));
-}
-
-function renderKPIList(kpiData, title, isProductList = false) {
-    let html = `<h4>${title}</h4><ul>`;
-    if (isProductList) {
-        kpiData.forEach(item => {
-            html += `<li>${item.name} - $${item.price.toFixed(2)}</li>`;
-        });
-    } else if (Array.isArray(kpiData)) {
-        kpiData.forEach(item => {
-            if (item.category !== undefined) {
-                html += `<li>${item.category}: $${item.averagePrice.toFixed(2)}</li>`;
-            } else if (item.year !== undefined) {
-                html += `<li>${item.year}: $${item.averagePrice.toFixed(2)}</li>`;
-            }
-        });
-    }
-    html += `</ul>`;
-    return html;
-}
-
-function renderKPIObject(kpiData, title) {
-    let html = `<h4>${title}</h4><ul>`;
-    Object.keys(kpiData).forEach(key => {
-        html += `<li>${key}: ${kpiData[key]}</li>`;
-    });
-    html += `</ul>`;
-    return html;
-}
 
 async function fetchData(requestData) {
     return new Promise((resolve, reject) => {
@@ -746,6 +627,60 @@ function generateChartOptions(chartType, response) {
     return option;
 }
 
+
+function initializeKPI(config, response) {
+    // Daten in ein Array von Objekten umwandeln
+    const products = response.x.map((name, index) => ({
+        name,
+        quantity: parseFloat(response.y0[index]),
+        revenue: parseFloat(response.y1[index]),
+        size: response.y2[index]
+    }));
+
+    // Produkte nach Menge und Umsatz sortieren
+    const sortedByQuantity = [...products].sort((a, b) => b.quantity - a.quantity);
+    const sortedByRevenue = [...products].sort((a, b) => b.revenue - a.revenue);
+
+    // Top 3 und Bottom 3 Produkte auswählen
+    const top3ByQuantity = sortedByQuantity.slice(0, 3);
+    const bottom3ByQuantity = sortedByQuantity.slice(-3);
+    const top3ByRevenue = sortedByRevenue.slice(0, 3);
+    const bottom3ByRevenue = sortedByRevenue.slice(-3);
+
+    // HTML-Inhalt für die KPI-Anzeige aktualisieren
+    const kpiContainer = document.getElementById(config.id);
+    kpiContainer.innerHTML = `
+        <div class="kpi-section">
+            <h3>Top 3 Products by Quantity</h3>
+            ${top3ByQuantity.map(product => `
+                <p>Product: ${product.name}, Quantity: ${product.quantity}, Size: ${product.size}</p>
+            `).join('')}
+        </div>
+        <div class="kpi-section">
+            <h3>Bottom 3 Products by Quantity</h3>
+            ${bottom3ByQuantity.map(product => `
+                <p>Product: ${product.name}, Quantity: ${product.quantity}, Size: ${product.size}</p>
+            `).join('')}
+        </div>
+        <div class="kpi-section">
+            <h3>Top 3 Products by Revenue</h3>
+            ${top3ByRevenue.map(product => `
+                <p>Product: ${product.name}, Revenue: $${product.revenue.toFixed(2)}, Size: ${product.size}</p>
+            `).join('')}
+        </div>
+        <div class="kpi-section">
+            <h3>Bottom 3 Products by Revenue</h3>
+            ${bottom3ByRevenue.map(product => `
+                <p>Product: ${product.name}, Revenue: $${product.revenue.toFixed(2)}, Size: ${product.size}</p>
+            `).join('')}
+        </div>
+    `;
+}
+
+
+
+
+
 async function initializeChart(config) {
     console.log("Initializing chart with config:", config);
     const chartElement = document.getElementById(config.id);
@@ -784,7 +719,7 @@ async function initializeChart(config) {
         originalData[config.id] = response;
         if (config.id === 'myChart5') {
             kpiData = response;
-            displayKPIs();
+            initializeKPI(config, response);
         } else {
             const option = generateChartOptions(config.type, response);
             console.log("Chart options generated:", option);
@@ -794,6 +729,10 @@ async function initializeChart(config) {
         console.error("Failed to initialize chart:", error);
     }
 }
+
+
+
+
 
 
 
