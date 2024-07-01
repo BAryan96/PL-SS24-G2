@@ -10,9 +10,10 @@ $(document).ready(async function() {
 { id: 'myChart1', tables: ['orders','stores','orders'], columns: ['orderDate-MM.YYYY','state','total'], type: 'stackedBar', aggregations: ['','', 'Summe'], filters: [],orderby:['ASC','','']  },
 { id: 'myChart2', tables: ['orders', 'orders'], columns: ['orderDate-MM.YYYY', 'total'], type: 'negativBar', aggregations: ['', 'Summe'], filters: [] ,orderby:['ASC',''] }, // in Prozent umrechnen.
 { id: 'myChart3', tables: ['orders','orders', 'orders'], columns: ['orderDate-YYYY','orderDate-MM', 'total'], type: 'line', aggregations: ['','', 'Summe'],filters: [],orderby:['ASC','ASC','']  }, // in Prozent umrechnen.
-{ id: 'myChart4', tables: ['products', 'orders'], columns: ['name', 'orderID',], type: 'pie', aggregations: ['', 'Anzahl'], filters: []}, // in Prozent umrechnen.
+{ id: 'myChart4', tables: ['products', 'orders'], columns: ['name', 'orderID',], type: 'pie', aggregations: ['', 'Anzahl'], filters: []},
 { id: 'myChart5', tables: ['stores', 'stores', 'stores', 'orders'], columns: ['storeID', 'longitude', 'latitude', 'total'], type: 'heatmap', aggregations: ['', '', '', 'Summe'], filters: [] },
 { id: 'myChart6', tables: ['customers', 'customers', 'customers', 'orders'], columns: ['customerID', 'longitude', 'latitude', 'total'], type: 'heatmap', aggregations: ['', '', '', 'Summe'], filters: [] },
+{ id: 'myChart7', tables: ['orders', 'orders','orders'], columns: ['total', 'nItems','total'], type: 'kpi', aggregations: ['Summe', 'Summe','Durchschnitt'], filters: []},
 
     ]);
 });
@@ -697,6 +698,25 @@ async function initializeHeatmap(chartId, table, column, aggregation) {
 async function initializeChart(config) {
     if (config.type === 'heatmap') {
         await initializeHeatmap(config.id, config.tables[3], config.columns[3], config.aggregations[3]);
+    } else if (config.type === 'kpi') {
+        try {
+            let response = await fetchData({
+                tables: config.tables,
+                columns: config.columns,
+                chartType: config.type,
+                aggregations: config.aggregations,
+                filters: config.filters
+            });
+            console.log(response);  // Debugging-Ausgabe
+
+            response.chartId = config.id;
+            originalData[config.id] = response;
+
+            // Initialisiere KPI
+            initializeKPI(config, response);
+        } catch (error) {
+            console.error("Failed to initialize KPI chart:", error);
+        }
     } else {
         const myChart = echarts.init(document.getElementById(config.id));
         const existingChart = charts.find(chartObj => chartObj.config.id === config.id);
@@ -736,6 +756,35 @@ async function initializeChart(config) {
         }
     }
 }
+
+
+
+function initializeKPI(config, response) {
+    // Extracting total values from the response
+    const totalRevenue = parseFloat(response.x[0]); // Gesamtumsatz
+    const totalItemsSold = parseFloat(response.y0[0]); // Gesamtzahl der verkauften Produkte
+    const averageOrderValue = parseFloat(response.y1[0]); // Durchschnittlicher Bestellwert
+
+    // Updating the HTML content for the KPI display
+    const kpiContainer = document.getElementById(config.id);
+    kpiContainer.innerHTML = `
+        <div class="kpi-section" style="margin-bottom: 20px;">
+            <h3 style="font-size: 24px;">Total Revenue</h3>
+            <p style="font-size: 20px; font-weight: bold;">$${totalRevenue.toFixed(2)}</p>
+        </div>
+        <div class="kpi-section" style="margin-bottom: 20px;">
+            <h3 style="font-size: 24px;">Total Sold Products</h3>
+            <p style="font-size: 20px; font-weight: bold;">${totalItemsSold.toLocaleString()}</p>
+        </div>
+        <div class="kpi-section" style="margin-bottom: 20px;">
+            <h3 style="font-size: 24px;">Average Order Value</h3>
+            <p style="font-size: 20px; font-weight: bold;">$${averageOrderValue.toFixed(2)}</p>
+        </div>
+    `;
+}
+
+
+
 
 
 function updateChartAppearance() {

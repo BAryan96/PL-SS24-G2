@@ -120,6 +120,56 @@
         .dashboard-title {
         text-align: center; /* Mittig ausrichten */
     }
+    #myChart7 {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        padding: 20px;
+        box-sizing: border-box;
+        overflow-y: auto;
+        max-height: 100%;
+    }
+
+    .kpi-section {
+        background-color: #f7f7f7;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        padding: 20px;
+        flex: 1 1 300px;
+        min-width: 250px;
+        box-sizing: border-box;
+    }
+
+    .kpi-section h3 {
+        margin-top: 0;
+        font-size: 1.2em;
+        color: #333;
+        border-bottom: 2px solid #ccc;
+        padding-bottom: 10px;
+    }
+
+    .kpi-section ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .kpi-section ul li {
+        margin: 10px 0;
+        padding: 10px;
+        background: #fff;
+        border-radius: 4px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .kpi-section ul li:nth-child(even) {
+        background: #f1f1f1;
+    }
+
+    .kpi-section ul li span {
+        display: block;
+        font-weight: bold;
+    }
     </style>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
