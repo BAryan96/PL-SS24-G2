@@ -10,7 +10,10 @@ $(document).ready(async function() {
         { id: 'myChart1', tables: ['stores', 'stores', 'stores', 'orders'], columns: ['storeID', 'longitude', 'latitude', 'total'], type: 'heatmap', aggregations: ["", "X", "X", "Summe"], filters: filter },
         { id: 'storeChartsContainer', tables: ['stores', 'orders', 'orders'], columns: ['storeID', 'total', 'orderDate-YYYY'], type: 'storeCharts', aggregations: ['', 'Summe', ''], filters: [] },
         { id: 'myChart3', tables: ['orders', 'orders'], columns: ['orderDate-DD.MM.YYYY', 'orderID'], type: 'dayWiseHeatmap', aggregations: ['', 'Anzahl'], filters: [] },
-        { id: 'myChart4', tables: ['orders', 'orders'], columns: ['orderDate-DD.MM.YYYY HH24:MI', 'orderID'], type: 'bar', aggregations: ['', 'Anzahl'], filters: [] }
+        { id: 'myChart4', tables: ['orders', 'orders'], columns: ['orderDate-DD.MM.YYYY HH24:MI', 'orderID'], type: 'bar', aggregations: ['', 'Anzahl'], filters: [] },
+    //  { id: 'myChart5', tables: ['stores', 'orders', 'products','products'], columns: ['storeID', 'total','name','name'], type: 'stackedBar', aggregations: ['', 'Summe','',''], filters: [] },
+        { id: 'myChart7', tables: ['stores', 'orders', 'orders','stores', 'stores'], columns: ['storeID', 'orderID', 'total','state','city'], type: 'kpi', aggregations: ['', 'Anzahl','Summe','',''], filters: [] }
+
     ]);
 
 });
@@ -132,7 +135,9 @@ async function initializeChart(config) {
         response.chartId = config.id;
         originalData[config.id] = response;
 
-        if (config.type === 'storeCharts') {
+        if (config.type === 'kpi') {
+            initializeKPI(config, response);
+        } else if (config.type === 'storeCharts') {
             const storeChartsContainer = document.getElementById('storeChartsContainer');
             storeChartsContainer.innerHTML = '';
 
@@ -175,15 +180,18 @@ async function initializeChart(config) {
             });
         } else if (config.type === 'dayWiseHeatmap') {
             initializeDayWiseHeatmap(config, response);
-        }
-        else if (config.type === 'bar') {
+        } else if (config.type === 'bar') {
             initializeBarChart(config, response);
         }
+        else if (config.type === 'stackedBar') {
+            initializeStackedBarChart(config);
+        } 
         
     } catch (error) {
         console.error("Failed to initialize chart:", error);
     }
 }
+
 
 async function initializeHeatmap(config) {
     return new Promise(async (resolve, reject) => {
@@ -394,7 +402,111 @@ function initializeDayWiseHeatmap(config, response) {
     charts.push({ chart: myChart, config: config });
 }
 
+async function initializeStackedBarChart(config) {
+    const myChart = echarts.init(document.getElementById(config.id));
 
+    const requestData = {
+        tables: config.tables,
+        columns: config.columns,
+        chartType: config.type,
+        aggregations: config.aggregations,
+        filters: config.filters
+    };
+
+    try {
+        let response = await fetchData(requestData);
+        console.log("Received response:", response);
+
+        const storeIDs = [...new Set(response.x)];
+        const productNames = [...new Set(response.y1)];
+
+        const seriesData = productNames.map(product => {
+            return {
+                name: product,
+                type: 'bar',
+                stack: 'total',
+                data: storeIDs.map(storeID => {
+                    const index = response.x.findIndex((id, idx) => id === storeID && response.y1[idx] === product);
+                    return index !== -1 ? response.y1[index] : 0;
+                })
+            };
+        });
+
+        const option = {
+            title: {
+                text: 'Total Revenue by Store and Product',
+                left: 'center'
+            },
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: {
+                    type: 'shadow'
+                }
+            },
+            legend: {
+                data: productNames,
+                bottom: 0
+            },
+            xAxis: {
+                type: 'category',
+                data: storeIDs,
+                axisPointer: {
+                    type: 'shadow'
+                }
+            },
+            yAxis: {
+                type: 'value'
+            },
+            series: seriesData
+        };
+
+        myChart.setOption(option);
+        charts.push({ chart: myChart, config: config });
+    } catch (error) {
+        console.error("Failed to initialize stacked bar chart:", error);
+    }
+}
+
+
+function initializeKPI(config, response) {
+    const storeData = response.x.map((storeID, index) => ({
+        storeID: storeID,
+        orderCount: response.y0[index],
+        totalRevenue: parseFloat(response.y1[index]), // Konvertiere Decimal in float
+        state: response.y2[index],
+        city: response.y3[index]
+    }));
+
+    // Sortieren und filtern der Top 3 und Bottom 3 nach Bestellungen
+    storeData.sort((a, b) => b.orderCount - a.orderCount);
+    const top3StoresByOrders = storeData.slice(0, 3);
+    const bottom3StoresByOrders = storeData.slice(-3);
+
+    // Sortieren und filtern der Top 3 und Bottom 3 nach Umsatz
+    storeData.sort((a, b) => b.totalRevenue - a.totalRevenue);
+    const top3StoresByRevenue = storeData.slice(0, 3);
+    const bottom3StoresByRevenue = storeData.slice(-3);
+
+    const kpiContainer = document.getElementById(config.id);
+    kpiContainer.innerHTML = `
+        <div class="kpi-section">
+            <h3>Top 3 Stores by Orders</h3>
+            <ul>${top3StoresByOrders.map(store => `<li><span>${store.storeID}</span>${store.city}, ${store.state}: ${store.orderCount} orders</li>`).join('')}</ul>
+        </div>
+        <div class="kpi-section">
+            <h3>Top 3 Stores by Revenue</h3>
+            <ul>${top3StoresByRevenue.map(store => `<li><span>${store.storeID}</span>${store.city}, ${store.state}: $${store.totalRevenue.toFixed(2)}</li>`).join('')}</ul>
+        </div>
+        <div class="kpi-section">
+            <h3>Bottom 3 Stores by Orders</h3>
+            <ul>${bottom3StoresByOrders.map(store => `<li><span>${store.storeID}</span>${store.city}, ${store.state}: ${store.orderCount} orders</li>`).join('')}</ul>
+        </div>
+        <div class="kpi-section">
+            <h3>Bottom 3 Stores by Revenue</h3>
+            <ul>${bottom3StoresByRevenue.map(store => `<li><span>${store.storeID}</span>${store.city}, ${store.state}: $${store.totalRevenue.toFixed(2)}</li>`).join('')}</ul>
+        </div>
+    `;
+}
 
 
 
