@@ -7,10 +7,6 @@ app = Flask(__name__)
 conn = connect_to_database()
 cur = get_cursor(conn)
 
-@app.route("/kpitest")
-def kpitest():
-    return render_template('kpitest.html')
-
 @app.route("/")
 def landingpage():
     return render_template('landingpage.html')
@@ -367,45 +363,49 @@ def fetch_data(query):
         cursor.close()
         conn.close()
 
-def calculate_kpis():
+def fetch_orders():
     query = """
-        SELECT o.orderID, o.orderDate, o.storeID, o.total, oi.SKU, p.Category, o.nItems AS quantity, p.price,
-               o.customerID, c.latitude AS customer_lat, c.longitude AS customer_lon, 
-               s.latitude AS store_lat, s.longitude AS store_lon, s.city, s.state,
-               p.name, p.size
-        FROM orders o
-        JOIN orderitems oi ON o.orderID = oi.orderID
-        JOIN products p ON oi.SKU = p.SKU
-        JOIN customers c ON o.customerID = c.customerID
-        JOIN stores s ON o.storeID = s.storeID
-        WHERE 1=1
+        SELECT orderID, orderDate, storeID, total, customerID, nItems AS quantity
+        FROM orders
     """
-    
-    # Fetch data
-    df = fetch_data(query)
-    
-    # Ensure presence of 'total' column
-    if 'total' not in df.columns:
-        raise KeyError("The 'total' column does not exist in the DataFrame. Check the SQL query and the data source.")
-    
-     # Convert the 'total' column to numerical values
-    df['total'] = pd.to_numeric(df['total'], errors='coerce')
-    
-    # Check whether conversion was successful
-    if df['total'].isnull().any():
-        raise ValueError("Es gibt nicht-numerische Werte in der 'total' Spalte, die nicht konvertiert werden konnten.")
-    
-    # Convert 'orderDate' to datetime
-    df['orderDate'] = pd.to_datetime(df['orderDate'], errors='coerce')
-    
-    return df
+    return fetch_data(query)
 
+def fetch_order_items():
+    query = """
+        SELECT orderID, SKU
+        FROM orderitems
+    """
+    return fetch_data(query)
 
-def calculate_sales_performance_kpis(df):
-    revenue = df['total'].sum()
-    units_sold = df['quantity'].sum()
-    avg_order_value = df['total'].mean()
-    reorder_rate = df.groupby('customerID').size().mean()
+def fetch_products():
+    query = """
+        SELECT SKU, category, price, name, size
+        FROM products
+    """
+    return fetch_data(query)
+
+def fetch_customers():
+    query = """
+        SELECT customerID, latitude AS customer_lat, longitude AS customer_lon
+        FROM customers
+    """
+    return fetch_data(query)
+
+def fetch_stores():
+    query = """
+        SELECT storeID, latitude AS store_lat, longitude AS store_lon, city, state
+        FROM stores
+    """
+    return fetch_data(query)
+
+def calculate_sales_performance_kpis():
+    orders = fetch_orders()
+    
+    revenue = orders['total'].sum()
+    units_sold = orders['quantity'].sum()
+    avg_order_value = orders['total'].mean()
+    reorder_rate = orders.groupby('customerID').size().mean()
+    
     return {
         'revenue': float(revenue),
         'units_sold': int(units_sold),
@@ -413,19 +413,25 @@ def calculate_sales_performance_kpis(df):
         'reorder_rate': float(reorder_rate)
     }
 
-def calculate_customer_kpis(df):
+def calculate_customer_kpis():
+    orders = fetch_orders()
+    customers = fetch_customers()
+    stores = fetch_stores()
+
+    orders = orders.merge(customers, on='customerID', how='inner')
+    orders = orders.merge(stores, on='storeID', how='inner')
+
     def calculate_distance(row):
         customer_coords = (row['customer_lat'], row['customer_lon'])
         store_coords = (row['store_lat'], row['store_lon'])
         return geodesic(customer_coords, store_coords).miles
     
-    df['distance'] = df.apply(calculate_distance, axis=1)
-    average_distance = df['distance'].mean()
+    average_distance = new_func(orders, calculate_distance)
     
-    clv_df = df.groupby('customerID')['total'].sum()
-    average_clv = clv_df.mean()
+    clv_df = orders.groupby('customerID')['total'].sum()
+    average_clv = round(clv_df.mean(), 2)
     
-    customer_orders = df.groupby('customerID').size()
+    customer_orders = orders.groupby('customerID').size()
     regular_customers = (customer_orders > 5).sum()
     occasional_customers = ((customer_orders > 1) & (customer_orders <= 5)).sum() 
     one_time_customers = (customer_orders == 1).sum()
@@ -440,21 +446,31 @@ def calculate_customer_kpis(df):
         'potential_customers': int(potential_customers)
     }
 
-def calculate_product_performance_kpis(df):
-    product_performance = df.groupby(['SKU', 'name', 'Category', 'size']).agg({
+def new_func(orders, calculate_distance):
+    orders['distance'] = orders.apply(calculate_distance, axis=1)
+    average_distance = orders['distance'].mean()
+    return average_distance
+
+def calculate_product_performance_kpis():
+    order_items = fetch_order_items()
+    products = fetch_products()
+    orders = fetch_orders()
+
+    df = order_items.merge(products, on='SKU', how='left')
+    df = df.merge(orders, on='orderID', how='left')
+
+    df['total'] = pd.to_numeric(df['total'], errors='coerce')
+    df['quantity'] = pd.to_numeric(df['quantity'], errors='coerce')
+    
+    product_performance = df.groupby(['name', 'category', 'size']).agg({
         'quantity': 'sum',
         'total': 'sum'
     }).rename(columns={'quantity': 'units_sold', 'total': 'revenue'}).reset_index()
     
-    product_performance['order_frequency'] = df['orderDate'].diff().mean().total_seconds() / 60 / product_performance['units_sold']
-    
     top_3_units_sold = product_performance.nlargest(3, 'units_sold')
-    top_3_revenue = product_performance.nlargest(3, 'revenue')
+    top_3_revenue = product_performance.nlargest(3, 'revenue').round(2)
     bottom_3_units_sold = product_performance.nsmallest(3, 'units_sold')
-    bottom_3_revenue = product_performance.nsmallest(3, 'revenue')
-    
-    df['order_time_minutes'] = pd.to_datetime(df['orderDate']).astype('int64') // 10**9 // 60
-    product_performance['order_frequency_minutes'] = df.groupby('SKU')['order_time_minutes'].apply(lambda x: x.diff().mean()).reset_index(drop=True)
+    bottom_3_revenue = product_performance.nsmallest(3, 'revenue').round(2)
     
     return {
         'top_3_units_sold': top_3_units_sold.astype(str).to_dict('records'),
@@ -463,27 +479,30 @@ def calculate_product_performance_kpis(df):
         'bottom_3_revenue': bottom_3_revenue.astype(str).to_dict('records')
     }
 
-def calculate_store_performance_kpis(df):
+def calculate_store_performance_kpis():
+    orders = fetch_orders()
+    stores = fetch_stores()
+
+    df = orders.merge(stores, on='storeID', how='inner')
+    
     store_performance = df.groupby(['storeID', 'city', 'state']).agg({
         'quantity': 'sum',
         'total': 'sum'
     }).rename(columns={'quantity': 'units_sold', 'total': 'revenue'}).reset_index()
-    
-    best_store_revenue = store_performance.nlargest(1, 'revenue')
-    most_ordered_store = store_performance.nlargest(1, 'units_sold')
+
+    store_performance['revenue'] = pd.to_numeric(store_performance['revenue'], errors='coerce')
+    store_performance['units_sold'] = pd.to_numeric(store_performance['units_sold'], errors='coerce')
     
     reorder_df = df.groupby(['storeID', 'customerID']).size().reset_index(name='orders')
     store_reorder_rate = reorder_df.groupby('storeID')['orders'].mean().reset_index()
     best_store_reorder_rate = store_reorder_rate.nlargest(1, 'orders')
 
-    top_3_units_sold_stores = store_performance.nlargest(3, 'units_sold')
+    top_3_units_sold_stores = store_performance.nlargest(3, 'units_sold').round(2)
     top_3_revenue_stores = store_performance.nlargest(3, 'revenue')
     bottom_3_units_sold_stores = store_performance.nsmallest(3, 'units_sold')
-    bottom_3_revenue_stores = store_performance.nsmallest(3, 'revenue')
+    bottom_3_revenue_stores = store_performance.nsmallest(3, 'revenue').round(2)
     
     return {
-        'best_store_revenue': best_store_revenue.astype(str).to_dict('records'),
-        'most_ordered_store': most_ordered_store.astype(str).to_dict('records'),
         'best_store_reorder_rate': best_store_reorder_rate.astype(str).to_dict('records'),
         'top_3_units_sold_stores': top_3_units_sold_stores.astype(str).to_dict('records'),
         'top_3_revenue_stores': top_3_revenue_stores.astype(str).to_dict('records'),
@@ -491,109 +510,25 @@ def calculate_store_performance_kpis(df):
         'bottom_3_revenue_stores': bottom_3_revenue_stores.astype(str).to_dict('records')
     }
 
-def calculate_order_details_kpis(df):
-    top_5_biggest_orders = df.nlargest(5, 'quantity')[['orderID', 'quantity']]
-    top_5_biggest_orders['order_probability'] = (top_5_biggest_orders['quantity'] / df['quantity'].sum()) * 100
-    top_5_biggest_orders['order_frequency_hours'] = (df['orderDate'].max() - df['orderDate'].min()).total_seconds() / 3600 / top_5_biggest_orders['quantity']
-
-    average_order_size = df['quantity'].mean()
-    
-    # Sicherstellen, dass order_time datetime-artige Werte enthält
-    df['order_time'] = df['orderDate']
-    popular_order_minute = df['order_time'].dt.minute.mode()[0]
-    
-    df['order_month'] = df['orderDate'].dt.month
-    popular_order_month = df['order_month'].mode()[0]
-    df['order_week'] = df['orderDate'].dt.isocalendar().week
-    popular_order_week = df['order_week'].mode()[0]
-    df['order_day'] = df['orderDate'].dt.day
-    popular_order_day = df['order_day'].mode()[0]
-    
-    return {
-        'top_5_biggest_orders': top_5_biggest_orders.astype(str).to_dict('records'),
-        'average_order_size': float(average_order_size),
-        'popular_order_minute': int(popular_order_minute),
-        'popular_order_month': int(popular_order_month),
-        'popular_order_week': int(popular_order_week),
-        'popular_order_day': int(popular_order_day)
-    }
-
-
 @app.route('/kpiforsalesperformancedash', methods=['GET'])
 def kpiforsalesperformancedash():
-    df = calculate_kpis()
-    kpis = calculate_sales_performance_kpis(df)
+    kpis = calculate_sales_performance_kpis()
     return jsonify(kpis)
 
 @app.route('/kpiforcustomerdash', methods=['GET'])
 def kpiforcustomerdash():
-    df = calculate_kpis()
-    kpis = calculate_customer_kpis(df)
+    kpis = calculate_customer_kpis()
     return jsonify(kpis)
 
 @app.route('/kpiforproductdash', methods=['GET'])
 def kpiforproductdash():
-    df = calculate_kpis()
-    kpis = calculate_product_performance_kpis(df)
+    kpis = calculate_product_performance_kpis()
     return jsonify(kpis)
 
 @app.route('/kpiforstoredash', methods=['GET'])
 def kpiforstoredash():
-    df = calculate_kpis()
-    kpis = calculate_store_performance_kpis(df)
+    kpis = calculate_store_performance_kpis()
     return jsonify(kpis)
-
-@app.route('/kpifororderdash', methods=['GET'])
-def kpifororderdash():
-    df = calculate_kpis()
-    kpis = calculate_order_details_kpis(df)
-    return jsonify(kpis)
-
-@app.route('/calculatestatsdetails', methods=['POST'])
-def calculate_stats_details():
-    request_data = request.json
-    table_name = request_data.get('table_name', '')
-    column_name = request_data.get('column_name', '')
-
-    if table_name == 'products' and column_name == 'sum sales':
-        query = """
-        SELECT p.SKU, COUNT(oi.SKU) AS total_sales
-        FROM products p
-        JOIN orderitems oi ON p.SKU = oi.SKU
-        GROUP BY p.SKU
-        ORDER BY total_sales DESC;
-        """
-    elif table_name == 'products' and column_name == 'sum total':
-        query = """
-        SELECT p.SKU, SUM(o.total) AS total_money
-        FROM products p
-        JOIN orderitems oi ON p.SKU = oi.SKU
-        JOIN orders o ON oi.orderID = o.orderID
-        GROUP BY p.SKU
-        ORDER BY total_money DESC;
-        """
-    elif table_name == 'customers' and column_name == 'sum total':
-        query = """
-        SELECT customerID, SUM(total) AS total_spent
-        FROM orders
-        GROUP BY customerID
-        ORDER BY total_spent DESC;
-        """
-
-    else:
-        return jsonify({'error': 'Invalid table or column name'}), 400
-        
-    try:
-        data = execute_query(query)
-        response_data = {
-            'x': [row[0] for row in data],
-            'y0': [row[1] for row in data],
-        }
-        return jsonify(response_data)
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-    
 
 if __name__ == '__main__':
     app.run(debug=True)
