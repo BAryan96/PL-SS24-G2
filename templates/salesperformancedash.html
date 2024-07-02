@@ -86,16 +86,24 @@
             flex-wrap: wrap;
             justify-content: space-between;
         }
-    .chart {
-            width: 48%;
-            height: 400px;
-            margin-bottom: 20px;
-            background-color: #f0f0f0;
-            border: 1px solid #ccc;
-        }
+        .chart {
+    width: 48%;
+    height: 400px;
+    margin-bottom: 20px;
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+        .chart.large {
+    width: 100%;
+}
             .chart:nth-child(7){
             width: 100%;
         }
+        
         .legend {
             line-height: 18px;
             color: #555;
@@ -170,6 +178,22 @@
         display: block;
         font-weight: bold;
     }
+  .chart.highlight {
+    border: 2px dashed #000; /* Hervorhebung mit gestricheltem Rahmen */
+}
+
+.chart.dragging {
+    opacity: 0.5;
+    cursor: grabbing;
+}
+/* Responsive Anpassung */
+@media (max-width: 768px) {
+    .chart {
+        width: 100%; /* Vollständige Breite bei kleineren Bildschirmen */
+    }
+}
+
+
     </style>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
@@ -222,16 +246,16 @@
                 </div>
             </div>
             <div class="chart-container">
-                <div id="chart1" class="chart">
+                <div id="chart1" class="chart" draggable="true">
                     <div id="myChart1" style="width: 100%; height: 100%;"></div>
                 </div>
-                <div id="chart2" class="chart">
+                <div id="chart2" class="chart" draggable="true">
                     <div id="myChart2" style="width: 100%; height: 100%;"></div>
                 </div>
-                <div id="chart3" class="chart">
+                <div id="chart3" class="chart" draggable="true">
                     <div id="myChart3" style="width: 100%; height: 100%;"></div>
                 </div>
-                <div id="chart4" class="chart">
+                <div id="chart4" class="chart" draggable="true">
                     <div id="myChart4" style="width: 100%; height: 100%;"></div>
                 </div>
                 <div id="chart5" class="chart">
@@ -240,10 +264,10 @@
                 <div id="chart6" class="chart">
                     <div id="myChart6" style="width: 100%; height: 100%;"></div>
                 </div>
-                <div id="chart7" class="chart">
+                <div id="chart7" class="chart large">
                     <div id="myChart7" style="width: 100%; height: 100%;"></div>
                 </div>
-            </div>
+            </div>                
         </section>
     </main>
     <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
@@ -256,6 +280,78 @@
     <script src="/static/JS/salesdash.js"></script>
 
     <script>
+function allowDrop(ev) {
+    ev.preventDefault();
+    ev.target.closest('.chart').classList.add('active');
+}
+
+function drag(ev) {
+    ev.dataTransfer.setData("text/plain", ev.target.id);
+    ev.target.classList.add('dragging');
+    
+    // Highlight all charts in the same group (charts 1-4)
+    document.querySelectorAll('.chart-container .chart').forEach(chart => {
+        if (chart.id !== 'chart5' && chart.id !== 'chart6' && chart.id !== 'chart7') {
+            chart.classList.add('highlight');
+        }
+    });
+}
+
+function drop(ev) {
+    ev.preventDefault();
+    var data = ev.dataTransfer.getData("text/plain");
+    var draggedElement = document.getElementById(data);
+    var dropTarget = ev.target.closest('.chart');
+
+    // Entfernt die Hervorhebung
+    document.querySelectorAll('.chart').forEach(chart => chart.classList.remove('active', 'highlight'));
+
+    if (draggedElement && dropTarget && draggedElement !== dropTarget) {
+        var draggedParent = draggedElement.parentNode;
+        var dropParent = dropTarget.parentNode;
+
+        // Prüfen, ob beide Elemente zur gleichen Gruppe gehören (charts 1-4)
+        if (draggedElement.id !== 'chart5' && draggedElement.id !== 'chart6' && draggedElement.id !== 'chart7' &&
+            dropTarget.id !== 'chart5' && dropTarget.id !== 'chart6' && dropTarget.id !== 'chart7') {
+            // Platzhalter erstellen
+            var draggedPlaceholder = document.createElement('div');
+            var dropPlaceholder = document.createElement('div');
+
+            draggedParent.insertBefore(draggedPlaceholder, draggedElement);
+            dropParent.insertBefore(dropPlaceholder, dropTarget);
+
+            // Elemente tauschen
+            draggedParent.insertBefore(dropTarget, draggedPlaceholder);
+            dropParent.insertBefore(draggedElement, dropPlaceholder);
+
+            // Platzhalter entfernen
+            draggedPlaceholder.remove();
+            dropPlaceholder.remove();
+        }
+    }
+
+    draggedElement.classList.remove('dragging');
+}
+
+function dragLeave(ev) {
+    ev.target.closest('.chart').classList.remove('active');
+}
+
+// Remove highlight when drag ends
+function dragEnd(ev) {
+    document.querySelectorAll('.chart').forEach(chart => chart.classList.remove('highlight'));
+}
+
+document.querySelectorAll('.chart').forEach(chart => {
+    chart.addEventListener('dragstart', drag);
+    chart.addEventListener('dragover', allowDrop);
+    chart.addEventListener('drop', drop);
+    chart.addEventListener('dragleave', dragLeave);
+    chart.addEventListener('dragend', dragEnd);
+});
+
+
+
     </script>
 </body>
 </html>

@@ -9,13 +9,13 @@ let kpiData = {};
 
 $(document).ready(async function() {
     await loadChartsSequentially([
-        // { id: 'myChart1', tables: ['products', 'products', 'orders'], columns: ['name', 'size', 'total'], type: 'stackedBar', aggregations: ['','','Summe'], filters: [] },  // Neue Konfiguration für gestapeltes Balkendiagramm
-        // { id: 'myChart2', tables: ['orders', 'orders', 'products'], columns: ['orderDate-YYYY', 'total', 'name'], type: 'dynamicBar', aggregations: ['', 'Summe',''], filters: [] },
-        // { id: 'myChart3', tables: ['products', 'products', 'products', 'products'], columns: ['price', 'ingredients','size','name'], type: 'scatter', aggregations: ['', '','',''], filters: [] },
-        // { id: 'myChart4', tables: ['products', 'products', 'orders'], columns: ['category', 'name', 'total'], type: 'treemap', aggregations: ['', '', 'Summe'], filters: [] },  // Neue Treemap-Konfiguration
+        { id: 'myChart1', tables: ['products', 'products', 'orders'], columns: ['name', 'size', 'total'], type: 'stackedBar', aggregations: ['','','Summe'], filters: [] },  // Neue Konfiguration für gestapeltes Balkendiagramm
+        { id: 'myChart2', tables: ['orders', 'orders', 'products'], columns: ['orderDate-YYYY', 'total', 'name'], type: 'dynamicBar', aggregations: ['', 'Summe',''], filters: [] },
+        { id: 'myChart3', tables: ['products', 'products', 'products', 'products'], columns: ['price', 'ingredients','size','name'], type: 'scatter', aggregations: ['', '','',''], filters: [] },
+        { id: 'myChart4', tables: ['products', 'products', 'orders'], columns: ['category', 'name', 'total'], type: 'treemap', aggregations: ['', '', 'Summe'], filters: [] },  // Neue Treemap-Konfiguration
         { id: 'myChart5', tables: ['products', 'orders','orders','products'], columns: ['name', 'nItems','total','size'], type: 'kpi', aggregations: ['','Summe','Summe',''], filters: [] },
-        // { id: 'myChart6', tables: ['products','products'], columns: ['launch','name'], type: 'bar', aggregations: ['','Anzahl'], filters: [] },
-        // { id: 'myChart7', tables: ['products', 'products'], columns: ['name', 'price'], type: 'boxplot', aggregations: ['',''], filters: [] },
+        { id: 'myChart6', tables: ['products','products'], columns: ['launch','name'], type: 'bar', aggregations: ['','Anzahl'], filters: [] },
+        { id: 'myChart7', tables: ['products', 'products'], columns: ['name', 'price'], type: 'boxplot', aggregations: ['',''], filters: [] },
 
 
     ]);

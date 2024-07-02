@@ -94,29 +94,45 @@
     margin-bottom: 20px;
     background-color: #f0f0f0;
     border: 1px solid #ccc;
+    cursor: grab;
 }
 
-.chart:nth-child(5),
-.chart:nth-child(6),
-.chart:nth-child(7){
+.chart.dragging {
+    opacity: 0.5;
+    cursor: grabbing;
+}
+
+.chart.large {
+    width: 100%;
+}
+
+/* Zusätzliche Stile für die speziellen Charts */
+#chart5, #chart6, #chart7 {
     width: 100%;
 }
 
 
+@media (max-width: 768px) {
+    .chart {
+        width: 100%; /* Vollständige Breite bei kleineren Bildschirmen */
+    }
+}
+
 .dashboard-title {
     text-align: center; /* Mittig ausrichten */
 }
-#myChart5 {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 20px;
-        padding: 20px;
-        box-sizing: border-box;
-        overflow-y: auto;
-        max-height: 100%;
-    }
 
-    .kpi-section {
+#myChart5, #myChart6, #myChart7 {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    padding: 20px;
+    box-sizing: border-box;
+    overflow-y: auto;
+    max-height: 100%;
+}
+
+.kpi-section {
     background-color: #f7f7f7;
     border-radius: 8px;
     box-shadow: 0 4px 8px rgba(0,0,0,0.1);
@@ -156,6 +172,16 @@
 .kpi-section ul li span {
     display: block;
     font-weight: bold;
+}
+.chart-group {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.chart-group .chart.highlight {
+    border: 2px dashed #000; /* Hervorhebung mit gestricheltem Rahmen */
 }
 
     </style>
@@ -209,29 +235,32 @@
                     </div>
                 </div>
             </div>
-            <div class="chart-container">
-                <div id="chart1" class="chart">
+            <div class="chart-group" id="chart-group-1">
+                <div id="chart1" class="chart" draggable="true" ondragstart="drag(event)" ondrop="drop(event)" ondragover="allowDrop(event)">
                     <div id="myChart1" style="width: 100%; height: 100%;"></div>
                 </div>
-                <div id="chart2" class="chart">
+                <div id="chart2" class="chart" draggable="true" ondragstart="drag(event)" ondrop="drop(event)" ondragover="allowDrop(event)">
                     <div id="myChart2" style="width: 100%; height: 100%;"></div>
                 </div>
-                <div id="chart3" class="chart">
+                <div id="chart3" class="chart" draggable="true" ondragstart="drag(event)" ondrop="drop(event)" ondragover="allowDrop(event)">
                     <div id="myChart3" style="width: 100%; height: 100%;"></div>
                 </div>
-                <div id="chart4" class="chart">
+                <div id="chart4" class="chart" draggable="true" ondragstart="drag(event)" ondrop="drop(event)" ondragover="allowDrop(event)">
                     <div id="myChart4" style="width: 100%; height: 100%;"></div>
                 </div>
-                <div id="chart5" class="chart">
+            </div>
+            <div class="chart-group" id="chart-group-2">
+                <div id="chart5" class="chart large-chart" draggable="true" ondragstart="drag(event)" ondrop="drop(event)" ondragover="allowDrop(event)">
                     <div id="myChart5" style="width: 100%; height: 100%;"></div>
                 </div>       
-                <div id="chart6" class="chart">
+                <div id="chart6" class="chart large-chart" draggable="true" ondragstart="drag(event)" ondrop="drop(event)" ondragover="allowDrop(event)">
                     <div id="myChart6" style="width: 100%; height: 100%;"></div>
                 </div>
-                <div id="chart7" class="chart">
+                <div id="chart7" class="chart large-chart" draggable="true" ondragstart="drag(event)" ondrop="drop(event)" ondragover="allowDrop(event)">
                     <div id="myChart7" style="width: 100%; height: 100%;"></div>
                 </div>
             </div>
+            
         </section>
     </main>
     <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
@@ -244,6 +273,75 @@
     <script src="/static/JS/productdash.js"></script>
 
     <script>
+    function allowDrop(ev) {
+    ev.preventDefault();
+    ev.target.closest('.chart').classList.add('active');
+}
+
+function drag(ev) {
+    ev.dataTransfer.setData("text/plain", ev.target.id);
+    ev.target.classList.add('dragging');
+    
+    // Highlight all charts in the same group
+    var chartGroup = ev.target.closest('.chart-group');
+    var chartsInGroup = chartGroup.querySelectorAll('.chart');
+    chartsInGroup.forEach(chart => {
+        chart.classList.add('highlight');
+    });
+}
+
+function drop(ev) {
+    ev.preventDefault();
+    var data = ev.dataTransfer.getData("text/plain");
+    var draggedElement = document.getElementById(data);
+    var dropTarget = ev.target.closest('.chart');
+
+    // Entfernt die Hervorhebung
+    document.querySelectorAll('.chart').forEach(chart => chart.classList.remove('active', 'highlight'));
+
+    if (draggedElement && dropTarget && draggedElement !== dropTarget) {
+        var draggedParent = draggedElement.parentNode;
+        var dropParent = dropTarget.parentNode;
+
+        // Prüfen, ob beide Elemente zur gleichen Gruppe gehören
+        if (draggedParent === dropParent) {
+            // Platzhalter erstellen
+            var draggedPlaceholder = document.createElement('div');
+            var dropPlaceholder = document.createElement('div');
+
+            draggedParent.insertBefore(draggedPlaceholder, draggedElement);
+            dropParent.insertBefore(dropPlaceholder, dropTarget);
+
+            // Elemente tauschen
+            draggedParent.insertBefore(dropTarget, draggedPlaceholder);
+            dropParent.insertBefore(draggedElement, dropPlaceholder);
+
+            // Platzhalter entfernen
+            draggedPlaceholder.remove();
+            dropPlaceholder.remove();
+        }
+    }
+
+    draggedElement.classList.remove('dragging');
+}
+
+function dragLeave(ev) {
+    ev.target.closest('.chart').classList.remove('active');
+}
+
+// Remove highlight when drag ends
+function dragEnd(ev) {
+    document.querySelectorAll('.chart').forEach(chart => chart.classList.remove('highlight'));
+}
+
+document.querySelectorAll('.chart').forEach(chart => {
+    chart.addEventListener('dragleave', dragLeave);
+    chart.addEventListener('dragend', dragEnd);
+});
+
     </script>
+    
+    
+    
 </body>
 </html>
