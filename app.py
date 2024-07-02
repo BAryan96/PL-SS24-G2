@@ -1,10 +1,40 @@
 from flask import Flask, render_template, request, jsonify
-from DB import connect_to_database, get_cursor
+from flask_caching import Cache
+from DB import connect_to_database, get_cursor, check_and_create_tables, check_and_load_data, verify_table_data
+import os
+import sys
 
 app = Flask(__name__)
+cache = Cache(app, config={'CACHE_TYPE': 'simple'})  # Einfache Konfiguration für das Caching
 conn = connect_to_database()
 cur = get_cursor(conn)
 
+
+def make_cache_key():
+    return request.url + request.data.decode('utf-8')
+
+def initialize_database():
+    check_and_create_tables(cur)
+    
+    tables_and_csvs = {
+        "stores": "CSV/stores.csv",
+        "products": "CSV/products.csv",
+        "orders": "CSV/orders.csv",
+        "orderitems": "CSV/orderitems.csv",
+        "customers": "CSV/customers.csv",
+        "weather": "CSV/weather.csv"
+    }
+    
+    for table, csv_file in tables_and_csvs.items():
+        if not check_and_load_data(cur, conn, table, os.path.join(os.path.dirname(__file__), csv_file)):
+            print(f"Initialization failed: {table} table could not load data from {csv_file}.")
+            return False
+    
+    if not verify_table_data(cur):
+        print("Initialization failed: Some tables have no data.")
+        return False
+    
+    return True
 @app.route("/")
 def landingpage():
     return render_template('landingpage.html')
@@ -83,6 +113,7 @@ def get_columns():
     return jsonify({"columns": columns})
 
 @app.route("/getdata", methods=["POST"])
+@cache.cached(timeout=600, key_prefix=make_cache_key)  # Cache für 600 Sekunden mit dynamischem Key
 def get_data():
     if not request.is_json:
         return jsonify({"error": "Request data must be JSON"}), 415
@@ -366,4 +397,7 @@ def get_table():
     return render_template('index.html', data=json_data)
 
 if __name__ == "__main__":
+    if not initialize_database():
+        print("Initialization failed.")
+        sys.exit(1)
     app.run(debug=True)
