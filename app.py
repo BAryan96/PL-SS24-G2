@@ -456,8 +456,8 @@ def calculate_product_performance_kpis():
     products = fetch_products()
     orders = fetch_orders()
 
-    df = order_items.merge(products, on='SKU', how='left')
-    df = df.merge(orders, on='orderID', how='left')
+    df = order_items.merge(products, on='SKU', how='outer')
+    df = df.merge(orders, on='orderID', how='outer')
 
     df['total'] = pd.to_numeric(df['total'], errors='coerce')
     df['quantity'] = pd.to_numeric(df['quantity'], errors='coerce')
@@ -529,6 +529,10 @@ def kpiforproductdash():
 def kpiforstoredash():
     kpis = calculate_store_performance_kpis()
     return jsonify(kpis)
+
+@app.route("/kpitest")
+def kpitest():
+    return render_template('kpitest.html')
 
 if __name__ == '__main__':
     app.run(debug=True)
