@@ -306,6 +306,24 @@ function processTreemapData(response) {
   return Object.values(categoryMap);
 }
 
+function getToolboxFeatures() {
+  return {
+    saveAsImage: {},
+    restore: {},
+    dataView: { readOnly: false },
+    magicType: { type: ['line', 'bar', 'stack'] }
+  };
+}
+
+function getToolboxFeaturesForRest() {
+  return {
+    saveAsImage: {},
+    restore: {},
+    dataView: { readOnly: false },
+  };
+}
+
+
 function generateChartOptions(chartType, response, chart) {
   let option = {};
   switch (chartType) {
@@ -328,43 +346,7 @@ function generateChartOptions(chartType, response, chart) {
             return `${info.name}All time total Revenue  $${value.toFixed(2)}`;
           },
         },
-        toolbox: {
-          feature: {
-            saveAsImage: {},
-            dataView: {
-              show: true,
-              readOnly: false,
-              optionToContent: function (opt) {
-                let table = `<table style="width:100%;text-align:center"><thead><tr><th>Category</th><th>Product</th><th>Total</th></tr></thead><tbody>`;
-                opt.series[0].data.forEach(function (item) {
-                  item.children.forEach(function (child) {
-                    table += `<tr><td>${item.name}</td><td>${child.name}</td><td>${child.value}</td></tr>`;
-                  });
-                });
-                table += "</tbody></table>";
-                return table;
-              },
-            },
-            myDarkMode: {
-              show: true,
-              title: "Dark Mode",
-              icon: "path://M512 0C229.23072 0 0 229.23072 0 512s229.23072 512 512 512 512-229.23072 512-512S794.76928 0 512 0z m0 938.0864c-234.24 0-426.0864-191.8464-426.0864-426.0864S277.76 85.9136 512 85.9136c55.7312 0 111.4624 11.7248 163.6864 35.0208-32.768 56.32-87.04 94.72-151.0912 105.2672-78.4896 13.7216-147.2-12.288-199.7312-55.808 0 0-12.6976 80.9472-12.6976 119.296 0 136.3968 104.7552 247.9104 239.9232 261.8368 79.872 8.2944 152.576-24.7808 198.3488-80.64 28.2624 48.64 45.568 106.752 45.568 170.3424 0 234.24-191.8464 426.0864-426.0864 426.0864z",
-              onclick: function () {
-                darkMode = !darkMode;
-                updateChartAppearance(chart);
-              },
-            },
-            myDecalPattern: {
-              show: true,
-              title: "Decal Pattern",
-              icon: "path://M50 250 Q 150 50 250 250 T 450 250",
-              onclick: function () {
-                decalPattern = !decalPattern;
-                updateChartAppearance(chart);
-              },
-            },
-          },
-        },
+        toolbox: { feature: getToolboxFeaturesForRest() },
         series: [
           {
             type: "treemap",
@@ -458,53 +440,7 @@ function generateChartOptions(chartType, response, chart) {
           top: 40,
           padding: [20, 5, 5, 5],
         },
-        toolbox: {
-          feature: {
-            saveAsImage: {},
-            dataView: {
-              show: true,
-              readOnly: false,
-              optionToContent: function (opt) {
-                let table = `<table style="width:100%;text-align:center"><thead><tr><th>Name</th>`;
-                sizes.forEach(function (size) {
-                  table += `<th>${size}</th>`;
-                });
-                table += `</tr></thead><tbody>`;
-                opt.xAxis[0].data.forEach(function (name, index) {
-                  table += `<tr><td>${name}</td>`;
-                  sizes.forEach(function (size) {
-                    table += `<td>${
-                      opt.series.find((serie) => serie.name === size).data[
-                        index
-                      ]
-                    }</td>`;
-                  });
-                  table += `</tr>`;
-                });
-                table += "</tbody></table>";
-                return table;
-              },
-            },
-            myDarkMode: {
-              show: true,
-              title: "Dark Mode",
-              icon: "path://M512 0C229.23072 0 0 229.23072 0 512s229.23072 512 512 512 512-229.23072 512-512S794.76928 0 512 0z m0 938.0864c-234.24 0-426.0864-191.8464-426.0864-426.0864S277.76 85.9136 512 85.9136c55.7312 0 111.4624 11.7248 163.6864 35.0208-32.768 56.32-87.04 94.72-151.0912 105.2672-78.4896 13.7216-147.2-12.288-199.7312-55.808 0 0-12.6976 80.9472-12.6976 119.296 0 136.3968 104.7552 247.9104 239.9232 261.8368 79.872 8.2944 152.576-24.7808 198.3488-80.64 28.2624 48.64 45.568 106.752 45.568 170.3424 0 234.24-191.8464 426.0864-426.0864 426.0864z",
-              onclick: function () {
-                darkMode = !darkMode;
-                updateChartAppearance(chart);
-              },
-            },
-            myDecalPattern: {
-              show: true,
-              title: "Decal Pattern",
-              icon: "path://M50 250 Q 150 50 250 250 T 450 250",
-              onclick: function () {
-                decalPattern = !decalPattern;
-                updateChartAppearance(chart);
-              },
-            },
-          },
-        },
+        toolbox: { feature: getToolboxFeatures() },
         xAxis: {
           type: "category",
           data: names,
@@ -541,41 +477,7 @@ function generateChartOptions(chartType, response, chart) {
             ].join("<br/>");
           },
         },
-        toolbox: {
-          feature: {
-            saveAsImage: {},
-            dataView: {
-              show: true,
-              readOnly: false,
-              optionToContent: function (opt) {
-                let table = `<table style="width:100%;text-align:center"><thead><tr><th>Name</th><th>Ingredients</th><th>Price</th><th>Size</th></tr></thead><tbody>`;
-                opt.series[0].data.forEach(function (item) {
-                  table += `<tr><td>${item.name}</td><td>${item.value[0]}</td><td>${item.value[1]}</td><td>${item.size}</td></tr>`;
-                });
-                table += "</tbody></table>";
-                return table;
-              },
-            },
-            myDarkMode: {
-              show: true,
-              title: "Dark Mode",
-              icon: "path://M512 0C229.23072 0 0 229.23072 0 512s229.23072 512 512 512 512-229.23072 512-512S794.76928 0 512 0z m0 938.0864c-234.24 0-426.0864-191.8464-426.0864-426.0864S277.76 85.9136 512 85.9136c55.7312 0 111.4624 11.7248 163.6864 35.0208-32.768 56.32-87.04 94.72-151.0912 105.2672-78.4896 13.7216-147.2-12.288-199.7312-55.808 0 0-12.6976 80.9472-12.6976 119.296 0 136.3968 104.7552 247.9104 239.9232 261.8368 79.872 8.2944 152.576-24.7808 198.3488-80.64 28.2624 48.64 45.568 106.752 45.568 170.3424 0 234.24-191.8464 426.0864-426.0864 426.0864z",
-              onclick: function () {
-                darkMode = !darkMode;
-                updateChartAppearance(chart);
-              },
-            },
-            myDecalPattern: {
-              show: true,
-              title: "Decal Pattern",
-              icon: "path://M50 250 Q 150 50 250 250 T 450 250",
-              onclick: function () {
-                decalPattern = !decalPattern;
-                updateChartAppearance(chart);
-              },
-            },
-          },
-        },
+        toolbox: { feature: getToolboxFeaturesForRest() },
         xAxis: {
           type: "value",
           name: "Ingredients",
@@ -624,41 +526,7 @@ function generateChartOptions(chartType, response, chart) {
             ].join("<br/>");
           },
         },
-        toolbox: {
-          feature: {
-            saveAsImage: {},
-            dataView: {
-              show: true,
-              readOnly: false,
-              optionToContent: function (opt) {
-                let table = `<table style="width:100%;text-align:center"><thead><tr><th>Name</th><th>Min</th><th>Q1</th><th>Median</th><th>Q3</th><th>Max</th></tr></thead><tbody>`;
-                opt.series[0].data.forEach(function (item, index) {
-                  table += `<tr><td>${opt.xAxis[0].data[index]}</td><td>${item[1]}</td><td>${item[2]}</td><td>${item[3]}</td><td>${item[4]}</td><td>${item[5]}</td></tr>`;
-                });
-                table += "</tbody></table>";
-                return table;
-              },
-            },
-            myDarkMode: {
-              show: true,
-              title: "Dark Mode",
-              icon: "path://M512 0C229.23072 0 0 229.23072 0 512s229.23072 512 512 512 512-229.23072 512-512S794.76928 0 512 0z m0 938.0864c-234.24 0-426.0864-191.8464-426.0864-426.0864S277.76 85.9136 512 85.9136c55.7312 0 111.4624 11.7248 163.6864 35.0208-32.768 56.32-87.04 94.72-151.0912 105.2672-78.4896 13.7216-147.2-12.288-199.7312-55.808 0 0-12.6976 80.9472-12.6976 119.296 0 136.3968 104.7552 247.9104 239.9232 261.8368 79.872 8.2944 152.576-24.7808 198.3488-80.64 28.2624 48.64 45.568 106.752 45.568 170.3424 0 234.24-191.8464 426.0864-426.0864 426.0864z",
-              onclick: function () {
-                darkMode = !darkMode;
-                updateChartAppearance(chart);
-              },
-            },
-            myDecalPattern: {
-              show: true,
-              title: "Decal Pattern",
-              icon: "path://M50 250 Q 150 50 250 250 T 450 250",
-              onclick: function () {
-                decalPattern = !decalPattern;
-                updateChartAppearance(chart);
-              },
-            },
-          },
-        },
+        toolbox: { feature: getToolboxFeaturesForRest() },
         xAxis: {
           type: "category",
           data: boxplotData.x,
@@ -703,41 +571,7 @@ function generateChartOptions(chartType, response, chart) {
             },
           },
         },
-        toolbox: {
-          feature: {
-            saveAsImage: {},
-            dataView: {
-              show: true,
-              readOnly: false,
-              optionToContent: function (opt) {
-                let table = `<table style="width:100%;text-align:center"><thead><tr><th>Name</th><th>Value</th></tr></thead><tbody>`;
-                opt.series[0].data.forEach(function (item, index) {
-                  table += `<tr><td>${opt.xAxis[0].data[index]}</td><td>${item.value}</td></tr>`;
-                });
-                table += "</tbody></table>";
-                return table;
-              },
-            },
-            myDarkMode: {
-              show: true,
-              title: "Dark Mode",
-              icon: "path://M512 0C229.23072 0 0 229.23072 0 512s229.23072 512 512 512 512-229.23072 512-512S794.76928 0 512 0z m0 938.0864c-234.24 0-426.0864-191.8464-426.0864-426.0864S277.76 85.9136 512 85.9136c55.7312 0 111.4624 11.7248 163.6864 35.0208-32.768 56.32-87.04 94.72-151.0912 105.2672-78.4896 13.7216-147.2-12.288-199.7312-55.808 0 0-12.6976 80.9472-12.6976 119.296 0 136.3968 104.7552 247.9104 239.9232 261.8368 79.872 8.2944 152.576-24.7808 198.3488-80.64 28.2624 48.64 45.568 106.752 45.568 170.3424 0 234.24-191.8464 426.0864-426.0864 426.0864z",
-              onclick: function () {
-                darkMode = !darkMode;
-                updateChartAppearance(chart);
-              },
-            },
-            myDecalPattern: {
-              show: true,
-              title: "Decal Pattern",
-              icon: "path://M50 250 Q 150 50 250 250 T 450 250",
-              onclick: function () {
-                decalPattern = !decalPattern;
-                updateChartAppearance(chart);
-              },
-            },
-          },
-        },
+        toolbox: { feature: getToolboxFeatures() },
         xAxis: {
           type: "category",
           data: barData.x,
@@ -783,53 +617,7 @@ function generateChartOptions(chartType, response, chart) {
           top: "5%",
           data: products,
         },
-        toolbox: {
-          feature: {
-            saveAsImage: {},
-            dataView: {
-              show: true,
-              readOnly: false,
-              optionToContent: function (opt) {
-                let table = `<table style="width:100%;text-align:center"><thead><tr><th>Year</th>`;
-                products.forEach(function (product) {
-                  table += `<th>${product}</th>`;
-                });
-                table += `</tr></thead><tbody>`;
-                opt.xAxis[0].data.forEach(function (year, index) {
-                  table += `<tr><td>${year}</td>`;
-                  products.forEach(function (product) {
-                    table += `<td>${
-                      opt.series.find((serie) => serie.name === product).data[
-                        index
-                      ]
-                    }</td>`;
-                  });
-                  table += `</tr>`;
-                });
-                table += "</tbody></table>";
-                return table;
-              },
-            },
-            myDarkMode: {
-              show: true,
-              title: "Dark Mode",
-              icon: "path://M512 0C229.23072 0 0 229.23072 0 512s229.23072 512 512 512 512-229.23072 512-512S794.76928 0 512 0z m0 938.0864c-234.24 0-426.0864-191.8464-426.0864-426.0864S277.76 85.9136 512 85.9136c55.7312 0 111.4624 11.7248 163.6864 35.0208-32.768 56.32-87.04 94.72-151.0912 105.2672-78.4896 13.7216-147.2-12.288-199.7312-55.808 0 0-12.6976 80.9472-12.6976 119.296 0 136.3968 104.7552 247.9104 239.9232 261.8368 79.872 8.2944 152.576-24.7808 198.3488-80.64 28.2624 48.64 45.568 106.752 45.568 170.3424 0 234.24-191.8464 426.0864-426.0864 426.0864z",
-              onclick: function () {
-                darkMode = !darkMode;
-                updateChartAppearance(chart);
-              },
-            },
-            myDecalPattern: {
-              show: true,
-              title: "Decal Pattern",
-              icon: "path://M50 250 Q 150 50 250 250 T 450 250",
-              onclick: function () {
-                decalPattern = !decalPattern;
-                updateChartAppearance(chart);
-              },
-            },
-          },
-        },
+        toolbox: { feature: getToolboxFeatures() },
         xAxis: {
           type: "category",
           axisTick: { show: false },

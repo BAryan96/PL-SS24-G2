@@ -50,6 +50,24 @@ $(document).ready(async function () {
   ]);
 });
 
+function getToolboxFeatures() {
+  return {
+    feature: {
+      saveAsImage: {},
+      restore: {},
+      dataView: { readOnly: false },
+      magicType: { type: ['line', 'bar', 'stack'] }
+    }
+  };
+}
+
+function getDayWiseHeatmapToolboxFeatures() {
+  return {
+    feature: {
+      saveAsImage: {}
+    }
+  };
+}
 async function fetchData(requestData) {
   return new Promise((resolve, reject) => {
     $.ajax({
@@ -118,6 +136,7 @@ function initializeBarChart(config, response) {
       text: "Orders Per Hour",
       left: "center",
     },
+    toolbox: getToolboxFeatures(), // Toolbox hinzugefügt
     tooltip: {
       trigger: "axis",
       axisPointer: {
@@ -152,6 +171,9 @@ function initializeBarChart(config, response) {
   myChart.setOption(option);
   charts.push({ chart: myChart, config: config });
 }
+
+
+
 async function initializeChart(config) {
   console.log("Initializing chart with config:", config);
 
@@ -481,6 +503,7 @@ function initializeDayWiseHeatmap(config, response) {
       text: "Heatmap for Orders per Weekday",
       left: "center",
     },
+    toolbox: getDayWiseHeatmapToolboxFeatures(),
     tooltip: {
       position: "top",
     },
@@ -537,6 +560,7 @@ function initializeDayWiseHeatmap(config, response) {
   myChart.setOption(option);
   charts.push({ chart: myChart, config: config });
 }
+
 
 async function initializeStackedBarChart(config) {
   const myChart = echarts.init(document.getElementById(config.id));
