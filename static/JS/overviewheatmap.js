@@ -32,7 +32,6 @@ $(document).ready(function () {
         layers: [baseLayer]
     });
 
-    var markers = L.markerClusterGroup();
     var circleMarkerOptions = {
         radius: 3,
         fillColor: "#ff7800",
@@ -41,7 +40,6 @@ $(document).ready(function () {
         opacity: 1,
         fillOpacity: 0.6
     };
-
 
     function createLegend(legendElement, gradient) {
         for (var key in gradient) {
@@ -52,7 +50,6 @@ $(document).ready(function () {
         }
     }
 
-    
     var legendControl = L.control({ position: 'bottomright' });
 
     legendControl.onAdd = function (map) {
@@ -64,14 +61,12 @@ $(document).ready(function () {
 
     legendControl.addTo(map);
 
-    
     $.get("/tables", function(data) {
         data.tables.forEach(table => {
             $('#tableSelect').append(`<option value="${table}">${table}</option>`);
         });
     });
 
-    
     $('#tableSelect').change(function() {
         var table = $(this).val();
         if (table) {
@@ -92,7 +87,6 @@ $(document).ready(function () {
         var aggregation = $('#aggregationSelect').val();
 
         if (markerType && !table && !column && !aggregation) {
-            
             var tables = (markerType === "stores") ? ["stores", "stores", "stores"] : ["customers", "customers", "customers"];
             var columns = (markerType === "stores") ? ["storeID", "longitude", "latitude"] : ["customerID", "longitude", "latitude"];
 
@@ -115,7 +109,6 @@ $(document).ready(function () {
                         return;
                     }
 
-                    
                     var data = [];
                     for (var i = 0; i < responseData.x.length; i++) {
                         data.push({
@@ -132,7 +125,6 @@ $(document).ready(function () {
                 }
             });
         } else if (markerType && table && column && aggregation) {
-            
             var tables = (markerType === "stores") ? ["stores", "stores", "stores"] : ["customers", "customers", "customers"];
             var columns = (markerType === "stores") ? ["storeID", "longitude", "latitude"] : ["customerID", "longitude", "latitude"];
             tables.push(table);
@@ -157,7 +149,6 @@ $(document).ready(function () {
                         return;
                     }
 
-                    
                     var data = [];
                     for (var i = 0; i < responseData.x.length; i++) {
                         data.push({
@@ -168,17 +159,15 @@ $(document).ready(function () {
                         });
                     }
 
-                    markers.clearLayers();
                     var bounds = [];
                     var heatmapPoints = [];
 
                     data.forEach(function(point) {
                         var marker = L.circleMarker([point.latitude, point.longitude], circleMarkerOptions);
                         marker.bindPopup(`<b>ID:</b> ${point.id}<br><b>Longitude:</b> ${point.longitude}<br><b>Latitude:</b> ${point.latitude}<br><b>Aggregation:</b> ${point.Aggregation}`);
-                        markers.addLayer(marker);
+                        map.addLayer(marker);
                         bounds.push([point.latitude, point.longitude]);
 
-                       
                         heatmapPoints.push({
                             lat: point.latitude,
                             lng: point.longitude,
@@ -186,7 +175,6 @@ $(document).ready(function () {
                         });
                     });
 
-                    map.addLayer(markers);
                     if (bounds.length > 0) {
                         map.fitBounds(bounds); 
                     }
@@ -207,17 +195,15 @@ $(document).ready(function () {
     });
 
     function showMarkersOnly(data) {
-        markers.clearLayers();
         var bounds = [];
 
         data.forEach(function(point) {
             var marker = L.circleMarker([point.latitude, point.longitude], circleMarkerOptions);
             marker.bindPopup(`<b>ID:</b> ${point.id}<br><b>Longitude:</b> ${point.longitude}<br><b>Latitude:</b> ${point.latitude}`);
-            markers.addLayer(marker);
+            map.addLayer(marker);
             bounds.push([point.latitude, point.longitude]);
         });
 
-        map.addLayer(markers);
         if (bounds.length > 0) {
             map.fitBounds(bounds); 
         }

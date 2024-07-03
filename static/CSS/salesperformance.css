@@ -1,0 +1,187 @@
+.button-container {
+    text-align: center; /* Container mittig ausrichten */
+    margin-top: 10px; /* Abstand oberhalb der Buttons */
+}
+    .modern-button {
+    background-color: coral; /* Green */
+    border: none;
+    color: white;
+    padding: 10px 20px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 12px;
+    margin: 4px 2px;
+    cursor: pointer;
+    border-radius: 12px;
+    transition-duration: 0.4s;
+}
+
+.modern-button:hover {
+    background-color: white;
+    color: black;
+    border: 2px solid coral;
+}
+
+.popup {
+    display: none;
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.5);
+}
+
+.popup-content {
+    background-color: #fefefe;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 600px;
+    text-align: center;
+    border-radius: 12px;
+}
+
+.schließen-button {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.schließen-button:hover,
+.schließen-button:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.drop-area {
+    border: 2px dashed #ccc;
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+}
+
+.drop-area p {
+    margin: 0;
+    font-size: 16px;
+}
+
+.chart-container {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: space-between;
+    }
+    .chart {
+width: 48%;
+height: 400px;
+margin-bottom: 20px;
+background-color: #f0f0f0;
+border: 1px solid #ccc;
+display: flex;
+align-items: center;
+justify-content: center;
+}
+
+    .chart.large {
+width: 100%;
+}
+        .chart:nth-child(7){
+        width: 100%;
+    }
+    
+    .legend {
+        line-height: 18px;
+        color: #555;
+        background: white;
+        padding: 10px;
+        border-radius: 5px;
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+    }
+    .legend h4 {
+        margin: 0 0 5px;
+    }
+    .legend div {
+        display: flex;
+        align-items: center;
+    }
+    .legend div span {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        margin-right: 5px;
+    }
+    .dashboard-title {
+    text-align: center; /* Mittig ausrichten */
+}
+#myChart7 {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    padding: 20px;
+    box-sizing: border-box;
+    overflow-y: auto;
+    max-height: 100%;
+}
+
+.kpi-section {
+    background-color: #f7f7f7;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    padding: 20px;
+    flex: 1 1 300px;
+    min-width: 250px;
+    box-sizing: border-box;
+}
+
+.kpi-section h3 {
+    margin-top: 0;
+    font-size: 1.2em;
+    color: #333;
+    border-bottom: 2px solid #ccc;
+    padding-bottom: 10px;
+}
+
+.kpi-section ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.kpi-section ul li {
+    margin: 10px 0;
+    padding: 10px;
+    background: #fff;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.kpi-section ul li:nth-child(even) {
+    background: #f1f1f1;
+}
+
+.kpi-section ul li span {
+    display: block;
+    font-weight: bold;
+}
+.chart.highlight {
+border: 2px dashed #000; /* Hervorhebung mit gestricheltem Rahmen */
+}
+
+.chart.dragging {
+opacity: 0.5;
+cursor: grabbing;
+}
+/* Responsive Anpassung */
+@media (max-width: 768px) {
+.chart {
+    width: 100%; /* Vollständige Breite bei kleineren Bildschirmen */
+}
+}
+
