@@ -256,7 +256,7 @@ function processTreemapData(response) {
 
 
 
-function generateChartOptions(chartType, response) {
+function generateChartOptions(chartType, response, chart) {
     let option = {};
     switch (chartType) {
         case 'treemap':
@@ -276,6 +276,43 @@ function generateChartOptions(chartType, response) {
                     formatter: function(info) {
                         const value = info.value;
                         return `${info.name}All time total Revenue  $${value.toFixed(2)}`;
+                    }
+                },
+                toolbox: {
+                    feature: {
+                        saveAsImage: {},
+                        dataView: { 
+                            show: true, 
+                            readOnly: false,
+                            optionToContent: function(opt) {
+                                let table = `<table style="width:100%;text-align:center"><thead><tr><th>Category</th><th>Product</th><th>Total</th></tr></thead><tbody>`;
+                                opt.series[0].data.forEach(function(item) {
+                                    item.children.forEach(function(child) {
+                                        table += `<tr><td>${item.name}</td><td>${child.name}</td><td>${child.value}</td></tr>`;
+                                    });
+                                });
+                                table += '</tbody></table>';
+                                return table;
+                            }
+                        },
+                        myDarkMode: {
+                            show: true,
+                            title: 'Dark Mode',
+                            icon: 'path://M512 0C229.23072 0 0 229.23072 0 512s229.23072 512 512 512 512-229.23072 512-512S794.76928 0 512 0z m0 938.0864c-234.24 0-426.0864-191.8464-426.0864-426.0864S277.76 85.9136 512 85.9136c55.7312 0 111.4624 11.7248 163.6864 35.0208-32.768 56.32-87.04 94.72-151.0912 105.2672-78.4896 13.7216-147.2-12.288-199.7312-55.808 0 0-12.6976 80.9472-12.6976 119.296 0 136.3968 104.7552 247.9104 239.9232 261.8368 79.872 8.2944 152.576-24.7808 198.3488-80.64 28.2624 48.64 45.568 106.752 45.568 170.3424 0 234.24-191.8464 426.0864-426.0864 426.0864z',
+                            onclick: function () {
+                                darkMode = !darkMode;
+                                updateChartAppearance(chart);
+                            }
+                        },
+                        myDecalPattern: {
+                            show: true,
+                            title: 'Decal Pattern',
+                            icon: 'path://M50 250 Q 150 50 250 250 T 450 250',
+                            onclick: function () {
+                                decalPattern = !decalPattern;
+                                updateChartAppearance(chart);
+                            }
+                        }
                     }
                 },
                 series: [{
@@ -330,7 +367,7 @@ function generateChartOptions(chartType, response) {
                 }]
             };
             break;
-            case 'stackedBar':
+        case 'stackedBar':
             const { names, processedData, sizes } = processstackedBarData(response);
 
             option = {
@@ -372,6 +409,49 @@ function generateChartOptions(chartType, response) {
                     top: 40,
                     padding: [20, 5, 5, 5] 
                 },
+                toolbox: {
+                    feature: {
+                        saveAsImage: {},
+                        dataView: { 
+                            show: true, 
+                            readOnly: false,
+                            optionToContent: function(opt) {
+                                let table = `<table style="width:100%;text-align:center"><thead><tr><th>Name</th>`;
+                                sizes.forEach(function(size) {
+                                    table += `<th>${size}</th>`;
+                                });
+                                table += `</tr></thead><tbody>`;
+                                opt.xAxis[0].data.forEach(function(name, index) {
+                                    table += `<tr><td>${name}</td>`;
+                                    sizes.forEach(function(size) {
+                                        table += `<td>${opt.series.find(serie => serie.name === size).data[index]}</td>`;
+                                    });
+                                    table += `</tr>`;
+                                });
+                                table += '</tbody></table>';
+                                return table;
+                            }
+                        },
+                        myDarkMode: {
+                            show: true,
+                            title: 'Dark Mode',
+                            icon: 'path://M512 0C229.23072 0 0 229.23072 0 512s229.23072 512 512 512 512-229.23072 512-512S794.76928 0 512 0z m0 938.0864c-234.24 0-426.0864-191.8464-426.0864-426.0864S277.76 85.9136 512 85.9136c55.7312 0 111.4624 11.7248 163.6864 35.0208-32.768 56.32-87.04 94.72-151.0912 105.2672-78.4896 13.7216-147.2-12.288-199.7312-55.808 0 0-12.6976 80.9472-12.6976 119.296 0 136.3968 104.7552 247.9104 239.9232 261.8368 79.872 8.2944 152.576-24.7808 198.3488-80.64 28.2624 48.64 45.568 106.752 45.568 170.3424 0 234.24-191.8464 426.0864-426.0864 426.0864z',
+                            onclick: function () {
+                                darkMode = !darkMode;
+                                updateChartAppearance(chart);
+                            }
+                        },
+                        myDecalPattern: {
+                            show: true,
+                            title: 'Decal Pattern',
+                            icon: 'path://M50 250 Q 150 50 250 250 T 450 250',
+                            onclick: function () {
+                                decalPattern = !decalPattern;
+                                updateChartAppearance(chart);
+                            }
+                        }
+                    }
+                },
                 xAxis: {
                     type: 'category',
                     data: names,
@@ -386,7 +466,7 @@ function generateChartOptions(chartType, response) {
                 series: processedData
             };
             break;
-            case 'scatter':
+        case 'scatter':
             const scatterData = processScatterData(response);
 
             option = {
@@ -406,6 +486,41 @@ function generateChartOptions(chartType, response) {
                             'Price: $' + params.value[1],  // Achsen vertauschen
                             'Size: ' + params.data.size
                         ].join('<br/>');
+                    }
+                },
+                toolbox: {
+                    feature: {
+                        saveAsImage: {},
+                        dataView: { 
+                            show: true, 
+                            readOnly: false,
+                            optionToContent: function(opt) {
+                                let table = `<table style="width:100%;text-align:center"><thead><tr><th>Name</th><th>Ingredients</th><th>Price</th><th>Size</th></tr></thead><tbody>`;
+                                opt.series[0].data.forEach(function(item) {
+                                    table += `<tr><td>${item.name}</td><td>${item.value[0]}</td><td>${item.value[1]}</td><td>${item.size}</td></tr>`;
+                                });
+                                table += '</tbody></table>';
+                                return table;
+                            }
+                        },
+                        myDarkMode: {
+                            show: true,
+                            title: 'Dark Mode',
+                            icon: 'path://M512 0C229.23072 0 0 229.23072 0 512s229.23072 512 512 512 512-229.23072 512-512S794.76928 0 512 0z m0 938.0864c-234.24 0-426.0864-191.8464-426.0864-426.0864S277.76 85.9136 512 85.9136c55.7312 0 111.4624 11.7248 163.6864 35.0208-32.768 56.32-87.04 94.72-151.0912 105.2672-78.4896 13.7216-147.2-12.288-199.7312-55.808 0 0-12.6976 80.9472-12.6976 119.296 0 136.3968 104.7552 247.9104 239.9232 261.8368 79.872 8.2944 152.576-24.7808 198.3488-80.64 28.2624 48.64 45.568 106.752 45.568 170.3424 0 234.24-191.8464 426.0864-426.0864 426.0864z',
+                            onclick: function () {
+                                darkMode = !darkMode;
+                                updateChartAppearance(chart);
+                            }
+                        },
+                        myDecalPattern: {
+                            show: true,
+                            title: 'Decal Pattern',
+                            icon: 'path://M50 250 Q 150 50 250 250 T 450 250',
+                            onclick: function () {
+                                decalPattern = !decalPattern;
+                                updateChartAppearance(chart);
+                            }
+                        }
                     }
                 },
                 xAxis: {
@@ -454,6 +569,41 @@ function generateChartOptions(chartType, response) {
                         ].join('<br/>');
                     }
                 },
+                toolbox: {
+                    feature: {
+                        saveAsImage: {},
+                        dataView: { 
+                            show: true, 
+                            readOnly: false,
+                            optionToContent: function(opt) {
+                                let table = `<table style="width:100%;text-align:center"><thead><tr><th>Name</th><th>Min</th><th>Q1</th><th>Median</th><th>Q3</th><th>Max</th></tr></thead><tbody>`;
+                                opt.series[0].data.forEach(function(item, index) {
+                                    table += `<tr><td>${opt.xAxis[0].data[index]}</td><td>${item[1]}</td><td>${item[2]}</td><td>${item[3]}</td><td>${item[4]}</td><td>${item[5]}</td></tr>`;
+                                });
+                                table += '</tbody></table>';
+                                return table;
+                            }
+                        },
+                        myDarkMode: {
+                            show: true,
+                            title: 'Dark Mode',
+                            icon: 'path://M512 0C229.23072 0 0 229.23072 0 512s229.23072 512 512 512 512-229.23072 512-512S794.76928 0 512 0z m0 938.0864c-234.24 0-426.0864-191.8464-426.0864-426.0864S277.76 85.9136 512 85.9136c55.7312 0 111.4624 11.7248 163.6864 35.0208-32.768 56.32-87.04 94.72-151.0912 105.2672-78.4896 13.7216-147.2-12.288-199.7312-55.808 0 0-12.6976 80.9472-12.6976 119.296 0 136.3968 104.7552 247.9104 239.9232 261.8368 79.872 8.2944 152.576-24.7808 198.3488-80.64 28.2624 48.64 45.568 106.752 45.568 170.3424 0 234.24-191.8464 426.0864-426.0864 426.0864z',
+                            onclick: function () {
+                                darkMode = !darkMode;
+                                updateChartAppearance(chart);
+                            }
+                        },
+                        myDecalPattern: {
+                            show: true,
+                            title: 'Decal Pattern',
+                            icon: 'path://M50 250 Q 150 50 250 250 T 450 250',
+                            onclick: function () {
+                                decalPattern = !decalPattern;
+                                updateChartAppearance(chart);
+                            }
+                        }
+                    }
+                },
                 xAxis: {
                     type: 'category',
                     data: boxplotData.x,
@@ -493,10 +643,21 @@ function generateChartOptions(chartType, response) {
                         }
                     }
                 },
-                
                 toolbox: {
                     feature: {
                         saveAsImage: {},
+                        dataView: { 
+                            show: true, 
+                            readOnly: false,
+                            optionToContent: function(opt) {
+                                let table = `<table style="width:100%;text-align:center"><thead><tr><th>Name</th><th>Value</th></tr></thead><tbody>`;
+                                opt.series[0].data.forEach(function(item, index) {
+                                    table += `<tr><td>${opt.xAxis[0].data[index]}</td><td>${item.value}</td></tr>`;
+                                });
+                                table += '</tbody></table>';
+                                return table;
+                            }
+                        },
                         myDarkMode: {
                             show: true,
                             title: 'Dark Mode',
@@ -513,27 +674,6 @@ function generateChartOptions(chartType, response) {
                             onclick: function () {
                                 decalPattern = !decalPattern;
                                 updateChartAppearance(chart);
-                            }
-                        },
-                        myShare: {
-                            show: true,
-                            title: 'Share',
-                            icon: 'path://M864 160h-192V96H352v64H160c-35.328 0-64 28.672-64 64v576c0 35.328 28.672 64 64 64h704c35.328 0 64-28.672 64-64V224c0-35.328-28.672-64-64-64z m0 640H160V224h192v64h320v-64h192v576z m-320-320h-64v192h-192V480h-64l160-160 160 160z',
-                            onclick: function () {
-                                const url = window.location.href;
-                                navigator.clipboard.writeText(url).then(function () {
-                                    alert('URL copied to clipboard');
-                                }, function (err) {
-                                    console.error('Could not copy URL: ', err);
-                                });
-                            }
-                        },
-                        myCloseChart: {
-                            show: true,
-                            title: 'Close Chart',
-                            icon: 'path://M512 512l212.48-212.48a32 32 0 0 0-45.248-45.248L512 421.504 299.52 209.024a32 32 0 1 0-45.248 45.248L466.752 512 254.272 724.48a32 32 0 1 0 45.248 45.248L512 602.496l212.48 212.48a32 32 0 0 0 45.248-45.248L557.248 512z',
-                            onclick: function() {
-                                chart.dispose();
                             }
                         }
                     }
@@ -582,16 +722,46 @@ function generateChartOptions(chartType, response) {
                     data: products
                 },
                 toolbox: {
-                    show: true,
-                    orient: 'vertical',
-                    left: 'right',
-                    top: 'center',
                     feature: {
-                        mark: { show: true },
-                        dataView: { show: true, readOnly: false },
-                        magicType: { show: true, type: ['line', 'bar', 'stack'] },
-                        restore: { show: true },
-                        saveAsImage: { show: true }
+                        saveAsImage: {},
+                        dataView: { 
+                            show: true, 
+                            readOnly: false,
+                            optionToContent: function(opt) {
+                                let table = `<table style="width:100%;text-align:center"><thead><tr><th>Year</th>`;
+                                products.forEach(function(product) {
+                                    table += `<th>${product}</th>`;
+                                });
+                                table += `</tr></thead><tbody>`;
+                                opt.xAxis[0].data.forEach(function(year, index) {
+                                    table += `<tr><td>${year}</td>`;
+                                    products.forEach(function(product) {
+                                        table += `<td>${opt.series.find(serie => serie.name === product).data[index]}</td>`;
+                                    });
+                                    table += `</tr>`;
+                                });
+                                table += '</tbody></table>';
+                                return table;
+                            }
+                        },
+                        myDarkMode: {
+                            show: true,
+                            title: 'Dark Mode',
+                            icon: 'path://M512 0C229.23072 0 0 229.23072 0 512s229.23072 512 512 512 512-229.23072 512-512S794.76928 0 512 0z m0 938.0864c-234.24 0-426.0864-191.8464-426.0864-426.0864S277.76 85.9136 512 85.9136c55.7312 0 111.4624 11.7248 163.6864 35.0208-32.768 56.32-87.04 94.72-151.0912 105.2672-78.4896 13.7216-147.2-12.288-199.7312-55.808 0 0-12.6976 80.9472-12.6976 119.296 0 136.3968 104.7552 247.9104 239.9232 261.8368 79.872 8.2944 152.576-24.7808 198.3488-80.64 28.2624 48.64 45.568 106.752 45.568 170.3424 0 234.24-191.8464 426.0864-426.0864 426.0864z',
+                            onclick: function () {
+                                darkMode = !darkMode;
+                                updateChartAppearance(chart);
+                            }
+                        },
+                        myDecalPattern: {
+                            show: true,
+                            title: 'Decal Pattern',
+                            icon: 'path://M50 250 Q 150 50 250 250 T 450 250',
+                            onclick: function () {
+                                decalPattern = !decalPattern;
+                                updateChartAppearance(chart);
+                            }
+                        }
                     }
                 },
                 xAxis: {
@@ -625,6 +795,47 @@ function generateChartOptions(chartType, response) {
     }
     return option;
 }
+
+function updateChartAppearance(chart) {
+    const option = chart.getOption();
+
+    // Update background color and text color for dark mode
+    if (darkMode) {
+        option.backgroundColor = '#333';
+        option.title[0].textStyle.color = '#fff';
+        option.xAxis[0].axisLabel.color = '#fff';
+        option.yAxis[0].axisLabel.color = '#fff';
+        option.legend[0].textStyle.color = '#fff';
+    } else {
+        option.backgroundColor = '#fff';
+        option.title[0].textStyle.color = '#000';
+        option.xAxis[0].axisLabel.color = '#000';
+        option.yAxis[0].axisLabel.color = '#000';
+        option.legend[0].textStyle.color = '#000';
+    }
+
+    // Apply or remove decal pattern
+    option.series.forEach(serie => {
+        if (decalPattern) {
+            serie.itemStyle = serie.itemStyle || {};
+            serie.itemStyle.decal = {
+                symbol: 'rect',
+                color: 'rgba(0, 0, 0, 0.1)',
+                dashArrayX: [1, 0],
+                dashArrayY: [2, 5],
+                rotation: Math.PI / 4,
+                symbolSize: 1
+            };
+        } else {
+            if (serie.itemStyle && serie.itemStyle.decal) {
+                delete serie.itemStyle.decal;
+            }
+        }
+    });
+
+    chart.setOption(option, { notMerge: true });
+}
+
 
 
 function initializeKPI(config, response) {
