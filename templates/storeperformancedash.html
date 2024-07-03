@@ -230,6 +230,9 @@
 #sortDropdown {
     padding: 5px;
 }
+.highlight {
+    border: 2px dashed coral;
+}
 </style>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
@@ -285,7 +288,7 @@
                 <div id="chart1" class="chart large">
                     <div id="myChart1" style="width: 100%; height: 100%;"></div>
                 </div>
-                <div id="chart2" class="chart large">
+                <div id="chart2" class="chart large draggable-chart">
                     <div id="storeChartsContainer" style="display: flex; overflow-x: auto; white-space: nowrap;"></div>
                 </div>
                 <div id="chart3" class="chart">
@@ -294,13 +297,14 @@
                 <div id="chart4" class="chart">
                     <div id="myChart4" style="width: 100%; height: 100%;"></div>
                 </div>
-                <div id="chart5" class="chart large">
+                <div id="chart5" class="chart large draggable-chart">
                     <div id="myChart5" style="width: 100%; height: 100%;"></div>
                 </div>
-                <div id="chart6" class="chart large">
+                <div id="chart6" class="chart large draggable-chart">
                     <div id="myChart6" style="width: 100%; height: 100%;"></div>
                 </div>
             </div>
+            
         </section>
     </main>
     <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
@@ -311,8 +315,25 @@
     <script src="https://unpkg.com/heatmap.js"></script>
     <script src="https://unpkg.com/leaflet-heatmap/leaflet-heatmap.js"></script>
     <script src="/static/JS/storeperformancedash.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/plugins/Swap/SortableSwap.min.js"></script>
+
 
     <script>
-    </script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var sortable = new Sortable(document.querySelector('.chart-container'), {
+                animation: 150,
+                ghostClass: 'sortable-ghost',
+                swap: true,
+                swapClass: 'highlight',
+                filter: '.chart:not(.draggable-chart)',
+                onMove: function (evt) {
+                    return evt.related.classList.contains('draggable-chart');
+                }
+            });
+        });
+        </script>
+        
+        
 </body>
 </html>
