@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>KPI Dashboards</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        #kpiForm {
+            margin-bottom: 20px;
+        }
+        #results {
+            background-color: #f9f9f9;
+            padding: 10px;
+            border: 1px solid #ddd;
+            white-space: pre-wrap; /* Damit das JSON formatiert angezeigt wird */
+        }
+    </style>
+</head>
+<body>
+    <h1>KPI Dashboards</h1>
+    <form id="kpiForm">
+        <label for="dashboard">Wähle ein Dashboard:</label>
+        <select id="dashboard" name="dashboard">
+            <option value="/kpiforsalesperformancedash">Sales Performance Dashboard</option>
+            <option value="/kpiforcustomerdash">Customer Dashboard</option>
+            <option value="/kpiforproductdash">Product Dashboard</option>
+            <option value="/kpiforstoredash">Store Performance Dashboard</option>
+            <option value="/kpifororderdash">Order Details Dashboard</option>
+        </select>
+        <br><br>
+        <button type="button" onclick="fetchKpiData()">Abrufen</button>
+    </form>
+
+    <h2>Ergebnisse</h2>
+    <pre id="results"></pre>
+
+    <script>
+    function fetchKpiData() {
+        var dashboardUrl = $('#dashboard').val();
+        $('#results').text('Lade Daten...');
+        console.log('Requesting data from:', dashboardUrl); // Debugging
+        $.ajax({
+            url: dashboardUrl,
+            method: 'GET',
+            dataType: 'json',
+            success: function(data) {
+                console.log('Data received:', data); // Debugging
+                $('#results').text(JSON.stringify(data, null, 2));
+            },
+            error: function(error) {
+                console.error('Error fetching data:', error); // Debugging
+                $('#results').text('Fehler beim Abrufen der Daten: ' + error.responseText);
+            }
+        });
+    }
+    </script>
+</body>
+</html>

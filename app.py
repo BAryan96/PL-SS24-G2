@@ -1,9 +1,15 @@
 from flask import Flask, render_template, request, jsonify
 from DB import connect_to_database, get_cursor
+import pandas as pd
+from geopy.distance import geodesic
 
 app = Flask(__name__)
 conn = connect_to_database()
 cur = get_cursor(conn)
+
+@app.route("/kpitest")
+def kpitest():
+    return render_template('kpitest.html')
 
 @app.route("/")
 def landingpage():
@@ -365,5 +371,222 @@ def get_table():
         json_data.append(dict(zip(row_headers, result)))
     return render_template('index.html', data=json_data)
 
-if __name__ == "__main__":
+
+
+def fetch_data(query, conn):
+    cursor = conn.cursor()
+    
+    try:
+        cursor.execute(query)
+        rows = cursor.fetchall()
+        
+        if cursor.description is None:
+            raise ValueError("Die Abfrage hat keine beschreibenden Informationen zurückgegeben. Überprüfen Sie die SQL-Abfrage.")
+        
+        column_names = [desc[0] for desc in cursor.description]
+        
+        return pd.DataFrame(rows, columns=column_names)
+    except Exception as e:
+        print(f"Fehler beim Abrufen der Daten: {e}")
+        return None
+    finally:
+        cursor.close()
+
+def fetch_all_data():
+    conn = connect_to_database()
+    
+    try:
+        orders_query = """
+            SELECT orderID, orderDate, storeID, total, customerID, nItems AS quantity
+            FROM orders
+        """
+        orders = fetch_data(orders_query, conn)
+        
+        order_items_query = """
+            SELECT orderID, SKU
+            FROM orderitems
+        """
+        order_items = fetch_data(order_items_query, conn)
+        
+        products_query = """
+            SELECT SKU, category, price, name, size
+            FROM products
+        """
+        products = fetch_data(products_query, conn)
+        
+        customers_query = """
+            SELECT customerID, latitude AS customer_lat, longitude AS customer_lon
+            FROM customers
+        """
+        customers = fetch_data(customers_query, conn)
+        
+        stores_query = """
+            SELECT storeID, latitude AS store_lat, longitude AS store_lon, city, state
+            FROM stores
+        """
+        stores = fetch_data(stores_query, conn)
+        
+        return orders, order_items, products, customers, stores
+    finally:
+        conn.close()
+
+def calculate_sales_performance_kpis():
+    orders, _, _, _, _ = fetch_all_data()
+    
+    revenue = orders['total'].sum()
+    units_sold = orders['quantity'].sum()
+    avg_order_value = orders['total'].mean()
+    reorder_rate = orders.groupby('customerID').size().mean()
+    
+    return {
+        'revenue': f'${float(revenue):.2f}',
+        'units_sold': int(units_sold),
+        'avg_order_value': f'${float(avg_order_value):.2f}',
+        'reorder_rate': float(reorder_rate)
+    }
+
+def calculate_customer_kpis():
+    try:
+        orders, _, _, customers, stores = fetch_all_data()
+
+        print("Orders DataFrame:")
+        print(orders.head())
+        
+        print("Customers DataFrame:")
+        print(customers.head())
+        
+        print("Stores DataFrame:")
+        print(stores.head())
+
+        orders = orders.merge(customers, on='customerID', how='inner')
+        orders = orders.merge(stores, on='storeID', how='inner')
+
+        def calculate_distance(row):
+            customer_coords = (row['customer_lat'], row['customer_lon'])
+            store_coords = (row['store_lat'], row['store_lon'])
+            return geodesic(customer_coords, store_coords).miles
+
+        average_distance_miles = new_func(orders, calculate_distance)
+        average_distance_km = average_distance_miles * 1.60934
+        
+        print("Orders DataFrame after merging:")
+        print(orders.head())
+        
+        clv_df = orders.groupby('customerID')['total'].sum()
+        average_clv = round(clv_df.mean(), 2)
+        
+        customer_orders = orders.groupby('customerID').size()
+        regular_customers = (customer_orders > 5).sum()
+        occasional_customers = ((customer_orders > 1) & (customer_orders <= 5)).sum() 
+        one_time_customers = (customer_orders == 1).sum()
+        potential_customers = (customer_orders == 0).sum()
+        
+        return {
+            'average_distance_miles': float(average_distance_miles),
+            'average_distance_km': float(average_distance_km),
+            'average_clv': float(average_clv),
+            'regular_customers': int(regular_customers),
+            'occasional_customers': int(occasional_customers),
+            'one_time_customers': int(one_time_customers),
+            'potential_customers': int(potential_customers)
+        }
+    except Exception as e:
+        print(f"Fehler bei der Berechnung der Kunden-KPIs: {e}")
+        return {}
+
+def new_func(orders, calculate_distance):
+    orders['distance'] = orders.apply(calculate_distance, axis=1)
+    average_distance = orders['distance'].mean()
+    return average_distance
+
+def calculate_product_performance_kpis():
+    orders, order_items, products, _, _ = fetch_all_data()
+
+    df = order_items.merge(products, on='SKU', how='outer')
+    df = df.merge(orders, on='orderID', how='outer')
+
+    df['total'] = pd.to_numeric(df['total'], errors='coerce')
+    df['quantity'] = pd.to_numeric(df['quantity'], errors='coerce')
+    
+    product_performance = df.groupby(['name', 'category', 'size']).agg({
+        'quantity': 'sum',
+        'total': 'sum'
+    }).rename(columns={'quantity': 'units_sold', 'total': 'revenue'}).reset_index()
+    
+    top_3_units_sold = product_performance.nlargest(3, 'units_sold')
+    top_3_revenue = product_performance.nlargest(3, 'revenue').round(2)
+    bottom_3_units_sold = product_performance.nsmallest(3, 'units_sold')
+    bottom_3_revenue = product_performance.nsmallest(3, 'revenue').round(2)
+
+    top_3_revenue['revenue'] = top_3_revenue['revenue'].apply(lambda x: f'${x:.2f}')
+    bottom_3_revenue['revenue'] = bottom_3_revenue['revenue'].apply(lambda x: f'${x:.2f}')
+    top_3_units_sold['revenue'] = top_3_units_sold['revenue'].apply(lambda x: f'${x:.2f}')
+    bottom_3_units_sold['revenue'] = bottom_3_units_sold['revenue'].apply(lambda x: f'${x:.2f}')
+    
+    return {
+        'top_3_units_sold': top_3_units_sold.astype(str).to_dict('records'),
+        'top_3_revenue': top_3_revenue.astype(str).to_dict('records'),
+        'bottom_3_units_sold': bottom_3_units_sold.astype(str).to_dict('records'),
+        'bottom_3_revenue': bottom_3_revenue.astype(str).to_dict('records')
+    }
+
+def calculate_store_performance_kpis():
+    orders, _, _, _, stores = fetch_all_data()
+
+    df = orders.merge(stores, on='storeID', how='inner')
+    
+    store_performance = df.groupby(['storeID', 'city', 'state']).agg({
+        'quantity': 'sum',
+        'total': 'sum'
+    }).rename(columns={'quantity': 'units_sold', 'total': 'revenue'}).reset_index()
+
+    store_performance['revenue'] = pd.to_numeric(store_performance['revenue'], errors='coerce')
+    store_performance['units_sold'] = pd.to_numeric(store_performance['units_sold'], errors='coerce')
+    
+    reorder_df = df.groupby(['storeID', 'customerID']).size().reset_index(name='orders')
+    store_reorder_rate = reorder_df.groupby('storeID')['orders'].mean().reset_index()
+    best_store_reorder_rate = store_reorder_rate.nlargest(1, 'orders')
+
+    top_3_units_sold_stores = store_performance.nlargest(3, 'units_sold').round(2)
+    top_3_units_sold_stores = top_3_units_sold_stores.drop(columns=['revenue'])
+    bottom_3_units_sold_stores = store_performance.nsmallest(3, 'units_sold').round(2)
+    bottom_3_units_sold_stores = bottom_3_units_sold_stores.drop(columns=['revenue'])
+    
+    top_3_revenue_stores = store_performance.nlargest(3, 'revenue')
+    top_3_revenue_stores = top_3_revenue_stores.drop(columns=['units_sold'])
+    bottom_3_revenue_stores = store_performance.nsmallest(3, 'revenue').round(2)
+    bottom_3_revenue_stores = bottom_3_revenue_stores.drop(columns=['units_sold'])
+    
+    top_3_revenue_stores['revenue'] = top_3_revenue_stores['revenue'].apply(lambda x: f'${x:.2f}')
+    bottom_3_revenue_stores['revenue'] = bottom_3_revenue_stores['revenue'].apply(lambda x: f'${x:.2f}')
+    
+    return {
+        'best_store_reorder_rate': best_store_reorder_rate.astype(str).to_dict('records'),
+        'top_3_units_sold_stores': top_3_units_sold_stores.astype(str).to_dict('records'),
+        'top_3_revenue_stores': top_3_revenue_stores.astype(str).to_dict('records'),
+        'bottom_3_units_sold_stores': bottom_3_units_sold_stores.astype(str).to_dict('records'),
+        'bottom_3_revenue_stores': bottom_3_revenue_stores.astype(str).to_dict('records')
+    }
+
+@app.route('/kpiforsalesperformancedash', methods=['GET'])
+def kpiforsalesperformancedash():
+    kpis = calculate_sales_performance_kpis()
+    return jsonify(kpis)
+
+@app.route('/kpiforcustomerdash', methods=['GET'])
+def kpiforcustomerdash():
+    kpis = calculate_customer_kpis()
+    return jsonify(kpis)
+
+@app.route('/kpiforproductdash', methods=['GET'])
+def kpiforproductdash():
+    kpis = calculate_product_performance_kpis()
+    return jsonify(kpis)
+
+@app.route('/kpiforstoredash', methods=['GET'])
+def kpiforstoredash():
+    kpis = calculate_store_performance_kpis()
+    return jsonify(kpis)
+
+if __name__ == '__main__':
     app.run(debug=True)
