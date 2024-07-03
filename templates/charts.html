@@ -21,11 +21,16 @@
         </header>
         <div class="side-menu" id="sideMenu">
             <button class="close-button">X</button>
-            <h1>What would you like to See?</h1>
             <a href="/charts">Chart Overview</a>
-            <a href="#">Edit/Clear Data</a>
-            <a href="#">Forecast</a>
-            <a href="#">My Profile</a>
+            <div class="dropdown">
+                <a href="#" class="dropdown-btn">Dashboard</a>
+                <div class="dropdown-content">
+                    <a href="/salesperformancedash">Sales Performance Dashboard</a>
+                    <a href="/storeperformancedash">Store Performance Dashboard</a>
+                    <a href="/customerdash">Customer Insights Dashboard</a>
+                    <a href="/productdash">Product Performance Dashboard</a>
+                </div>
+            </div>
             <a href="/login">Sign In</a>
             <a href="/">Log Out</a>
         </div>

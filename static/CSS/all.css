@@ -52,35 +52,28 @@ header {
     z-index: 1001;
     top: 0;
     right: 0;
-    background-color: #FFFFFF; 
-    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1); 
+    background-color: #f5f5f5; /* Dunklerer Hintergrund */
+    box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
     overflow-x: hidden;
     transition: width 0.5s ease-in-out; /* Weichere Transition */
     padding-top: 60px;
 }
 
 .side-menu a {
-    padding: 15px 25px; /* Größere Padding-Werte für mehr Luftigkeit */
+    padding: 15px 25px;
     text-decoration: none;
     font-size: 18px;
-    color: #333;
+    color: #333; /* Weiße Schriftfarbe */
     display: block;
-    transition: color 0.3s ease-in-out; /* Weichere Farbübergänge */
+    transition: background-color 0.3s ease, color 0.3s ease; /* Farbübergänge */
 }
 
 .side-menu a:hover {
-    color: #017BFF; /* Helle und moderne Hover-Farbe */
+    background-color: #017BFF; /* Helle Hover-Farbe */
+    color: #fff; /* Weiße Schriftfarbe */
 }
 
-#sideMenu h1 {
-    font-size: 24px;
-    color: #333;
-    padding: 20px 25px; /* Mehr Padding oben und an den Seiten */
-    margin: 0; /* Entfernen der Standardmarge */
-    border-bottom: 1px solid #EAEAEA; /* Leichte Trennlinie für Struktur */
-}
-
-.close-button {
+.side-menu .close-button {
     position: absolute;
     top: 20px;
     right: 20px;
@@ -88,5 +81,113 @@ header {
     border: none;
     font-size: 24px;
     cursor: pointer;
+    color: #fff; /* Weiße Schriftfarbe */
+}
+
+.side-menu .logo-area {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px 0;
+    border-bottom: 1px solid #555; /* Dunklere Trennlinie */
+    margin-bottom: 20px;
+}
+
+.side-menu .logo-circle {
+    width: 40px;
+    height: 40px;
+    background-color: #ff4500;
+    border-radius: 50%;
+    margin-right: 10px;
+}
+
+.side-menu .logo-text {
+    font-size: 24px;
+    color: #333; /* Weiße Schriftfarbe */
+}
+
+.side-menu .auth-buttons {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.side-menu .header-btn {
+    margin: 5px;
+    padding: 10px 20px;
+    border: 1px solid #017BFF; /* Farbe anpassen */
+    background-color: #017BFF; /* Farbe anpassen */
+    color: #333; /* Weiße Schriftfarbe */
+    cursor: pointer;
+    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+}
+
+.side-menu .header-btn:hover {
+    background-color: #555; /* Dunklere Hover-Farbe */
+    border-color: #555; /* Dunklere Hover-Farbe */
+}
+
+/* Dropdown styles */
+.side-menu .dropdown {
+    margin-bottom: 10px;
+}
+
+.side-menu .dropdown-btn {
+    display: flex;
+    align-items: center;
+    padding: 15px 25px;
+    color: #333; /* Weiße Schriftfarbe */
+    text-decoration: none;
+    transition: background-color 0.3s ease;
+}
+
+.side-menu .dropdown-btn::after {
+    content: '\25BC'; /* Pfeil nach unten */
+    margin-left: auto;
+    font-size: 12px;
+}
+
+.side-menu .dropdown-content {
+    display: none;
+    position: relative;
+    background-color: #444; /* Dunklerer Hintergrund für Dropdown */
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 1;
+    width: 100%;
+}
+
+.side-menu .dropdown-content a {
+    color: #333; /* Weiße Schriftfarbe */
+    padding: 12px 20px;
+    text-decoration: none;
+    display: block;
+    transition: background-color 0.3s ease;
+}
+
+.side-menu .dropdown-content a:hover {
+    background-color: #555; /* Dunklere Hover-Farbe */
+}
+
+.side-menu .dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: #fff;
+    box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+    z-index: 1;
+    width: 100%;
+}
+
+.side-menu .dropdown-content a {
     color: #333;
+    padding: 12px 20px;
+    text-decoration: none;
+    display: block;
+    transition: background-color 0.3s ease;
+}
+
+.side-menu .dropdown-content a:hover {
+    background-color: #f1f1f1;
+}
+
+.side-menu .dropdown:hover .dropdown-content {
+    display: block;
 }

@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="/static/CSS/landingpage.css">
     <link rel="stylesheet" href="/static/CSS/all.css">
     <style>
+        
     </style>
 </head>
 <body>
@@ -25,9 +26,15 @@
         <div class="side-menu" id="sideMenu">
             <button class="close-button">X</button>
             <a href="/charts">Chart Overview</a>
-            <a href="#">Edit/Clear Data</a>
-            <a href="#">Forecast</a>
-            <a href="#">My Profile</a>
+            <div class="dropdown">
+                <a href="#" class="dropdown-btn">Dashboard</a>
+                <div class="dropdown-content">
+                    <a href="/salesperformancedash">Sales Performance Dashboard</a>
+                    <a href="/storeperformancedash">Store Performance Dashboard</a>
+                    <a href="/customerdash">Customer Insights Dashboard</a>
+                    <a href="/productdash">Product Performance Dashboard</a>
+                </div>
+            </div>
             <a href="/login">Sign In</a>
             <a href="/">Log Out</a>
         </div>
@@ -51,23 +58,6 @@
     </div>
     <script src="/static/JS/sidemenu.js"></script>
     <script>
-        window.onload = function() {
-            // JavaScript zur Steuerung des Submenus
-            document.querySelectorAll('.menu-item.has-submenu > span').forEach(function(element) {
-                element.addEventListener('click', function(event) {
-                    event.preventDefault();
-                    var parent = this.parentElement;
-                    var submenu = parent.querySelector('.submenu');
-                    if (parent.classList.contains('open')) {
-                        submenu.style.display = 'none';
-                        parent.classList.remove('open');
-                    } else {
-                        submenu.style.display = 'block';
-                        parent.classList.add('open');
-                    }
-                });
-            });
-        };
     </script>
 </body>
 </html>

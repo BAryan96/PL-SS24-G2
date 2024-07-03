@@ -211,21 +211,17 @@
         <div class="side-menu" id="sideMenu">
             <button class="close-button">X</button>
             <a href="/charts">Chart Overview</a>
-            <a href="#">Edit/Clear Data</a>
-            <a href="#">Forecast</a>
-            <a href="#">My Profile</a>
-            <a href="/login">Sign In</a>
-            <a href="/">Log Out</a>
-            <div class="menu-item has-submenu">
-                <a href="#">Customer Dashboard</a>
-                <div class="submenu">
+            <div class="dropdown">
+                <a href="#" class="dropdown-btn">Dashboard</a>
+                <div class="dropdown-content">
                     <a href="/salesperformancedash">Sales Performance Dashboard</a>
-                    <a href="#">Customer Insights Dashboard</a>
-                    <a href="#">Product Performance Dashboard</a>
-                    <a href="#">Store Performance Dashboard</a>
-                    <a href="#">Order Details Dashboard</a>
+                    <a href="/storeperformancedash">Store Performance Dashboard</a>
+                    <a href="/customerdash">Customer Insights Dashboard</a>
+                    <a href="/productdash">Product Performance Dashboard</a>
                 </div>
             </div>
+            <a href="/login">Sign In</a>
+            <a href="/">Log Out</a>
         </div>
     </div>
     <main class="main">
