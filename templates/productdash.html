@@ -1,86 +1,148 @@
 <!DOCTYPE html>
 <html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Data Visualisation - DV</title>
-    <link rel="stylesheet" href="/static/CSS/all.css">
-    <link rel="stylesheet" href="/static/CSS/productdash.css">
-    <style>
-    </style>
+    <link rel="stylesheet" href="/static/CSS/all.css" />
+    <link rel="stylesheet" href="/static/CSS/productdash.css" />
+    <style></style>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
-</head>
-<body>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css"
+    />
+  </head>
+  <body>
     <div class="container">
-        <header>
-            <div class="logo-area">
-                <span class="logo-circle"></span>
-                <span class="logo-text">Data Visualisation - DV</span>
-            </div>
-            <button class="menu-button">☰</button>
-        </header>
-        <div class="side-menu" id="sideMenu">
-            <button class="close-button">X</button>
-            <a href="/charts">Chart Overview</a>
-            <div class="dropdown">
-                <a href="#" class="dropdown-btn">Dashboard</a>
-                <div class="dropdown-content">
-                    <a href="/salesperformancedash">Sales Performance Dashboard</a>
-                    <a href="/storeperformancedash">Store Performance Dashboard</a>
-                    <a href="/customerdash">Customer Insights Dashboard</a>
-                    <a href="/productdash">Product Performance Dashboard</a>
-                </div>
-            </div>
-            <a href="/login">Sign In</a>
-            <a href="/">Log Out</a>
+      <header>
+        <div class="logo-area">
+          <span class="logo-circle"></span>
+          <span class="logo-text">Data Visualisation - DV</span>
         </div>
+        <button class="menu-button">☰</button>
+      </header>
+      <div class="side-menu" id="sideMenu">
+        <button class="close-button">X</button>
+        <a href="/charts">Chart Overview</a>
+        <div class="dropdown">
+          <a href="#" class="dropdown-btn">Dashboard</a>
+          <div class="dropdown-content">
+            <a href="/salesperformancedash">Sales Performance Dashboard</a>
+            <a href="/storeperformancedash">Store Performance Dashboard</a>
+            <a href="/customerdash">Customer Insights Dashboard</a>
+            <a href="/productdash">Product Performance Dashboard</a>
+          </div>
+        </div>
+        <a href="/login">Sign In</a>
+        <a href="/">Log Out</a>
+      </div>
     </div>
     <main class="main">
-        <section class="data-selection">
-            <h1 class="dashboard-title">Product Performance Dashboard</h1>
-            <div class="button-container">
-                <button id="exportJsonButton" class="modern-button">Export JSON</button>
-                <button id="importJsonButton" class="modern-button">Import JSON</button>
-                <input type="file" id="fileInput" style="display: none;" />
+      <section class="data-selection">
+        <h1 class="dashboard-title">Product Performance Dashboard</h1>
+        <div class="button-container">
+          <button id="exportJsonButton" class="modern-button">
+            Export JSON
+          </button>
+          <button id="importJsonButton" class="modern-button">
+            Import JSON
+          </button>
+          <input type="file" id="fileInput" style="display: none" />
+        </div>
+        <div id="importJsonPopup" class="popup">
+          <div class="popup-content">
+            <span class="schließen-button">&times;</span>
+            <h2>Drag and Drop JSON File Here</h2>
+            <div id="dropArea" class="drop-area">
+              <p>
+                Drop your JSON file here or
+                <button id="fileSelectButton" class="modern-button">
+                  Select File
+                </button>
+              </p>
             </div>
-            <div id="importJsonPopup" class="popup">
-                <div class="popup-content">
-                    <span class="schließen-button">&times;</span>
-                    <h2>Drag and Drop JSON File Here</h2>
-                    <div id="dropArea" class="drop-area">
-                        <p>Drop your JSON file here or <button id="fileSelectButton" class="modern-button">Select File</button></p>
-                    </div>
-                </div>
-            </div>
-            <div class="chart-group" id="chart-group-1">
-                <div id="chart1" class="chart" draggable="true" ondragstart="drag(event)" ondrop="drop(event)" ondragover="allowDrop(event)">
-                    <div id="myChart1" style="width: 100%; height: 100%;"></div>
-                </div>
-                <div id="chart2" class="chart" draggable="true" ondragstart="drag(event)" ondrop="drop(event)" ondragover="allowDrop(event)">
-                    <div id="myChart2" style="width: 100%; height: 100%;"></div>
-                </div>
-                <div id="chart3" class="chart" draggable="true" ondragstart="drag(event)" ondrop="drop(event)" ondragover="allowDrop(event)">
-                    <div id="myChart3" style="width: 100%; height: 100%;"></div>
-                </div>
-                <div id="chart4" class="chart" draggable="true" ondragstart="drag(event)" ondrop="drop(event)" ondragover="allowDrop(event)">
-                    <div id="myChart4" style="width: 100%; height: 100%;"></div>
-                </div>
-            </div>
-            <div class="chart-group" id="chart-group-2">
-                <div id="chart5" class="chart large-chart" draggable="true" ondragstart="drag(event)" ondrop="drop(event)" ondragover="allowDrop(event)">
-                    <div id="myChart5" style="width: 100%; height: 100%;"></div>
-                </div>       
-                <div id="chart6" class="chart large-chart" draggable="true" ondragstart="drag(event)" ondrop="drop(event)" ondragover="allowDrop(event)">
-                    <div id="myChart6" style="width: 100%; height: 100%;"></div>
-                </div>
-                <div id="chart7" class="chart large-chart" draggable="true" ondragstart="drag(event)" ondrop="drop(event)" ondragover="allowDrop(event)">
-                    <div id="myChart7" style="width: 100%; height: 100%;"></div>
-                </div>
-            </div>
-            
-        </section>
+          </div>
+        </div>
+        <div class="chart-group" id="chart-group-1">
+          <div
+            id="chart1"
+            class="chart"
+            draggable="true"
+            ondragstart="drag(event)"
+            ondrop="drop(event)"
+            ondragover="allowDrop(event)"
+          >
+            <div id="myChart1" style="width: 100%; height: 100%"></div>
+          </div>
+          <div
+            id="chart2"
+            class="chart"
+            draggable="true"
+            ondragstart="drag(event)"
+            ondrop="drop(event)"
+            ondragover="allowDrop(event)"
+          >
+            <div id="myChart2" style="width: 100%; height: 100%"></div>
+          </div>
+          <div
+            id="chart3"
+            class="chart"
+            draggable="true"
+            ondragstart="drag(event)"
+            ondrop="drop(event)"
+            ondragover="allowDrop(event)"
+          >
+            <div id="myChart3" style="width: 100%; height: 100%"></div>
+          </div>
+          <div
+            id="chart4"
+            class="chart"
+            draggable="true"
+            ondragstart="drag(event)"
+            ondrop="drop(event)"
+            ondragover="allowDrop(event)"
+          >
+            <div id="myChart4" style="width: 100%; height: 100%"></div>
+          </div>
+        </div>
+        <div class="chart-group" id="chart-group-2">
+          <div
+            id="chart5"
+            class="chart large-chart"
+            draggable="true"
+            ondragstart="drag(event)"
+            ondrop="drop(event)"
+            ondragover="allowDrop(event)"
+          >
+            <div id="myChart5" style="width: 100%; height: 100%"></div>
+          </div>
+          <div
+            id="chart6"
+            class="chart large-chart"
+            draggable="true"
+            ondragstart="drag(event)"
+            ondrop="drop(event)"
+            ondragover="allowDrop(event)"
+          >
+            <div id="myChart6" style="width: 100%; height: 100%"></div>
+          </div>
+          <div
+            id="chart7"
+            class="chart large-chart"
+            draggable="true"
+            ondragstart="drag(event)"
+            ondrop="drop(event)"
+            ondragover="allowDrop(event)"
+          >
+            <div id="myChart7" style="width: 100%; height: 100%"></div>
+          </div>
+        </div>
+      </section>
     </main>
     <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
     <script src="/static/JS/sidemenu.js"></script>
@@ -92,75 +154,68 @@
     <script src="/static/JS/productdash.js"></script>
 
     <script>
-    function allowDrop(ev) {
-    ev.preventDefault();
-    ev.target.closest('.chart').classList.add('active');
-}
+      function allowDrop(ev) {
+        ev.preventDefault();
+        ev.target.closest(".chart").classList.add("active");
+      }
 
-function drag(ev) {
-    ev.dataTransfer.setData("text/plain", ev.target.id);
-    ev.target.classList.add('dragging');
-    
-    // Highlight all charts in the same group
-    var chartGroup = ev.target.closest('.chart-group');
-    var chartsInGroup = chartGroup.querySelectorAll('.chart');
-    chartsInGroup.forEach(chart => {
-        chart.classList.add('highlight');
-    });
-}
+      function drag(ev) {
+        ev.dataTransfer.setData("text/plain", ev.target.id);
+        ev.target.classList.add("dragging");
 
-function drop(ev) {
-    ev.preventDefault();
-    var data = ev.dataTransfer.getData("text/plain");
-    var draggedElement = document.getElementById(data);
-    var dropTarget = ev.target.closest('.chart');
+        var chartGroup = ev.target.closest(".chart-group");
+        var chartsInGroup = chartGroup.querySelectorAll(".chart");
+        chartsInGroup.forEach((chart) => {
+          chart.classList.add("highlight");
+        });
+      }
 
-    // Entfernt die Hervorhebung
-    document.querySelectorAll('.chart').forEach(chart => chart.classList.remove('active', 'highlight'));
+      function drop(ev) {
+        ev.preventDefault();
+        var data = ev.dataTransfer.getData("text/plain");
+        var draggedElement = document.getElementById(data);
+        var dropTarget = ev.target.closest(".chart");
 
-    if (draggedElement && dropTarget && draggedElement !== dropTarget) {
-        var draggedParent = draggedElement.parentNode;
-        var dropParent = dropTarget.parentNode;
+        document
+          .querySelectorAll(".chart")
+          .forEach((chart) => chart.classList.remove("active", "highlight"));
 
-        // Prüfen, ob beide Elemente zur gleichen Gruppe gehören
-        if (draggedParent === dropParent) {
-            // Platzhalter erstellen
-            var draggedPlaceholder = document.createElement('div');
-            var dropPlaceholder = document.createElement('div');
+        if (draggedElement && dropTarget && draggedElement !== dropTarget) {
+          var draggedParent = draggedElement.parentNode;
+          var dropParent = dropTarget.parentNode;
+
+          if (draggedParent === dropParent) {
+            var draggedPlaceholder = document.createElement("div");
+            var dropPlaceholder = document.createElement("div");
 
             draggedParent.insertBefore(draggedPlaceholder, draggedElement);
             dropParent.insertBefore(dropPlaceholder, dropTarget);
 
-            // Elemente tauschen
             draggedParent.insertBefore(dropTarget, draggedPlaceholder);
             dropParent.insertBefore(draggedElement, dropPlaceholder);
 
-            // Platzhalter entfernen
             draggedPlaceholder.remove();
             dropPlaceholder.remove();
+          }
         }
-    }
 
-    draggedElement.classList.remove('dragging');
-}
+        draggedElement.classList.remove("dragging");
+      }
 
-function dragLeave(ev) {
-    ev.target.closest('.chart').classList.remove('active');
-}
+      function dragLeave(ev) {
+        ev.target.closest(".chart").classList.remove("active");
+      }
 
-// Remove highlight when drag ends
-function dragEnd(ev) {
-    document.querySelectorAll('.chart').forEach(chart => chart.classList.remove('highlight'));
-}
+      function dragEnd(ev) {
+        document
+          .querySelectorAll(".chart")
+          .forEach((chart) => chart.classList.remove("highlight"));
+      }
 
-document.querySelectorAll('.chart').forEach(chart => {
-    chart.addEventListener('dragleave', dragLeave);
-    chart.addEventListener('dragend', dragEnd);
-});
-
+      document.querySelectorAll(".chart").forEach((chart) => {
+        chart.addEventListener("dragleave", dragLeave);
+        chart.addEventListener("dragend", dragEnd);
+      });
     </script>
-    
-    
-    
-</body>
+  </body>
 </html>

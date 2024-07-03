@@ -1,9 +1,9 @@
 .button-container {
-    text-align: center; /* Container mittig ausrichten */
-    margin-top: 10px; /* Abstand oberhalb der Buttons */
+    text-align: center;
+    margin-top: 10px;
 }
     .modern-button {
-    background-color: coral; /* Green */
+    background-color: coral;
     border: none;
     color: white;
     padding: 10px 20px;
@@ -118,7 +118,7 @@ width: 100%;
         margin-right: 5px;
     }
     .dashboard-title {
-    text-align: center; /* Mittig ausrichten */
+    text-align: center;
 }
 #myChart7 {
     display: flex;
@@ -171,17 +171,17 @@ width: 100%;
     font-weight: bold;
 }
 .chart.highlight {
-border: 2px dashed #000; /* Hervorhebung mit gestricheltem Rahmen */
+border: 2px dashed #000;
 }
 
 .chart.dragging {
 opacity: 0.5;
 cursor: grabbing;
 }
-/* Responsive Anpassung */
+
 @media (max-width: 768px) {
 .chart {
-    width: 100%; /* Vollständige Breite bei kleineren Bildschirmen */
+    width: 100%;
 }
 }
 

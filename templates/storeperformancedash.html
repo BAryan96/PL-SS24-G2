@@ -1,81 +1,94 @@
 <!DOCTYPE html>
 <html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Data Visualisation - DV</title>
-    <link rel="stylesheet" href="/static/CSS/all.css">
-    <link rel="stylesheet" href="/static/CSS/storeperformancedash.css">
-    <style>
-</style>
+    <link rel="stylesheet" href="/static/CSS/all.css" />
+    <link rel="stylesheet" href="/static/CSS/storeperformancedash.css" />
+    <style></style>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
-</head>
-<body>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css"
+    />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css"
+    />
+  </head>
+  <body>
     <div class="container">
-        <header>
-            <div class="logo-area">
-                <span class="logo-circle"></span>
-                <span class="logo-text">Data Visualisation - DV</span>
-            </div>
-            <button class="menu-button">☰</button>
-        </header>
-        <div class="side-menu" id="sideMenu">
-            <button class="close-button">X</button>
-            <a href="/charts">Chart Overview</a>
-            <div class="dropdown">
-                <a href="#" class="dropdown-btn">Dashboard</a>
-                <div class="dropdown-content">
-                    <a href="/salesperformancedash">Sales Performance Dashboard</a>
-                    <a href="/storeperformancedash">Store Performance Dashboard</a>
-                    <a href="/customerdash">Customer Insights Dashboard</a>
-                    <a href="/productdash">Product Performance Dashboard</a>
-                </div>
-            </div>
-            <a href="/login">Sign In</a>
-            <a href="/">Log Out</a>
+      <header>
+        <div class="logo-area">
+          <span class="logo-circle"></span>
+          <span class="logo-text">Data Visualisation - DV</span>
         </div>
+        <button class="menu-button">☰</button>
+      </header>
+      <div class="side-menu" id="sideMenu">
+        <button class="close-button">X</button>
+        <a href="/charts">Chart Overview</a>
+        <div class="dropdown">
+          <a href="#" class="dropdown-btn">Dashboard</a>
+          <div class="dropdown-content">
+            <a href="/salesperformancedash">Sales Performance Dashboard</a>
+            <a href="/storeperformancedash">Store Performance Dashboard</a>
+            <a href="/customerdash">Customer Insights Dashboard</a>
+            <a href="/productdash">Product Performance Dashboard</a>
+          </div>
+        </div>
+        <a href="/login">Sign In</a>
+        <a href="/">Log Out</a>
+      </div>
     </div>
     <main class="main">
-        <section class="data-selection">
-            <h1 class="dashboard-title">Store Performance Dashboard</h1>
-            <div class="button-container">
-                <button id="exportJsonButton" class="modern-button">Export JSON</button>
-                <button id="importJsonButton" class="modern-button">Import JSON</button>
-                <input type="file" id="fileInput" style="display: none;" />
+      <section class="data-selection">
+        <h1 class="dashboard-title">Store Performance Dashboard</h1>
+        <div class="button-container">
+          <button id="exportJsonButton" class="modern-button">
+            Export JSON
+          </button>
+          <button id="importJsonButton" class="modern-button">
+            Import JSON
+          </button>
+          <input type="file" id="fileInput" style="display: none" />
+        </div>
+        <div id="importJsonPopup" class="popup">
+          <div class="popup-content">
+            <span class="schließen-button">&times;</span>
+            <h2>Drag and Drop JSON File Here</h2>
+            <div id="dropArea" class="drop-area">
+              <p>
+                Drop your JSON file here or
+                <button id="fileSelectButton" class="modern-button">
+                  Select File
+                </button>
+              </p>
             </div>
-            <div id="importJsonPopup" class="popup">
-                <div class="popup-content">
-                    <span class="schließen-button">&times;</span>
-                    <h2>Drag and Drop JSON File Here</h2>
-                    <div id="dropArea" class="drop-area">
-                        <p>Drop your JSON file here or <button id="fileSelectButton" class="modern-button">Select File</button></p>
-                    </div>
-                </div>
-            </div>
-            <div class="chart-container">
-                <div id="chart1" class="chart large">
-                    <div id="myChart1" style="width: 100%; height: 100%;"></div>
-                </div>
-                <div id="chart2" class="chart large draggable-chart">
-                    <div id="storeChartsContainer" style="display: flex; overflow-x: auto; white-space: nowrap;"></div>
-                </div>
-                <div id="chart3" class="chart">
-                    <div id="myChart3" style="width: 100%; height: 100%;"></div>
-                </div>
-                <div id="chart4" class="chart">
-                    <div id="myChart4" style="width: 100%; height: 100%;"></div>
-                </div>
-                <div id="chart5" class="chart large draggable-chart">
-                    <div id="myChart5" style="width: 100%; height: 100%;"></div>
-                </div>
-                <div id="chart6" class="chart large draggable-chart">
-                    <div id="myChart6" style="width: 100%; height: 100%;"></div>
-                </div>
-            </div>
-            
-        </section>
+          </div>
+        </div>
+        <div class="chart-container">
+          <div id="chart1" class="chart large">
+            <div id="myChart1" style="width: 100%; height: 100%"></div>
+          </div>
+          <div id="chart2" class="chart large draggable-chart">
+            <div
+              id="storeChartsContainer"
+              style="display: flex; overflow-x: auto; white-space: nowrap"
+            ></div>
+          </div>
+          <div id="chart3" class="chart">
+            <div id="myChart3" style="width: 100%; height: 100%"></div>
+          </div>
+          <div id="chart4" class="chart">
+            <div id="myChart4" style="width: 100%; height: 100%"></div>
+          </div>
+          <div id="chart6" class="chart large draggable-chart">
+            <div id="myChart6" style="width: 100%; height: 100%"></div>
+          </div>
+        </div>
+      </section>
     </main>
     <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
     <script src="/static/JS/sidemenu.js"></script>
@@ -88,22 +101,22 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/plugins/Swap/SortableSwap.min.js"></script>
 
-
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            var sortable = new Sortable(document.querySelector('.chart-container'), {
-                animation: 150,
-                ghostClass: 'sortable-ghost',
-                swap: true,
-                swapClass: 'highlight',
-                filter: '.chart:not(.draggable-chart)',
-                onMove: function (evt) {
-                    return evt.related.classList.contains('draggable-chart');
-                }
-            });
-        });
-        </script>
-        
-        
-</body>
+      document.addEventListener("DOMContentLoaded", function () {
+        var sortable = new Sortable(
+          document.querySelector(".chart-container"),
+          {
+            animation: 150,
+            ghostClass: "sortable-ghost",
+            swap: true,
+            swapClass: "highlight",
+            filter: ".chart:not(.draggable-chart)",
+            onMove: function (evt) {
+              return evt.related.classList.contains("draggable-chart");
+            },
+          }
+        );
+      });
+    </script>
+  </body>
 </html>

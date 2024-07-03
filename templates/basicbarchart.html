@@ -1,88 +1,86 @@
 <!DOCTYPE html>
 <html lang="de">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Data Visualisation - DV</title>
-    <link rel="stylesheet" href="/static/CSS/all.css">
-    <link rel="stylesheet" href="/static/CSS/charts.css">
-    <link rel="stylesheet" href="/static/CSS/basicbarchart.css">
-    <style>
-    </style>
-</head>
-<body>
+    <link rel="stylesheet" href="/static/CSS/all.css" />
+    <link rel="stylesheet" href="/static/CSS/charts.css" />
+    <link rel="stylesheet" href="/static/CSS/basicbarchart.css" />
+    <style></style>
+  </head>
+  <body>
     <div class="container">
-        <header>
-            <div class="logo-area">
-                <span class="logo-circle"></span>
-                <span class="logo-text">Data Visualisation - DV</span>
-            </div>
-            <button class="menu-button">☰</button>
-        </header>
-        <div class="side-menu" id="sideMenu">
-            <button class="close-button">X</button>
-            <a href="/charts">Chart Overview</a>
-            <div class="dropdown">
-                <a href="#" class="dropdown-btn">Dashboard</a>
-                <div class="dropdown-content">
-                    <a href="/salesperformancedash">Sales Performance Dashboard</a>
-                    <a href="/storeperformancedash">Store Performance Dashboard</a>
-                    <a href="/customerdash">Customer Insights Dashboard</a>
-                    <a href="/productdash">Product Performance Dashboard</a>
-                </div>
-            </div>
-            <a href="/login">Sign In</a>
-            <a href="/">Log Out</a>
+      <header>
+        <div class="logo-area">
+          <span class="logo-circle"></span>
+          <span class="logo-text">Data Visualisation - DV</span>
         </div>
-        <main class="main">
-            <section class="data-selection">
-                <form id="dataForm" class="form-container">
-                    <div>
-                        <h2>Please Choose your Data for a Bar Chart</h2>
-                        <label for="xTable">Table for X-Axis</label>
-                        <select id="xTable" name="xTable">
-                            <option value="">None</option>
-                        </select>
-                        <label for="xColumn">Column for X-Axis</label>
-                        <select id="xColumn" name="xColumn">
-                            <option value="">None</option>
-                        </select>
-                        <label for="yTable1">Table for Y-Axis</label>
-                        <select id="yTable1" name="yTable1">
-                            <option value="">None</option>
-                        </select>
-                        <label for="yColumn1">Column for Y-Axis</label>
-                        <select id="yColumn1" name="yColumn1">
-                            <option value="">None</option>
-                        </select>
-                        <label for="aggregationSelect">Aggregation</label>
-                        <select id="aggregationSelect" name="aggregationSelect">
-                            <option value="">No Aggregation</option>
-                            <option value="Summe">Sum</option>
-                            <option value="Max">Max</option>
-                            <option value="Min">Min</option>
-                            <option value="Anzahl">Count</option>
-                            <option value="Diskrete Anzahl">Distinct Count</option>
-                            <option value="Durchschnitt">Average</option>
-                            <option value="Standardabweichung">Standard deviation</option>
-                            <option value="Varianz">Variance</option>
-                            <option value="Median">Median</option>
-                            <option value="Erstes Quartil">Q1 Quartile</option>
-                            <option value="Drittes Quartil">Q3 Quartile</option>
-                        </select>
-                        <button type="submit" id="submitButton">Submit</button>
-                    </div>
-                </form>
-                <div class="chart-container">
-                    <div id="chart"></div>
-                </div>
-            </section>
-        </main>
+        <button class="menu-button">☰</button>
+      </header>
+      <div class="side-menu" id="sideMenu">
+        <button class="close-button">X</button>
+        <a href="/charts">Chart Overview</a>
+        <div class="dropdown">
+          <a href="#" class="dropdown-btn">Dashboard</a>
+          <div class="dropdown-content">
+            <a href="/salesperformancedash">Sales Performance Dashboard</a>
+            <a href="/storeperformancedash">Store Performance Dashboard</a>
+            <a href="/customerdash">Customer Insights Dashboard</a>
+            <a href="/productdash">Product Performance Dashboard</a>
+          </div>
+        </div>
+        <a href="/login">Sign In</a>
+        <a href="/">Log Out</a>
+      </div>
+      <main class="main">
+        <section class="data-selection">
+          <form id="dataForm" class="form-container">
+            <div>
+              <h2>Please Choose your Data for a Bar Chart</h2>
+              <label for="xTable">Table for X-Axis</label>
+              <select id="xTable" name="xTable">
+                <option value="">None</option>
+              </select>
+              <label for="xColumn">Column for X-Axis</label>
+              <select id="xColumn" name="xColumn">
+                <option value="">None</option>
+              </select>
+              <label for="yTable1">Table for Y-Axis</label>
+              <select id="yTable1" name="yTable1">
+                <option value="">None</option>
+              </select>
+              <label for="yColumn1">Column for Y-Axis</label>
+              <select id="yColumn1" name="yColumn1">
+                <option value="">None</option>
+              </select>
+              <label for="aggregationSelect">Aggregation</label>
+              <select id="aggregationSelect" name="aggregationSelect">
+                <option value="">No Aggregation</option>
+                <option value="Summe">Sum</option>
+                <option value="Max">Max</option>
+                <option value="Min">Min</option>
+                <option value="Anzahl">Count</option>
+                <option value="Diskrete Anzahl">Distinct Count</option>
+                <option value="Durchschnitt">Average</option>
+                <option value="Standardabweichung">Standard deviation</option>
+                <option value="Varianz">Variance</option>
+                <option value="Median">Median</option>
+                <option value="Erstes Quartil">Q1 Quartile</option>
+                <option value="Drittes Quartil">Q3 Quartile</option>
+              </select>
+              <button type="submit" id="submitButton">Submit</button>
+            </div>
+          </form>
+          <div class="chart-container">
+            <div id="chart"></div>
+          </div>
+        </section>
+      </main>
     </div>
     <script src="/static/JS/sidemenu.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
     <script src="/static/JS/overviewbasicbarchart.js"></script>
-
-</body>
+  </body>
 </html>
