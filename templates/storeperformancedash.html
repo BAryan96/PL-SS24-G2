@@ -7,12 +7,12 @@
     <link rel="stylesheet" href="/static/CSS/all.css">
     <style>
 .button-container {
-    text-align: center; /* Container mittig ausrichten */
-    margin-top: 10px; /* Abstand oberhalb der Buttons */
+    text-align: center;
+    margin-top: 10px;
 }
 
 .modern-button {
-    background-color: coral; /* Green */
+    background-color: coral;
     border: none;
     color: white;
     padding: 10px 20px;
@@ -85,6 +85,7 @@
 .chart-container {
     display: flex;
     flex-wrap: wrap;
+    gap: 20px;
     justify-content: space-between;
 }
 
@@ -96,137 +97,140 @@
     border: 1px solid #ccc;
 }
 
-.chart:nth-child(1),
-.chart:nth-child(2){
+.chart.large {
     width: 100%;
 }
-.chart:nth-child(5){
-    width: 100%;
-}
-
-.chart:nth-child(6){
-    width: 100%;
-}
-
-
-
-
 
 .dashboard-title {
-    text-align: center; /* Mittig ausrichten */
+    text-align: center;
 }
 
 #importJsonPopup {
-    z-index: 1000; /* Ein hoher Wert, damit das Popup über der Karte liegt */
+    z-index: 1000;
 }
 
-
 #storeChartsContainer {
-        display: flex;
-        overflow-x: auto;
-        white-space: nowrap;
-        padding: 20px;
-    }
+    display: flex;
+    overflow-x: auto;
+    white-space: nowrap;
+    padding: 20px;
+}
 
-    .store-chart-container {
-        width: 220px;
-        height: 350px;
-        margin-right: 20px;
-        background: white;
-        border-radius: 10px;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        padding: 20px;
-        text-align: center;
-        box-sizing: border-box; /* Ensures padding and border are included in the width and height */
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-    }
+.store-chart-container {
+    width: 220px;
+    height: 350px;
+    margin-right: 20px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    text-align: center;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
 
-    .store-chart-container.small {
-        width: 180px;
-        height: 300px;
-    }
+.store-chart-container.small {
+    width: 180px;
+    height: 300px;
+}
 
-    .store-title {
-        font-size: 16px;
-        margin-bottom: 10px;
-        color: #555;
-    }
+.store-title {
+    font-size: 16px;
+    margin-bottom: 10px;
+    color: #555;
+}
 
-    .store-performance {
-        font-size: 24px;
-        margin-bottom: 10px;
-    }
+.store-performance {
+    font-size: 24px;
+    margin-bottom: 10px;
+}
 
-    .store-change {
-        font-size: 14px;
-        margin-bottom: 10px;
-    }
+.store-change {
+    font-size: 14px;
+    margin-bottom: 10px;
+}
 
-    .store-chart {
-        width: 100%;
-        height: 60%; /* Adjust the height to fit within the container */
-    }
+.store-chart {
+    width: 100%;
+    height: 60%;
+}
 
-    .positive-change {
-        color: green;
-    }
+.positive-change {
+    color: green;
+}
 
-    .negative-change {
-        color: red;
-    }
-    #myChart6 {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 20px;
-        padding: 20px;
-        box-sizing: border-box;
-        overflow-y: auto;
-        max-height: 100%;
-    }
+.negative-change {
+    color: red;
+}
 
-    .kpi-section {
-        background-color: #f7f7f7;
-        border-radius: 8px;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        padding: 20px;
-        flex: 1 1 300px;
-        min-width: 250px;
-        box-sizing: border-box;
-    }
+#myChart6 {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    padding: 20px;
+    box-sizing: border-box;
+    overflow-y: auto;
+    max-height: 100%;
+}
 
-    .kpi-section h3 {
-        margin-top: 0;
-        font-size: 1.2em;
-        color: #333;
-        border-bottom: 2px solid #ccc;
-        padding-bottom: 10px;
-    }
+.kpi-section {
+    background-color: #f7f7f7;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    padding: 20px;
+    flex: 1 1 300px;
+    min-width: 250px;
+    box-sizing: border-box;
+}
 
-    .kpi-section ul {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-    }
+.kpi-section h3 {
+    margin-top: 0;
+    font-size: 1.2em;
+    color: #333;
+    border-bottom: 2px solid #ccc;
+    padding-bottom: 10px;
+}
 
-    .kpi-section ul li {
-        margin: 10px 0;
-        padding: 10px;
-        background: #fff;
-        border-radius: 4px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
+.kpi-section ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
 
-    .kpi-section ul li:nth-child(even) {
-        background: #f1f1f1;
-    }
+.kpi-section ul li {
+    margin: 10px 0;
+    padding: 10px;
+    background: #fff;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
 
-    .kpi-section ul li span {
-        display: block;
-        font-weight: bold;
+.kpi-section ul li:nth-child(even) {
+    background: #f1f1f1;
+}
+
+.kpi-section ul li span {
+    display: block;
+    font-weight: bold;
+}
+
+@media (max-width: 768px) {
+    .chart {
+        flex: 1 1 100%;
     }
-    </style>
+}
+.store-charts-title {
+    font-size: 18px;
+    font-weight: bold;
+    margin-right: 10px;
+}
+
+#sortDropdown {
+    padding: 5px;
+}
+</style>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css" />
@@ -278,23 +282,22 @@
                 </div>
             </div>
             <div class="chart-container">
-                <div id="chart1" class="chart">
+                <div id="chart1" class="chart large">
                     <div id="myChart1" style="width: 100%; height: 100%;"></div>
                 </div>
-                <div id="chart2" class="chart">
+                <div id="chart2" class="chart large">
                     <div id="storeChartsContainer" style="display: flex; overflow-x: auto; white-space: nowrap;"></div>
                 </div>
-                
                 <div id="chart3" class="chart">
                     <div id="myChart3" style="width: 100%; height: 100%;"></div>
                 </div>
                 <div id="chart4" class="chart">
                     <div id="myChart4" style="width: 100%; height: 100%;"></div>
                 </div>
-                <div id="chart5" class="chart">
+                <div id="chart5" class="chart large">
                     <div id="myChart5" style="width: 100%; height: 100%;"></div>
-                </div>    
-                <div id="chart6" class="chart">
+                </div>
+                <div id="chart6" class="chart large">
                     <div id="myChart6" style="width: 100%; height: 100%;"></div>
                 </div>
             </div>

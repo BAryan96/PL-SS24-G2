@@ -141,56 +141,119 @@ async function initializeChart(config) {
             const storeChartsContainer = document.getElementById('storeChartsContainer');
             storeChartsContainer.innerHTML = '';
 
-            const storeIDs = [...new Set(response.x)];
+            // Create and insert the title and sort dropdown
+            const titleDiv = document.createElement('div');
+            titleDiv.className = 'store-charts-title';
+            titleDiv.textContent = 'Store Wise Performance';
+            
+            const sortDropdown = document.createElement('select');
+            sortDropdown.id = 'sortDropdown';
 
-            storeIDs.forEach(storeID => {
-                const storeData = response.x.map((id, index) => ({
-                    storeID: id,
-                    total: response.y0[index],
-                    year: response.y1[index]
-                })).filter(data => data.storeID === storeID);
+            const options = [
+                { value: 'none', text: 'None' },
+                { value: 'performance-asc', text: 'Store Performance (Asc)' },
+                { value: 'performance-desc', text: 'Store Performance (Desc)' },
+                { value: 'change-asc', text: 'Store Change (Asc)' },
+                { value: 'change-desc', text: 'Store Change (Desc)' }
+            ];
 
-                storeData.sort((a, b) => a.year - b.year); // Sort by year
-
-                const total = storeData.reduce((sum, data) => sum + parseFloat(data.total), 0);
-                let changePercentage = 0;
-                if (storeData.length > 1) {
-                    const previousTotal = storeData[storeData.length - 2].total;
-                    const currentTotal = storeData[storeData.length - 1].total;
-                    changePercentage = ((currentTotal - previousTotal) / previousTotal) * 100;
-                }
-
-                const performanceClass = changePercentage > 0 ? 'positive-change' : 'negative-change';
-
-                const chartContainer = document.createElement('div');
-                chartContainer.className = 'store-chart-container';
-                chartContainer.innerHTML = `
-                    <div class="store-title">Store ID ${storeID}</div>
-                    <div class="store-performance">$${(total / 1e6).toFixed(2)}M</div>
-                    <div class="store-change ${performanceClass}">${changePercentage.toFixed(1)}%</div>
-                    <div id="storeChart_${storeID}" class="store-chart"></div>
-                `;
-                storeChartsContainer.appendChild(chartContainer);
-
-                const myChart = echarts.init(document.getElementById(`storeChart_${storeID}`));
-                charts.push({ chart: myChart, config: config });
-
-                let option = generateChartOptions(response, storeData);
-                myChart.setOption(option);
+            options.forEach(option => {
+                const opt = document.createElement('option');
+                opt.value = option.value;
+                opt.textContent = option.text;
+                sortDropdown.appendChild(opt);
             });
+
+            // Set 'None' as the default selected option
+            sortDropdown.value = 'none';
+
+            const container = document.createElement('div');
+            container.className = 'title-and-dropdown';
+            container.appendChild(titleDiv);
+            container.appendChild(sortDropdown);
+
+            storeChartsContainer.parentNode.insertBefore(container, storeChartsContainer);
+
+            sortDropdown.addEventListener('change', () => sortStoreCharts(response, sortDropdown.value));
+
+            // Initial chart generation without sorting
+            sortStoreCharts(response, 'none');
+
         } else if (config.type === 'dayWiseHeatmap') {
             initializeDayWiseHeatmap(config, response);
         } else if (config.type === 'bar') {
             initializeBarChart(config, response);
-        }
-        else if (config.type === 'stackedBar') {
+        } else if (config.type === 'stackedBar') {
             initializeStackedBarChart(config);
-        } 
-        
+        }
+
     } catch (error) {
         console.error("Failed to initialize chart:", error);
     }
 }
+
+function sortStoreCharts(response, sortBy) {
+    const storeChartsContainer = document.getElementById('storeChartsContainer');
+    storeChartsContainer.innerHTML = '';
+
+    const storeIDs = [...new Set(response.x)];
+    let storeData = storeIDs.map(storeID => {
+        const data = response.x.map((id, index) => ({
+            storeID: id,
+            total: response.y0[index],
+            year: response.y1[index]
+        })).filter(data => data.storeID === storeID);
+
+        data.sort((a, b) => a.year - b.year); // Sort by year
+
+        const total = data.reduce((sum, data) => sum + parseFloat(data.total), 0);
+        let changePercentage = 0;
+        if (data.length > 1) {
+            const previousTotal = data[data.length - 2].total;
+            const currentTotal = data[data.length - 1].total;
+            changePercentage = ((currentTotal - previousTotal) / previousTotal) * 100;
+        }
+
+        return {
+            storeID,
+            total,
+            changePercentage,
+            data
+        };
+    });
+
+    // Sort storeData based on the selected sort option
+    if (sortBy === 'performance-asc') {
+        storeData.sort((a, b) => a.total - b.total);
+    } else if (sortBy === 'performance-desc') {
+        storeData.sort((a, b) => b.total - a.total);
+    } else if (sortBy === 'change-asc') {
+        storeData.sort((a, b) => a.changePercentage - b.changePercentage);
+    } else if (sortBy === 'change-desc') {
+        storeData.sort((a, b) => b.changePercentage - a.changePercentage);
+    }
+
+    storeData.forEach(({ storeID, total, changePercentage, data }) => {
+        const performanceClass = changePercentage > 0 ? 'positive-change' : 'negative-change';
+
+        const chartContainer = document.createElement('div');
+        chartContainer.className = 'store-chart-container';
+        chartContainer.innerHTML = `
+            <div class="store-title">Store ID ${storeID}</div>
+            <div class="store-performance">$${(total / 1e6).toFixed(2)}M</div>
+            <div class="store-change ${performanceClass}">Change: ${changePercentage.toFixed(1)}%</div>
+            <div id="storeChart_${storeID}" class="store-chart"></div>
+        `;
+        storeChartsContainer.appendChild(chartContainer);
+
+        const myChart = echarts.init(document.getElementById(`storeChart_${storeID}`));
+        charts.push({ chart: myChart, config: response.chartId });
+
+        let option = generateChartOptions(response, data);
+        myChart.setOption(option);
+    });
+}
+
 
 
 async function initializeHeatmap(config) {
@@ -507,6 +570,7 @@ function initializeKPI(config, response) {
         </div>
     `;
 }
+
 
 async function loadChartsSequentially(chartConfigs) {
     charts = [];
