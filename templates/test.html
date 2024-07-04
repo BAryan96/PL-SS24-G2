@@ -7,91 +7,102 @@
     <link rel="stylesheet" href="/static/CSS/all.css" />
 
     <style>
-      .chart-container {
-        display: flex;
-        height: 480px;
-        border: 1px solid #ccc;
-        margin-top: 20px;
-        padding: 10px;
-        box-sizing: border-box;
-      }
+  .chart-container {
+    display: flex;
+    height: 480px;
+    border: 1px solid #ccc;
+    margin-top: 20px;
+    padding: 10px;
+    box-sizing: border-box;
+    width: 100%; /* Vollständige Breite bei einem Diagramm */
+  }
 
-      .chart-title {
-        text-align: center;
-        margin-top: 20px;
-        font-size: 24px;
-        font-weight: bold;
-      }
+  .chart-container.half-width {
+    width: 50%; /* 50% Breite bei mehreren Diagrammen */
+  }
 
-      #add-chart-button {
-        display: block;
-        margin: 10px auto;
-        padding: 12px 24px;
-        font-size: 16px;
-        color: #fff;
-        background-color: coral;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-        transition: background-color 0.3s ease, box-shadow 0.3s ease;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-      }
+  .chart-title {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 24px;
+    font-weight: bold;
+  }
 
-      #add-chart-button:hover {
-        background-color: #e06a50;
-        box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
-      }
+  #add-chart-button {
+    display: block;
+    margin: 10px auto;
+    padding: 12px 24px;
+    font-size: 16px;
+    color: #fff;
+    background-color: coral;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
 
-      .select-container {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-      }
+  #add-chart-button:hover {
+    background-color: #e06a50;
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+  }
 
-      .select-container label {
-        margin-bottom: 5px;
-        font-weight: bold;
-      }
+  .select-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
 
-      .select-container select {
-        padding: 5px;
-        width: 100%;
-        box-sizing: border-box;
-      }
+  .select-container label {
+    margin-bottom: 5px;
+    font-weight: bold;
+  }
 
-      .submit-button {
-        display: block;
-        padding: 12px 24px;
-        font-size: 16px;
-        color: #fff;
-        background-color: coral;
-        border: none;
-        border-radius: 5px;
-        cursor: pointer;
-        transition: background-color 0.3s ease, box-shadow 0.3s ease;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        width: 100%;
-        box-sizing: border-box;
-      }
+  .select-container select {
+    padding: 5px;
+    width: 100%;
+    box-sizing: border-box;
+  }
 
-      .submit-button:hover {
-        background-color: #e06a50;
-        box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
-      }
+  .submit-button {
+    display: block;
+    padding: 12px 24px;
+    font-size: 16px;
+    color: #fff;
+    background-color: coral;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    box-sizing: border-box;
+  }
 
-      .echarts-chart {
-        flex: 2;
-        margin-left: 20px;
-        height: 100%;
-      }
-      .filter-button {
-        background-color: coral;
-        color: white;
-        padding: 10px;
-        border: none;
-        cursor: pointer;
-      }
+  .submit-button:hover {
+    background-color: #e06a50;
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  .echarts-chart {
+    flex: 2;
+    margin-left: 20px;
+    height: 100%;
+  }
+  
+  .filter-button {
+    background-color: coral;
+    color: white;
+    padding: 10px;
+    border: none;
+    cursor: pointer;
+  }
+
+  #charts-container {
+    display: flex;
+    flex-wrap: wrap; /* Flexible Zeilen für mehrere Diagramme */
+  }
     </style>
   </head>
   <body>
@@ -215,7 +226,33 @@
         });
       }
 
-      async function addChartContainer() {
+      function resizeCharts() {
+  const chartContainers = document.querySelectorAll('.echarts-chart');
+  chartContainers.forEach(container => {
+    const chartInstance = echarts.getInstanceByDom(container);
+    if (chartInstance) {
+      chartInstance.resize();
+    }
+  });
+}
+
+
+function updateChartContainerWidth() {
+  const chartContainers = document.querySelectorAll('.chart-container');
+  if (chartContainers.length > 1) {
+    chartContainers.forEach(container => {
+      container.classList.add('half-width');
+    });
+  } else {
+    chartContainers.forEach(container => {
+      container.classList.remove('half-width');
+    });
+  }
+  resizeCharts();
+}
+
+
+async function addChartContainer() {
   if (chartCount >= maxCharts) {
     alert("Maximum number of charts reached.");
     return;
@@ -247,6 +284,7 @@
   closeButton.addEventListener("click", () => {
     newChartContainer.remove();
     chartCount--;
+    updateChartContainerWidth(); // Update width when a chart is removed
   });
   newChartContainer.appendChild(closeButton);
 
@@ -505,7 +543,6 @@
         const option = {
           title: {
             left: "center",
-            text: "Scale Area Chart",
           },
           tooltip: {
             trigger: "axis",
@@ -578,6 +615,8 @@
     .getElementById("charts-container")
     .appendChild(newChartContainer);
   chartCount++;
+  updateChartContainerWidth(); // Update width when a new chart is added
+  resizeCharts(); // Resize charts when a new chart is added
 }
 
 document
