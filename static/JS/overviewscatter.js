@@ -58,7 +58,7 @@ function setupContextMenu(chartInstance, scatterData) {
       const dataIndex = chartInstance.convertFromPixel(
         { seriesIndex: 0 },
         pointInPixel
-      )[0];
+      )[1];
       const dataItem = scatterData[dataIndex];
 
       contextMenu.style.left = `${params.event.pageX}px`;
@@ -67,10 +67,7 @@ function setupContextMenu(chartInstance, scatterData) {
 
       colorPicker.onchange = function () {
         if (dataItem) {
-          scatterData[dataIndex] = {
-            value: dataItem,
-            itemStyle: { color: colorPicker.value },
-          };
+          scatterData[dataIndex].itemStyle = { color: colorPicker.value };
           chartInstance.setOption({
             series: [
               {
@@ -131,7 +128,6 @@ async function addChartContainer() {
   const newChartContainer = document.createElement("div");
   newChartContainer.className = "chart-container";
   newChartContainer.style.position = "relative";
-
 
   const closeButton = document.createElement("button");
   closeButton.textContent = "X";
@@ -304,7 +300,10 @@ async function addChartContainer() {
         const dataX = responseData.x;
         const dataY = responseData.y0;
 
-        let scatterData = dataX.map((value, index) => [value, dataY[index]]);
+        let scatterData = dataX.map((value, index) => ({
+          value: [value, dataY[index]],
+          itemStyle: { color: "#c23531" }, // Default color
+        }));
 
         const uniqueXValues = [...new Set(dataX)];
         const uniqueYValues = [...new Set(dataY)];
@@ -391,33 +390,17 @@ async function addChartContainer() {
             filterContent.querySelectorAll(".filter-checkbox-y:checked")
           ).map((checkbox) => checkbox.value);
 
-          const filteredDataX = [];
-          const filteredDataY = [];
-
-          dataX.forEach((value, index) => {
-            if (
-              (checkedXValues.length === 0 || checkedXValues.includes(value)) &&
+          const filteredData = scatterData.filter(
+            (data) =>
+              (checkedXValues.length === 0 ||
+                checkedXValues.includes(data.value[0])) &&
               (checkedYValues.length === 0 ||
-                checkedYValues.includes(dataY[index].toString()))
-            ) {
-              filteredDataX.push(value);
-              filteredDataY.push(dataY[index]);
-            }
-          });
+                checkedYValues.includes(data.value[1].toString()))
+          );
 
-          scatterData = filteredDataX.map((value, index) => [
-            value,
-            filteredDataY[index],
-          ]);
-          option.series[0].data = scatterData;
+          option.series[0].data = filteredData;
           chartInstance.setOption(option);
         });
-
-        const seriesOptions = {
-          color: "#c23531",
-        };
-
-        const darkMode = false;
 
         const option = {
           tooltip: {
@@ -459,7 +442,9 @@ async function addChartContainer() {
               data: scatterData,
               type: "scatter",
               itemStyle: {
-                color: seriesOptions.color,
+                color: function (params) {
+                  return scatterData[params.dataIndex].itemStyle.color;
+                },
               },
             },
           ],
@@ -468,51 +453,7 @@ async function addChartContainer() {
         const chartInstance = echarts.init(chartDiv);
         chartInstance.setOption(option);
 
-        chartInstance.getZr().on("contextmenu", function (params) {
-          const pointInPixel = [params.offsetX, params.offsetY];
-          if (chartInstance.containPixel("grid", pointInPixel)) {
-            params.event.preventDefault();
-
-            const dataIndex = chartInstance.convertFromPixel(
-              { seriesIndex: 0 },
-              pointInPixel
-            );
-
-            const dataItem = scatterData[dataIndex[0]];
-
-            contextMenu.style.left = `${params.event.pageX}px`;
-            contextMenu.style.top = `${params.event.pageY}px`;
-            contextMenu.style.display = "block";
-
-            colorPicker.onchange = function () {
-              if (dataItem) {
-                scatterData[dataIndex[0]] = {
-                  value: dataItem.value,
-                  itemStyle: { color: colorPicker.value },
-                };
-                chartInstance.setOption({
-                  series: [
-                    {
-                      data: scatterData,
-                    },
-                  ],
-                });
-                contextMenu.style.display = "none";
-              }
-            };
-
-            const closeContextMenu = function (event) {
-              if (!contextMenu.contains(event.target)) {
-                contextMenu.style.display = "none";
-                document.removeEventListener("click", closeContextMenu);
-              }
-            };
-
-            setTimeout(() => {
-              document.addEventListener("click", closeContextMenu);
-            }, 0);
-          }
-        });
+        setupContextMenu(chartInstance, scatterData);
       } catch (error) {
         console.error("Error fetching or processing data:", error);
       }

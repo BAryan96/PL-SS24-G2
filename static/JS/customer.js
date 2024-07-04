@@ -41,14 +41,14 @@ $(document).ready(async function () {
       aggregations: ["", "Anzahl"],
       filters: [],
     },
-    // {
-    //   id: "myChart5",
-    //   tables: ["customers", "customers", "stores", "stores"],
-    //   columns: ["latitude", "longitude", "latitude", "longitude"],
-    //   type: "kpi",
-    //   aggregations: ["", "", "", ""],
-    //   filters: [],
-    // },
+    {
+      id: "myChart5",
+      tables: ["customers", "customers", "stores", "stores"],
+      columns: ["latitude", "longitude", "latitude", "longitude"],
+      type: "kpi",
+      aggregations: ["", "", "", ""],
+      filters: [],
+    },
     {
       id: "myChart7",
       tables: ["customers", "customser", "customers"],
