@@ -39,9 +39,9 @@ def initialize_database():
 def landingpage():
     return render_template('landingpage.html')
 
-@app.route("/stacked22")
-def stacked22():
-    return render_template('stacked22.html')
+@app.route("/test")
+def test():
+    return render_template('test.html')
 
 @app.route("/login")
 def login():
