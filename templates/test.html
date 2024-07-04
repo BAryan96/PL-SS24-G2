@@ -86,13 +86,12 @@
         height: 100%;
       }
       .filter-button {
-  background-color: coral;
-  color: white;
-  padding: 10px;
-  border: none;
-  cursor: pointer;
-}
-
+        background-color: coral;
+        color: white;
+        padding: 10px;
+        border: none;
+        cursor: pointer;
+      }
     </style>
   </head>
   <body>
@@ -127,96 +126,96 @@
     </main>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.0/echarts.min.js"></script>
     <script>
-let chartCount = 0;
-const maxCharts = 5;
+      let chartCount = 0;
+      const maxCharts = 5;
 
-async function fetchTables() {
-  const response = await fetch("/tables");
-  const data = await response.json();
-  return data.tables;
-}
+      async function fetchTables() {
+        const response = await fetch("/tables");
+        const data = await response.json();
+        return data.tables;
+      }
 
-async function fetchColumns(table) {
-  const response = await fetch("/columns", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: `table=${encodeURIComponent(table)}`,
-  });
-  const data = await response.json();
-  return data.columns;
-}
+      async function fetchColumns(table) {
+        const response = await fetch("/columns", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: `table=${encodeURIComponent(table)}`,
+        });
+        const data = await response.json();
+        return data.columns;
+      }
 
-async function createSelectOptions(selectElement, options) {
-  selectElement.innerHTML = '<option value="none">None</option>';
-  options.forEach((option) => {
-    const opt = document.createElement("option");
-    opt.value = option;
-    opt.text = option;
-    selectElement.appendChild(opt);
-  });
-}
+      async function createSelectOptions(selectElement, options) {
+        selectElement.innerHTML = '<option value="none">None</option>';
+        options.forEach((option) => {
+          const opt = document.createElement("option");
+          opt.value = option;
+          opt.text = option;
+          selectElement.appendChild(opt);
+        });
+      }
 
-function createContextMenu() {
-  const contextMenu = document.createElement("div");
-  contextMenu.style.position = "absolute";
-  contextMenu.style.display = "none";
-  contextMenu.style.backgroundColor = "#fff";
-  contextMenu.style.border = "1px solid #ccc";
-  contextMenu.style.padding = "10px";
-  contextMenu.style.zIndex = "1000";
+      function createContextMenu() {
+        const contextMenu = document.createElement("div");
+        contextMenu.style.position = "absolute";
+        contextMenu.style.display = "none";
+        contextMenu.style.backgroundColor = "#fff";
+        contextMenu.style.border = "1px solid #ccc";
+        contextMenu.style.padding = "10px";
+        contextMenu.style.zIndex = "1000";
 
-  const colorPicker = document.createElement("input");
-  colorPicker.type = "color";
+        const colorPicker = document.createElement("input");
+        colorPicker.type = "color";
 
-  contextMenu.appendChild(colorPicker);
-  document.body.appendChild(contextMenu);
+        contextMenu.appendChild(colorPicker);
+        document.body.appendChild(contextMenu);
 
-  return { contextMenu, colorPicker };
-}
+        return { contextMenu, colorPicker };
+      }
 
-function setupContextMenu(chartInstance, series) {
-  const { contextMenu, colorPicker } = createContextMenu();
+      function setupContextMenu(chartInstance, series) {
+        const { contextMenu, colorPicker } = createContextMenu();
 
-  chartInstance.getZr().on('contextmenu', function (params) {
-    const pointInPixel = [params.offsetX, params.offsetY];
-    if (chartInstance.containPixel('grid', pointInPixel)) {
-      params.event.preventDefault();
+        chartInstance.getZr().on('contextmenu', function (params) {
+          const pointInPixel = [params.offsetX, params.offsetY];
+          if (chartInstance.containPixel('grid', pointInPixel)) {
+            params.event.preventDefault();
 
-      const xIndex = chartInstance.convertFromPixel({ seriesIndex: 0 }, [params.offsetX])[0];
-      const dataIndex = Math.round(xIndex);
+            const xIndex = chartInstance.convertFromPixel({ seriesIndex: 0 }, [params.offsetX])[0];
+            const dataIndex = Math.round(xIndex);
 
-      const dataItem = series[0].data[dataIndex];
+            const dataItem = series[0].data[dataIndex];
 
-      contextMenu.style.left = `${params.event.pageX}px`;
-      contextMenu.style.top = `${params.event.pageY}px`;
-      contextMenu.style.display = "block";
+            contextMenu.style.left = `${params.event.pageX}px`;
+            contextMenu.style.top = `${params.event.pageY}px`;
+            contextMenu.style.display = "block";
 
-      colorPicker.onchange = function () {
-        if (dataItem) {
-          dataItem.itemStyle = { color: colorPicker.value };
-          series[0].data[dataIndex] = dataItem;  // Ensure the data item is updated in the series array
-          chartInstance.setOption({ series });
-          contextMenu.style.display = "none";
-        }
-      };
+            colorPicker.onchange = function () {
+              if (dataItem) {
+                dataItem.itemStyle = { color: colorPicker.value };
+                series[0].data[dataIndex] = dataItem;  // Ensure the data item is updated in the series array
+                chartInstance.setOption({ series });
+                contextMenu.style.display = "none";
+              }
+            };
 
-      const closeContextMenu = function (event) {
-        if (!contextMenu.contains(event.target)) {
-          contextMenu.style.display = "none";
-          document.removeEventListener("click", closeContextMenu);
-        }
-      };
+            const closeContextMenu = function (event) {
+              if (!contextMenu.contains(event.target)) {
+                contextMenu.style.display = "none";
+                document.removeEventListener("click", closeContextMenu);
+              }
+            };
 
-      setTimeout(() => {
-        document.addEventListener("click", closeContextMenu);
-      }, 0);
-    }
-  });
-}
+            setTimeout(() => {
+              document.addEventListener("click", closeContextMenu);
+            }, 0);
+          }
+        });
+      }
 
-async function addChartContainer() {
+      async function addChartContainer() {
   if (chartCount >= maxCharts) {
     alert("Maximum number of charts reached.");
     return;
@@ -269,8 +268,20 @@ async function addChartContainer() {
   const columnSelectY = createLabeledSelect("Column for Y-Axis");
   const aggregationSelect = createLabeledSelect("Aggregation");
 
+  // New label and select for date granularity
+  const dateGranularityLabelX = document.createElement("label");
+  dateGranularityLabelX.textContent = "Date Granularity for X-Axis";
+  dateGranularityLabelX.style.display = "none"; // Initially hidden
+  selectContainer.appendChild(dateGranularityLabelX);
+
+  const dateGranularitySelectX = document.createElement("select");
+  dateGranularitySelectX.style.display = "none"; // Initially hidden
+  selectContainer.appendChild(dateGranularitySelectX);
+
   await createSelectOptions(tableSelectX, tables);
   await createSelectOptions(tableSelectY, tables);
+
+  const dateGranularityOptions = ["Days", "Months", "Years"];
 
   tableSelectX.addEventListener("change", async () => {
     if (tableSelectX.value !== "none") {
@@ -287,6 +298,21 @@ async function addChartContainer() {
       await createSelectOptions(columnSelectY, columns);
     } else {
       columnSelectY.innerHTML = '<option value="none">None</option>';
+    }
+  });
+
+  columnSelectX.addEventListener("change", () => {
+    if (["orderDate", "Launch"].includes(columnSelectX.value)) {
+      dateGranularityLabelX.style.display = "block";
+      dateGranularitySelectX.style.display = "block";
+      createSelectOptions(dateGranularitySelectX, dateGranularityOptions);
+
+      // Move the date granularity select right below the column select
+      selectContainer.insertBefore(dateGranularityLabelX, columnSelectX.nextSibling);
+      selectContainer.insertBefore(dateGranularitySelectX, dateGranularityLabelX.nextSibling);
+    } else {
+      dateGranularityLabelX.style.display = "none";
+      dateGranularitySelectX.style.display = "none";
     }
   });
 
@@ -317,17 +343,23 @@ async function addChartContainer() {
     event.preventDefault();
 
     const xTable = tableSelectX.value;
-    const xColumn = columnSelectX.value;
+    let xColumn = columnSelectX.value;
     const yTable = tableSelectY.value;
     const yColumn = columnSelectY.value;
     const aggregation = aggregationSelect.value;
 
-    if (
-      xTable !== "none" &&
-      xColumn !== "none" &&
-      yTable !== "none" &&
-      yColumn !== "none"
-    ) {
+    if (xTable !== "none" && xColumn !== "none" && yTable !== "none" && yColumn !== "none") {
+      if (["orderDate", "Launch"].includes(xColumn) && dateGranularitySelectX.value !== "none") {
+        const granularity = dateGranularitySelectX.value;
+        if (granularity === "Days") {
+          xColumn += "-DD";
+        } else if (granularity === "Months") {
+          xColumn += "-MM";
+        } else if (granularity === "Years") {
+          xColumn += "-YYYY";
+        }
+      }
+
       const requestData = {
         tables: [xTable, yTable],
         columns: [xColumn, yColumn],
@@ -553,7 +585,6 @@ document
   .addEventListener("click", addChartContainer);
 
 addChartContainer();
-
     </script>
   </body>
 </html>
