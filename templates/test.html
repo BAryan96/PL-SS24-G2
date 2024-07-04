@@ -226,6 +226,30 @@ async function addChartContainer() {
 
   const newChartContainer = document.createElement("div");
   newChartContainer.className = "chart-container";
+  newChartContainer.style.position = "relative"; // Ensure the container is positioned relative
+
+  // Create and append the close button
+  const closeButton = document.createElement("button");
+  closeButton.textContent = "X";
+  closeButton.style.position = "absolute";
+  closeButton.style.top = "5px";
+  closeButton.style.right = "5px";
+  closeButton.style.background = "grey"; // Changed background to grey
+  closeButton.style.color = "white";
+  closeButton.style.border = "none";
+  closeButton.style.borderRadius = "50%";
+  closeButton.style.width = "20px"; // Adjusted size for better fit
+  closeButton.style.height = "20px"; // Adjusted size for better fit
+  closeButton.style.display = "flex";
+  closeButton.style.alignItems = "center";
+  closeButton.style.justifyContent = "center";
+  closeButton.style.padding = "0"; // Ensure no extra padding
+  closeButton.style.cursor = "pointer";
+  closeButton.addEventListener("click", () => {
+    newChartContainer.remove();
+    chartCount--;
+  });
+  newChartContainer.appendChild(closeButton);
 
   const selectContainer = document.createElement("div");
   selectContainer.className = "select-container";
