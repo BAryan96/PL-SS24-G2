@@ -1,41 +1,18 @@
 let charts = [];
-let chartInstance = echarts.init(document.getElementById("chart"));
 let darkMode = false;
 let decalPattern = false;
+let currentChartIndex = 0;
 
 $(document).ready(function () {
-  $.get("/tables", function (data) {
-    if (data.tables) {
-      const tableOptions = data.tables
-        .map((table) => `<option value="${table}">${table}</option>`)
-        .join("");
-      $("#xTable, #yTable, #yTable2, #yTable3").append(tableOptions);
-    }
-  });
+  initializeForm(0);
 
-  $("#xTable").change(function () {
-    loadColumns($(this).val(), "#xColumn");
-  });
-
-  $("#yTable").change(function () {
-    loadColumns($(this).val(), "#yColumn");
-  });
-
-  $("#yTable2").change(function () {
-    loadColumns($(this).val(), "#yColumn2");
-  });
-
-  $("#yTable3").change(function () {
-    loadColumns($(this).val(), "#yColumn3");
-  });
-
-  $("#dataForm").submit(function (event) {
+  $("#dataForm0").submit(function (event) {
     event.preventDefault();
-    let xTable = $("#xTable").val();
-    let xColumn = $("#xColumn").val();
-    let yTable = $("#yTable").val();
-    let yColumn = $("#yColumn").val();
-    let aggregation = $("#aggregationSelect").val();
+    let xTable = $("#xTable0").val();
+    let xColumn = $("#xColumn0").val();
+    let yTable = $("#yTable0").val();
+    let yColumn = $("#yColumn0").val();
+    let aggregation = $("#aggregationSelect0").val();
 
     let requestData = {
       tables: [xTable, yTable].filter((value) => value !== ""),
@@ -57,14 +34,35 @@ $(document).ready(function () {
           categories: response.x,
           series: [{ name: "Series 1", data: response.y0 }],
         };
-        renderChart(areaData);
+        renderChart(areaData, charts[0]);
       },
       error: function (xhr, status, error) {
         console.error("Error: ", status, error);
       },
     });
   });
+
+  charts.push(echarts.init(document.getElementById("chart0")));
 });
+
+function initializeForm(index) {
+  $.get("/tables", function (data) {
+    if (data.tables) {
+      const tableOptions = data.tables
+        .map((table) => `<option value="${table}">${table}</option>`)
+        .join("");
+      $(`#xTable${index}, #yTable${index}`).append(tableOptions);
+    }
+  });
+
+  $(`#xTable${index}`).change(function () {
+    loadColumns($(this).val(), `#xColumn${index}`);
+  });
+
+  $(`#yTable${index}`).change(function () {
+    loadColumns($(this).val(), `#yColumn${index}`);
+  });
+}
 
 function loadColumns(table, columnSelectId) {
   if (table) {
@@ -79,7 +77,7 @@ function loadColumns(table, columnSelectId) {
   }
 }
 
-function renderChart(areaData) {
+function renderChart(areaData, instance) {
   let option = {
     tooltip: {
       trigger: "axis",
@@ -131,7 +129,7 @@ function renderChart(areaData) {
           title: "Close Chart",
           icon: "path://M512 512l212.48-212.48a32 32 0 0 0-45.248-45.248L512 421.504 299.52 209.024a32 32 0 1 0-45.248 45.248L466.752 512 254.272 724.48a32 32 0 1 0 45.248 45.248L512 602.496l212.48 212.48a32 32 0 0 0 45.248-45.248L557.248 512z",
           onclick: function () {
-            chartInstance.dispose();
+            instance.dispose();
           },
         },
       },
@@ -164,21 +162,57 @@ function renderChart(areaData) {
     ],
   };
 
-  chartInstance.setOption(option);
+  instance.setOption(option);
 }
 
-function togglePopup() {
+
+function togglePopup(index) {
+  currentChartIndex = index;
+
+  // Reset the popup form
+  $("#popupForm")[0].reset();
+
+  // Load tables and columns for the current chart index
+  initializePopupForm();
+
   const popup = document.getElementById("popup");
-  popup.classList.toggle("hidden");
+  const overlay = document.getElementById("overlay");
+  popup.classList.toggle("visible");
+  overlay.classList.toggle("visible");
 }
+
+
+function initializePopupForm() {
+  $.get("/tables", function (data) {
+    if (data.tables) {
+      const tableOptions = data.tables
+        .map((table) => `<option value="${table}">${table}</option>`)
+        .join("");
+      $("#yTable2, #yTable3").empty().append('<option value="">None</option>' + tableOptions);
+    }
+  });
+
+  $("#yTable2").change(function () {
+    loadColumns($(this).val(), "#yColumn2");
+  });
+
+  $("#yTable3").change(function () {
+    loadColumns($(this).val(), "#yColumn3");
+  });
+}
+
 
 function addLines() {
-  let xTable = $("#xTable").val();
-  let xColumn = $("#xColumn").val();
-  let yTable = $("#yTable").val();
-  let yColumn = $("#yColumn").val();
-  let aggregation = $("#aggregationSelect").val();
+  let chartIndex = currentChartIndex;
+  let xTable = $(`#xTable${chartIndex}`).val();
+  let xColumn = $(`#xColumn${chartIndex}`).val();
 
+  // Main Y-axis selection
+  let yTable1 = $(`#yTable${chartIndex}`).val();
+  let yColumn1 = $(`#yColumn${chartIndex}`).val();
+  let aggregation1 = $(`#aggregationSelect${chartIndex}`).val();
+
+  // Additional Y-axis selections from popup
   let yTable2 = $("#yTable2").val();
   let yColumn2 = $("#yColumn2").val();
   let aggregation2 = $("#aggregationSelect2").val();
@@ -187,15 +221,15 @@ function addLines() {
   let yColumn3 = $("#yColumn3").val();
   let aggregation3 = $("#aggregationSelect3").val();
 
-  let tables = [xTable, yTable, yTable2, yTable3].filter(
-    (value) => value !== ""
-  );
-  let columns = [xColumn, yColumn, yColumn2, yColumn3].filter(
-    (value) => value !== ""
-  );
-  let aggregations = [aggregation, aggregation2, aggregation3].filter(
-    (value) => value !== ""
-  );
+  // Filter out empty values
+  let yTables = [yTable1, yTable2, yTable3].filter(value => value);
+  let yColumns = [yColumn1, yColumn2, yColumn3].filter(value => value);
+  let yAggregations = [aggregation1, aggregation2, aggregation3].filter(value => value);
+
+  // Prepare the data for request
+  let tables = [xTable, yTable1, yTable2, yTable3].filter(value => value);
+  let columns = [xColumn, yColumn1, yColumn2, yColumn3].filter(value => value);
+  let aggregations = [aggregation1, aggregation2, aggregation3].filter(value => value);
 
   let requestData = {
     tables: tables,
@@ -205,7 +239,7 @@ function addLines() {
     filters: [],
   };
 
-  requestData.aggregations.unshift("");
+  requestData.aggregations.unshift(""); // Ensure the first aggregation is an empty string for X axis
 
   $.ajax({
     url: "/getdata",
@@ -213,19 +247,17 @@ function addLines() {
     contentType: "application/json",
     data: JSON.stringify(requestData),
     success: function (response) {
-      const newSeries = [
-        { name: "Series 1", data: response.y0 },
-        { name: "Series 2", data: response.y1 },
-        { name: "Series 3", data: response.y2 },
-      ].filter((series) => series.data);
+      let existingOption = charts[chartIndex].getOption();
+      let newSeries = [];
+      if (response.y1) newSeries.push({ name: "Series 2", data: response.y1 });
+      if (response.y2) newSeries.push({ name: "Series 3", data: response.y2 });
+      if (response.y3) newSeries.push({ name: "Series 4", data: response.y3 });
 
-      const areaData = {
-        categories: response.x,
-        series: newSeries,
-      };
+      existingOption.series = existingOption.series.concat(newSeries);
+      existingOption.xAxis[0].data = response.x;
 
-      renderChart(areaData);
-      togglePopup();
+      charts[chartIndex].setOption(existingOption);
+      togglePopup(chartIndex);
     },
     error: function (xhr, status, error) {
       console.error("Error: ", status, error);
@@ -233,17 +265,130 @@ function addLines() {
   });
 }
 
-function updateChartAppearance() {
-  chartInstance.setOption({
-    backgroundColor: darkMode ? "#333" : "#fff",
-    series: chartInstance.getOption().series.map((series) => ({
-      ...series,
-      label: { color: darkMode ? "#fff" : "#000" },
-      itemStyle: {
-        decal: decalPattern
-          ? { symbol: "rect", color: "rgba(0,0,0,0.1)" }
-          : null,
+
+
+
+
+function addAnotherChart() {
+  if (charts.length >= 5) {
+    alert("Maximum of 5 charts reached.");
+    return;
+  }
+
+  const index = charts.length;
+
+  const chartWrapper = document.createElement('div');
+  chartWrapper.className = 'chart-container';
+  chartWrapper.id = `chartContainer${index}`;
+
+  chartWrapper.innerHTML = `
+    <form id="dataForm${index}" class="form-container">
+      <h2>Please Choose your Data</h2>
+      <label for="xTable${index}">Table for X-Axis</label>
+      <select id="xTable${index}" name="xTable${index}">
+        <option value="">None</option>
+      </select>
+
+      <label for="xColumn${index}">Column for X-Axis</label>
+      <select id="xColumn${index}" name="xColumn${index}">
+        <option value="">None</option>
+      </select>
+
+      <label for="yTable${index}">Table for Y-Axis</label>
+      <select id="yTable${index}" name="yTable${index}">
+        <option value="">None</option>
+      </select>
+
+      <label for="yColumn${index}">Column for Y-Axis</label>
+      <select id="yColumn${index}" name="yColumn${index}">
+        <option value="">None</option>
+      </select>
+
+      <label for="aggregationSelect${index}">Aggregation</label>
+      <select id="aggregationSelect${index}" name="aggregationSelect${index}">
+        <option value="">No Aggregation</option>
+        <option value="Summe">Sum</option>
+        <option value="Max">Max</option>
+        <option value="Min">Min</option>
+        <option value="Anzahl">Count</option>
+        <option value="Diskrete Anzahl">Distinct Count</option>
+        <option value="Durchschnitt">Average</option>
+        <option value="Standardabweichung">Standard deviation</option>
+        <option value="Varianz">Variance</option>
+      </select>
+
+      <button type="submit" id="submitButton${index}">Submit</button>
+      <button type="button" id="addGraphButton${index}" onclick="togglePopup(${index})">Add Lines</button>
+    </form>
+    <div id="chart${index}" class="chart"></div>
+  `;
+
+  document.querySelector('.charts-wrapper').appendChild(chartWrapper);
+
+  const newChartInstance = echarts.init(document.getElementById(`chart${index}`));
+  charts.push(newChartInstance);
+
+  initializeForm(index);
+
+  $(`#dataForm${index}`).submit(function (event) {
+    event.preventDefault();
+    let xTable = $(`#xTable${index}`).val();
+    let xColumn = $(`#xColumn${index}`).val();
+    let yTable = $(`#yTable${index}`).val();
+    let yColumn = $(`#yColumn${index}`).val();
+    let aggregation = $(`#aggregationSelect${index}`).val();
+
+    let requestData = {
+      tables: [xTable, yTable].filter((value) => value !== ""),
+      columns: [xColumn, yColumn].filter((value) => value !== ""),
+      chartType: "area",
+      aggregations: [aggregation].filter((value, index) => value !== ""),
+      filters: [],
+    };
+
+    requestData.aggregations.unshift("");
+
+    $.ajax({
+      url: "/getdata",
+      type: "POST",
+      contentType: "application/json",
+      data: JSON.stringify(requestData),
+      success: function (response) {
+        const areaData = {
+          categories: response.x,
+          series: [{ name: "Series 1", data: response.y0 }],
+        };
+        renderChart(areaData, newChartInstance);
       },
-    })),
+      error: function (xhr, status, error) {
+        console.error("Error: ", status, error);
+      },
+    });
+  });
+
+  updateChartsLayout();
+}
+
+function updateChartsLayout() {
+  const chartContainers = document.querySelectorAll('.chart-container');
+  chartContainers.forEach(container => {
+    container.classList.toggle('half-width', charts.length > 1);
+  });
+}
+
+function updateChartAppearance() {
+  charts.forEach(chart => {
+    chart.setOption({
+      backgroundColor: darkMode ? "#333" : "#fff",
+      series: chart.getOption().series.map((series) => ({
+        ...series,
+        label: { color: darkMode ? "#fff" : "#000" },
+        itemStyle: {
+          decal: decalPattern
+            ? { symbol: "rect", color: "rgba(0,0,0,0.1)" }
+            : null,
+        },
+      })),
+    });
   });
 }

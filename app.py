@@ -39,9 +39,9 @@ def initialize_database():
 def landingpage():
     return render_template('landingpage.html')
 
-@app.route("/index")
-def index():
-    return render_template('index.html')
+@app.route("/stacked22")
+def stacked22():
+    return render_template('stacked22.html')
 
 @app.route("/login")
 def login():
@@ -51,9 +51,9 @@ def login():
 def charts():
     return render_template('charts.html')
 
-@app.route("/stackedchart")
-def stackedchart():
-    return render_template('stackedchart.html')
+@app.route("/stackedChart")
+def stackedChart():
+    return render_template('stackedChart.html')
 
 @app.route("/largescalechart")
 def largescalechart():
@@ -158,9 +158,6 @@ def get_data():
         "Durchschnitt": "AVG",
         "Varianz": "VARIANCE",
         "Standardabweichung": "STDDEV",
-        "Median": "PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY",
-        "Erstes Quartil": "PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY",
-        "Drittes Quartil": "PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY"
     }
 
     date_formats = {
@@ -374,23 +371,6 @@ def get_data():
 
     print(response)
     return jsonify(response)
-
-
-@app.route("/test")
-def test():
-    return render_template('test.html')
-
-@app.route("/get_table", methods=["POST"])
-def get_table():
-    data_choice = request.form['data-choice']
-    cur.execute(f"SELECT * FROM {data_choice}")
-    row_headers = [x[0] for x in cur.description]
-    results = cur.fetchall()
-
-    json_data = []
-    for result in results:
-        json_data.append(dict(zip(row_headers, result)))
-    return render_template('index.html', data=json_data)
 
 if __name__ == "__main__":
     if not initialize_database():
