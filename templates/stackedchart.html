@@ -1,319 +1,48 @@
 <!DOCTYPE html>
-<html lang="de">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Area Chart</title>
-  <link rel="stylesheet" href="/static/CSS/all.css" />
-  <style>
-    .chart-container {
-      width: 100%;
-      height: 500px;
-      background-color: white;
-      border: 1px solid #ccc;
-      padding: 10px;
-      box-sizing: border-box;
-      display: flex;
-      align-items: flex-start;
-    }
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Interactive Charts</title>
+    <link rel="stylesheet" href="/static/CSS/all.css" />
+    <link rel="stylesheet" href="/static/CSS/stackedchart.css" />
 
-    .form-container {
-      flex: 1;
-      max-width: 400px;
-      margin-right: 10px;
-    }
-
-    .form-container label,
-    .form-container select,
-    .form-container button {
-      display: block;
-      width: 100%;
-      margin-bottom: 5px;
-      font-size: 16px;
-    }
-
-    .form-container button {
-      padding: 5px;
-      font-size: 12px;
-    }
-
-    .chart {
-      flex: 3;
-      height: 100%;
-    }
-
-    .options-menu {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background-color: white;
-      border: 1px solid #ccc;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.1);
-      z-index: 1001;
-      display: none; /* Initially hidden */
-      max-width: 90%;
-      max-height: 90%;
-      overflow-y: auto;
-    }
-
-    .options-menu.visible {
-      display: block;
-    }
-
-    .options-menu h2 {
-      margin-top: 0;
-      font-size: 18px;
-      border-bottom: 2px solid #f0f0f0;
-      padding-bottom: 10px;
-      margin-bottom: 20px;
-    }
-
-    .popup-form-container {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .popup-form-container label,
-    .popup-form-container select,
-    .popup-form-container button {
-      display: block;
-      width: 100%;
-      margin-bottom: 5px;
-      font-size: 14px;
-    }
-
-    .popup-form-container select,
-    .popup-form-container button {
-      padding: 8px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      font-size: 14px;
-    }
-
-    .popup-form-container button {
-      background-color: coral;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
-
-    .popup-form-container button:hover {
-      background-color: #ff7f50;
-    }
-
-    .close-btn {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      background: none;
-      border: none;
-      font-size: 16px;
-      cursor: pointer;
-    }
-
-    .overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(0, 0, 0, 0.5);
-      z-index: 1000;
-      display: none;
-    }
-
-    .overlay.visible {
-      display: block;
-    }
-
-    #submitButton,
-    #addGraphButton {
-      background-color: coral;
-      color: white;
-      border: none;
-      cursor: pointer;
-      padding: 5px;
-      border-radius: 4px;
-      font-size: 12px;
-    }
-
-    #submitButton:hover,
-    #addGraphButton:hover {
-      background-color: #ff7f50;
-    }
-
-    .chart-title {
-      text-align: center;
-      margin-bottom: 20px;
-      font-size: 24px;
-    }
-
-    #addAnotherChartButton {
-      display: block;
-      margin: 0 auto 20px auto;
-      background-color: coral;
-      color: white;
-      border: none;
-      cursor: pointer;
-      padding: 10px;
-      border-radius: 4px;
-      font-size: 16px;
-    }
-
-    #addAnotherChartButton:hover {
-      background-color: #ff7f50;
-    }
-
-    .charts-wrapper {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 20px;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <header>
-      <div class="logo-area">
-        <span class="logo-circle"></span>
-        <span class="logo-text">Data Visualisation - DV</span>
-      </div>
-      <button class="menu-button">☰</button>
-    </header>
-    <div class="side-menu" id="sideMenu">
-      <button class="close-button">X</button>
-      <a href="/charts">Chart Overview</a>
-      <div class="dropdown">
-        <a href="#" class="dropdown-btn">Dashboard</a>
-        <div class="dropdown-content">
-          <a href="/salesperformancedash">Sales Performance Dashboard</a>
-          <a href="/storeperformancedash">Store Performance Dashboard</a>
-          <a href="/customerdash">Customer Insights Dashboard</a>
-          <a href="/productdash">Product Performance Dashboard</a>
+    <style></style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <div class="logo-area">
+          <span class="logo-circle"></span>
+          <span class="logo-text">Data Visualisation - DV</span>
         </div>
-      </div>
-      <a href="/login">Sign In</a>
-      <a href="/">Log Out</a>
-    </div>
-    <main class="main">
-      <section class="data-selection">
-        <h2 class="chart-title">Stacked Area Chart</h2>
-        <button type="button" id="addAnotherChartButton" onclick="addAnotherChart()">
-          Add another Chart
-        </button>
-        <div class="charts-wrapper">
-          <div class="chart-container" id="chartContainer0">
-            <form id="dataForm0" class="form-container">
-              <h2>Please Choose your Data</h2>
-              <label for="xTable0">Table for X-Axis</label>
-              <select id="xTable0" name="xTable0">
-                <option value="">None</option>
-              </select>
-
-              <label for="xColumn0">Column for X-Axis</label>
-              <select id="xColumn0" name="xColumn0">
-                <option value="">None</option>
-              </select>
-
-              <label for="yTable0">Table for Y-Axis</label>
-              <select id="yTable0" name="yTable0">
-                <option value="">None</option>
-              </select>
-
-              <label for="yColumn0">Column for Y-Axis</label>
-              <select id="yColumn0" name="yColumn0">
-                <option value="">None</option>
-              </select>
-
-              <label for="aggregationSelect0">Aggregation</label>
-              <select id="aggregationSelect0" name="aggregationSelect0">
-                <option value="">No Aggregation</option>
-                <option value="Summe">Sum</option>
-                <option value="Max">Max</option>
-                <option value="Min">Min</option>
-                <option value="Anzahl">Count</option>
-                <option value="Diskrete Anzahl">Distinct Count</option>
-                <option value="Durchschnitt">Average</option>
-                <option value="Standardabweichung">Standard deviation</option>
-                <option value="Varianz">Variance</option>
-              </select>
-
-              <button type="submit" id="submitButton0">Submit</button>
-              <button type="button" id="addGraphButton0" onclick="togglePopup()">
-                Add Lines
-              </button>
-            </form>
-            <div id="chart0" class="chart"></div>
+        <button class="menu-button">☰</button>
+      </header>
+      <div class="side-menu" id="sideMenu">
+        <button class="close-button">X</button>
+        <a href="/charts">Chart Overview</a>
+        <div class="dropdown">
+          <a href="#" class="dropdown-btn">Dashboard</a>
+          <div class="dropdown-content">
+            <a href="/salesperformancedash">Sales Performance Dashboard</a>
+            <a href="/storeperformancedash">Store Performance Dashboard</a>
+            <a href="/customerdash">Customer Insights Dashboard</a>
+            <a href="/productdash">Product Performance Dashboard</a>
           </div>
         </div>
-      </section>
+        <a href="/login">Sign In</a>
+        <a href="/">Log Out</a>
+      </div>
+    </div>
+    <main>
+      <div class="chart-title">Stacked Area Chart</div>
+      <button id="add-chart-button">Add Chart</button>
+      <div id="charts-container"></div>
     </main>
-  </div>
-  <div id="overlay" class="overlay"></div>
-  <div id="popup" class="options-menu">
-    <button class="close-btn" onclick="togglePopup()">X</button>
-    <h2>Add Additional Lines</h2>
-    <form class="popup-form-container" id="popupForm">
-      <label for="yTable2">Table for Y-Axis 2</label>
-      <select id="yTable2" name="yTable2">
-        <option value="">None</option>
-      </select>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.0/echarts.min.js"></script>
+    <script src="/static/JS/overviewstacked.js"></script>
+    <script src="/static/JS/sidemenu.js"></script>
 
-      <label for="yColumn2">Column for Y-Axis 2</label>
-      <select id="yColumn2" name="yColumn2">
-        <option value="">None</option>
-      </select>
-
-      <label for="aggregationSelect2">Aggregation 2</label>
-      <select id="aggregationSelect2" name="aggregationSelect2">
-        <option value="">No Aggregation</option>
-        <option value="Summe">Sum</option>
-        <option value="Max">Max</option>
-        <option value="Min">Min</option>
-        <option value="Anzahl">Count</option>
-        <option value="Diskrete Anzahl">Distinct Count</option>
-        <option value="Durchschnitt">Average</option>
-        <option value="Standardabweichung">Standard deviation</option>
-        <option value="Varianz">Variance</option>
-      </select>
-
-      <label for="yTable3">Table for Y-Axis 3</label>
-      <select id="yTable3" name="yTable3">
-        <option value="">None</option>
-      </select>
-
-      <label for="yColumn3">Column for Y-Axis 3</label>
-      <select id="yColumn3" name="yColumn3">
-        <option value="">None</option>
-      </select>
-
-      <label for="aggregationSelect3">Aggregation 3</label>
-      <select id="aggregationSelect3" name="aggregationSelect3">
-        <option value="">No Aggregation</option>
-        <option value="Summe">Sum</option>
-        <option value="Max">Max</option>
-        <option value="Min">Min</option>
-        <option value="Anzahl">Count</option>
-        <option value="Diskrete Anzahl">Distinct Count</option>
-        <option value="Durchschnitt">Average</option>
-        <option value="Standardabweichung">Standard deviation</option>
-        <option value="Varianz">Variance</option>
-        <option value="Median">Median</option>
-        <option value="Erstes Quartil">Q1 Quartile</option>
-        <option value="Drittes Quartil">Q3 Quartile</option>
-      </select>
-
-      <button type="button" onclick="addLines()">Add Lines</button>
-    </form>
-  </div>
-
-  <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  <script src="/static/JS/sidemenu.js"></script>
-  <script src="/static/JS/overviewStacked.js"></script>
-</body>
+    <script></script>
+  </body>
 </html>

@@ -51,9 +51,9 @@ def login():
 def charts():
     return render_template('charts.html')
 
-@app.route("/stackedChart")
-def stackedChart():
-    return render_template('stackedChart.html')
+@app.route("/stackedchart")
+def stackedchart():
+    return render_template('stackedchart.html')
 
 @app.route("/largescalechart")
 def largescalechart():
