@@ -1,61 +1,139 @@
-.color-picker {
-  margin: 10px 0;
+.chart-container {
+  display: flex;
+  height: 480px;
+  border: 1px solid #ccc;
+  margin-top: 20px;
+  padding: 10px;
+  box-sizing: border-box;
+  width: 48%;
+  position: relative;
+  border-radius: 10px;
+  background-color: #f9f9f9;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  margin-right: 2%;
+  margin-bottom: 20px;
 }
 
-#submitButton {
-  margin-top: 10px;
-  padding: 10px 20px;
+.chart-container:nth-child(2n) {
+  margin-right: 0;
+}
+
+.chart-title {
+  text-align: center;
+  margin-top: 20px;
+  font-size: 24px;
+  font-weight: bold;
+}
+
+#add-chart-button {
+  display: block;
+  margin: 10px auto;
+  padding: 12px 24px;
   font-size: 16px;
   color: #fff;
   background-color: coral;
   border: none;
   border-radius: 5px;
   cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-#submitButton:hover {
-  background-color: #ff6f61;
-}
-
-.options-menu {
-  background-color: #fff;
-  border: 1px solid #ccc;
-  border-radius: 10px;
-  padding: 20px;
-  z-index: 1000;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 80%;
-  max-width: 600px;
-  max-height: 80%;
-  overflow-y: auto;
 }
 
-.data-selection {
-  display: flex;
-  width: 100%;
-  justify-content: space-between;
+#add-chart-button:hover {
+  background-color: #e06a50;
+  box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
 }
 
-.form-container {
-  flex: 1;
+.select-container {
+  flex: 0.3;
   display: flex;
   flex-direction: column;
+  gap: 10px;
 }
 
-.form-container label,
-.form-container select,
-.form-container button {
-  width: 100%;
-  margin-bottom: 10px;
+.select-container label {
+  margin-bottom: 5px;
+  font-weight: bold;
 }
 
-.chart-container #map {
+.select-container select,
+.select-container input[type="checkbox"] {
+  padding: 10px;
   width: 100%;
-  height: 600px;
+  box-sizing: border-box;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  background-color: #fff;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.submit-button {
+  display: block;
+  padding: 12px 24px;
+  font-size: 16px;
+  color: #fff;
+  background-color: coral;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.submit-button:hover {
+  background-color: #e06a50;
+  box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+}
+
+.map-container {
+  flex: 1;
+  height: 100%;
   position: relative;
+}
+
+.map {
+  width: 100%;
+  height: 100%;
+  min-height: 400px;
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 10px;
+}
+
+#charts-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.filter-button {
+  background-color: coral;
+  color: white;
+  padding: 10px;
+  border: none;
+  cursor: pointer;
+}
+
+.close-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: grey;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 1000;
+}
+
+.close-button:hover {
+  background-color: darkgrey;
 }

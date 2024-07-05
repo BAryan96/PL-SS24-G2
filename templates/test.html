@@ -5,104 +5,148 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Interactive Charts</title>
     <link rel="stylesheet" href="/static/CSS/all.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 
     <style>
-  .chart-container {
-    display: flex;
-    height: 480px;
-    border: 1px solid #ccc;
-    margin-top: 20px;
-    padding: 10px;
-    box-sizing: border-box;
-    width: 100%; /* Vollständige Breite bei einem Diagramm */
-  }
+      .chart-container {
+        display: flex;
+        height: 480px;
+        border: 1px solid #ccc;
+        margin-top: 20px;
+        padding: 10px;
+        box-sizing: border-box;
+        width: 48%;
+        position: relative;
+        border-radius: 10px;
+        background-color: #f9f9f9;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        margin-right: 2%;
+        margin-bottom: 20px;
+      }
 
-  .chart-container.half-width {
-    width: 50%; /* 50% Breite bei mehreren Diagrammen */
-  }
+      .chart-container:nth-child(2n) {
+        margin-right: 0;
+      }
 
-  .chart-title {
-    text-align: center;
-    margin-top: 20px;
-    font-size: 24px;
-    font-weight: bold;
-  }
+      .chart-title {
+        text-align: center;
+        margin-top: 20px;
+        font-size: 24px;
+        font-weight: bold;
+      }
 
-  #add-chart-button {
-    display: block;
-    margin: 10px auto;
-    padding: 12px 24px;
-    font-size: 16px;
-    color: #fff;
-    background-color: coral;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.3s ease, box-shadow 0.3s ease;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  }
+      #add-chart-button {
+        display: block;
+        margin: 10px auto;
+        padding: 12px 24px;
+        font-size: 16px;
+        color: #fff;
+        background-color: coral;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s ease, box-shadow 0.3s ease;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
 
-  #add-chart-button:hover {
-    background-color: #e06a50;
-    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
-  }
+      #add-chart-button:hover {
+        background-color: #e06a50;
+        box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+      }
 
-  .select-container {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
+      .select-container {
+        flex: 0.3;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
 
-  .select-container label {
-    margin-bottom: 5px;
-    font-weight: bold;
-  }
+      .select-container label {
+        margin-bottom: 5px;
+        font-weight: bold;
+      }
 
-  .select-container select {
-    padding: 5px;
-    width: 100%;
-    box-sizing: border-box;
-  }
+      .select-container select,
+      .select-container input[type="checkbox"] {
+        padding: 10px;
+        width: 100%;
+        box-sizing: border-box;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        background-color: #fff;
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
 
-  .submit-button {
-    display: block;
-    padding: 12px 24px;
-    font-size: 16px;
-    color: #fff;
-    background-color: coral;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: background-color 0.3s ease, box-shadow 0.3s ease;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    width: 100%;
-    box-sizing: border-box;
-  }
+      .submit-button {
+        display: block;
+        padding: 12px 24px;
+        font-size: 16px;
+        color: #fff;
+        background-color: coral;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s ease, box-shadow 0.3s ease;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        width: 100%;
+        box-sizing: border-box;
+      }
 
-  .submit-button:hover {
-    background-color: #e06a50;
-    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
-  }
+      .submit-button:hover {
+        background-color: #e06a50;
+        box-shadow: 0 6px 8px rgba(0, 0, 0, 0.15);
+      }
 
-  .echarts-chart {
-    flex: 2;
-    margin-left: 20px;
-    height: 100%;
-  }
-  
-  .filter-button {
-    background-color: coral;
-    color: white;
-    padding: 10px;
-    border: none;
-    cursor: pointer;
-  }
+      .map-container {
+        flex: 1;
+        height: 100%;
+        position: relative;
+      }
 
-  #charts-container {
-    display: flex;
-    flex-wrap: wrap; /* Flexible Zeilen für mehrere Diagramme */
-  }
+      .map {
+        width: 100%;
+        height: 100%;
+        min-height: 400px;
+        position: absolute;
+        top: 0;
+        left: 0;
+        border-radius: 10px;
+      }
+
+      #charts-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+      }
+
+      .filter-button {
+        background-color: coral;
+        color: white;
+        padding: 10px;
+        border: none;
+        cursor: pointer;
+      }
+
+      .close-button {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background-color: grey;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 1000;
+      }
+
+      .close-button:hover {
+        background-color: darkgrey;
+      }
     </style>
   </head>
   <body>
@@ -136,494 +180,316 @@
       <div id="charts-container"></div>
     </main>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.0/echarts.min.js"></script>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
     <script>
-      let chartCount = 0;
-      const maxCharts = 5;
+      document.addEventListener("DOMContentLoaded", () => {
+        let chartCount = 0;
+        const maxCharts = 5;
 
-      async function fetchTables() {
-        const response = await fetch("/tables");
-        const data = await response.json();
-        return data.tables;
-      }
+        async function fetchTables() {
+          const response = await fetch("/tables");
+          const data = await response.json();
+          return data.tables;
+        }
 
-      async function fetchColumns(table) {
-        const response = await fetch("/columns", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
-          body: `table=${encodeURIComponent(table)}`,
-        });
-        const data = await response.json();
-        return data.columns;
-      }
+        async function fetchColumns(table) {
+          const response = await fetch("/columns", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: `table=${encodeURIComponent(table)}`,
+          });
+          const data = await response.json();
+          return data.columns;
+        }
 
-      async function createSelectOptions(selectElement, options) {
-        selectElement.innerHTML = '<option value="none">None</option>';
-        options.forEach((option) => {
-          const opt = document.createElement("option");
-          opt.value = option;
-          opt.text = option;
-          selectElement.appendChild(opt);
-        });
-      }
+        async function createSelectOptions(selectElement, options) {
+          selectElement.innerHTML = '<option value="">None</option>';
+          options.forEach((option) => {
+            const opt = document.createElement("option");
+            opt.value = option;
+            opt.text = option;
+            selectElement.appendChild(opt);
+          });
+        }
 
-      function createContextMenu() {
-        const contextMenu = document.createElement("div");
-        contextMenu.style.position = "absolute";
-        contextMenu.style.display = "none";
-        contextMenu.style.backgroundColor = "#fff";
-        contextMenu.style.border = "1px solid #ccc";
-        contextMenu.style.padding = "10px";
-        contextMenu.style.zIndex = "1000";
-
-        const colorPicker = document.createElement("input");
-        colorPicker.type = "color";
-
-        contextMenu.appendChild(colorPicker);
-        document.body.appendChild(contextMenu);
-
-        return { contextMenu, colorPicker };
-      }
-
-      function setupContextMenu(chartInstance, series) {
-        const { contextMenu, colorPicker } = createContextMenu();
-
-        chartInstance.getZr().on('contextmenu', function (params) {
-          const pointInPixel = [params.offsetX, params.offsetY];
-          if (chartInstance.containPixel('grid', pointInPixel)) {
-            params.event.preventDefault();
-
-            const xIndex = chartInstance.convertFromPixel({ seriesIndex: 0 }, [params.offsetX])[0];
-            const dataIndex = Math.round(xIndex);
-
-            const dataItem = series[0].data[dataIndex];
-
-            contextMenu.style.left = `${params.event.pageX}px`;
-            contextMenu.style.top = `${params.event.pageY}px`;
-            contextMenu.style.display = "block";
-
-            colorPicker.onchange = function () {
-              if (dataItem) {
-                dataItem.itemStyle = { color: colorPicker.value };
-                series[0].data[dataIndex] = dataItem;  // Ensure the data item is updated in the series array
-                chartInstance.setOption({ series });
-                contextMenu.style.display = "none";
-              }
-            };
-
-            const closeContextMenu = function (event) {
-              if (!contextMenu.contains(event.target)) {
-                contextMenu.style.display = "none";
-                document.removeEventListener("click", closeContextMenu);
-              }
-            };
-
-            setTimeout(() => {
-              document.addEventListener("click", closeContextMenu);
-            }, 0);
+        async function addChartContainer() {
+          if (chartCount >= maxCharts) {
+            alert("Maximum number of charts reached.");
+            return;
           }
-        });
-      }
 
-      function resizeCharts() {
-  const chartContainers = document.querySelectorAll('.echarts-chart');
-  chartContainers.forEach(container => {
-    const chartInstance = echarts.getInstanceByDom(container);
-    if (chartInstance) {
-      chartInstance.resize();
-    }
-  });
-}
+          const tables = await fetchTables();
 
+          const newChartContainer = document.createElement("div");
+          newChartContainer.className = "chart-container";
+          newChartContainer.style.display = "flex";
+          newChartContainer.style.flexDirection = "row";
+          newChartContainer.style.border = "1px solid #ccc";
+          newChartContainer.style.marginBottom = "10px";
+          newChartContainer.style.padding = "10px";
+          newChartContainer.style.position = "relative";
+          newChartContainer.style.borderRadius = "10px";
+          newChartContainer.style.backgroundColor = "#f9f9f9";
+          newChartContainer.style.boxShadow = "0 4px 6px rgba(0, 0, 0, 0.1)";
 
-function updateChartContainerWidth() {
-  const chartContainers = document.querySelectorAll('.chart-container');
-  if (chartContainers.length > 1) {
-    chartContainers.forEach(container => {
-      container.classList.add('half-width');
-    });
-  } else {
-    chartContainers.forEach(container => {
-      container.classList.remove('half-width');
-    });
-  }
-  resizeCharts();
-}
+          const closeButton = document.createElement("button");
+          closeButton.textContent = "X";
+          closeButton.className = "close-button";
+          closeButton.addEventListener("click", () => {
+            newChartContainer.remove();
+            chartCount--;
+            updateChartContainerWidth();
+          });
+          newChartContainer.appendChild(closeButton);
 
+          const selectContainer = document.createElement("div");
+          selectContainer.className = "select-container";
 
-async function addChartContainer() {
-  if (chartCount >= maxCharts) {
-    alert("Maximum number of charts reached.");
-    return;
-  }
+          const markerTypeTitle = document.createElement("div");
+          markerTypeTitle.innerHTML = "<b>Markers Based On:</b>";
+          selectContainer.appendChild(markerTypeTitle);
 
-  const tables = await fetchTables();
+          const markerTypeContainer = document.createElement("div");
+          markerTypeContainer.className = "marker-type-container";
 
-  const newChartContainer = document.createElement("div");
-  newChartContainer.className = "chart-container";
-  newChartContainer.style.position = "relative"; // Ensure the container is positioned relative
+          const createLabeledCheckbox = (labelText, value) => {
+            const label = document.createElement("label");
+            const checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+            checkbox.value = value;
+            checkbox.name = "markerType";
+            label.appendChild(checkbox);
+            label.appendChild(document.createTextNode(labelText));
+            markerTypeContainer.appendChild(label);
+          };
 
-  // Create and append the close button
-  const closeButton = document.createElement("button");
-  closeButton.textContent = "X";
-  closeButton.style.position = "absolute";
-  closeButton.style.top = "5px";
-  closeButton.style.right = "5px";
-  closeButton.style.background = "grey"; // Changed background to grey
-  closeButton.style.color = "white";
-  closeButton.style.border = "none";
-  closeButton.style.borderRadius = "50%";
-  closeButton.style.width = "20px"; // Adjusted size for better fit
-  closeButton.style.height = "20px"; // Adjusted size for better fit
-  closeButton.style.display = "flex";
-  closeButton.style.alignItems = "center";
-  closeButton.style.justifyContent = "center";
-  closeButton.style.padding = "0"; // Ensure no extra padding
-  closeButton.style.cursor = "pointer";
-  closeButton.addEventListener("click", () => {
-    newChartContainer.remove();
-    chartCount--;
-    updateChartContainerWidth(); // Update width when a chart is removed
-  });
-  newChartContainer.appendChild(closeButton);
+          createLabeledCheckbox("Stores", "stores");
+          createLabeledCheckbox("Customers", "customers");
 
-  const selectContainer = document.createElement("div");
-  selectContainer.className = "select-container";
+          selectContainer.appendChild(markerTypeContainer);
 
-  const createLabeledSelect = (labelText) => {
-    const label = document.createElement("label");
-    label.textContent = labelText;
-    const select = document.createElement("select");
-    selectContainer.appendChild(label);
-    selectContainer.appendChild(select);
-    return select;
-  };
+          const createLabeledSelect = (labelText) => {
+            const label = document.createElement("label");
+            label.textContent = labelText;
+            const select = document.createElement("select");
+            selectContainer.appendChild(label);
+            selectContainer.appendChild(select);
+            return select;
+          };
 
-  const tableSelectX = createLabeledSelect("Table for X-Axis");
-  const columnSelectX = createLabeledSelect("Column for X-Axis");
-  const tableSelectY = createLabeledSelect("Table for Y-Axis");
-  const columnSelectY = createLabeledSelect("Column for Y-Axis");
-  const aggregationSelect = createLabeledSelect("Aggregation");
+          const tableSelect = createLabeledSelect("Table");
+          const columnSelect = createLabeledSelect("Column");
+          const aggregationSelect = createLabeledSelect("Aggregation");
 
-  // New label and select for date granularity
-  const dateGranularityLabelX = document.createElement("label");
-  dateGranularityLabelX.textContent = "Date Granularity for X-Axis";
-  dateGranularityLabelX.style.display = "none"; // Initially hidden
-  selectContainer.appendChild(dateGranularityLabelX);
+          await createSelectOptions(tableSelect, tables);
 
-  const dateGranularitySelectX = document.createElement("select");
-  dateGranularitySelectX.style.display = "none"; // Initially hidden
-  selectContainer.appendChild(dateGranularitySelectX);
-
-  await createSelectOptions(tableSelectX, tables);
-  await createSelectOptions(tableSelectY, tables);
-
-  const dateGranularityOptions = ["Days", "Months", "Years"];
-
-  tableSelectX.addEventListener("change", async () => {
-    if (tableSelectX.value !== "none") {
-      const columns = await fetchColumns(tableSelectX.value);
-      await createSelectOptions(columnSelectX, columns);
-    } else {
-      columnSelectX.innerHTML = '<option value="none">None</option>';
-    }
-  });
-
-  tableSelectY.addEventListener("change", async () => {
-    if (tableSelectY.value !== "none") {
-      const columns = await fetchColumns(tableSelectY.value);
-      await createSelectOptions(columnSelectY, columns);
-    } else {
-      columnSelectY.innerHTML = '<option value="none">None</option>';
-    }
-  });
-
-  columnSelectX.addEventListener("change", () => {
-    if (["orderDate", "Launch"].includes(columnSelectX.value)) {
-      dateGranularityLabelX.style.display = "block";
-      dateGranularitySelectX.style.display = "block";
-      createSelectOptions(dateGranularitySelectX, dateGranularityOptions);
-
-      // Move the date granularity select right below the column select
-      selectContainer.insertBefore(dateGranularityLabelX, columnSelectX.nextSibling);
-      selectContainer.insertBefore(dateGranularitySelectX, dateGranularityLabelX.nextSibling);
-    } else {
-      dateGranularityLabelX.style.display = "none";
-      dateGranularitySelectX.style.display = "none";
-    }
-  });
-
-  const aggregations = [
-    "Summe",
-    "Max",
-    "Min",
-    "Anzahl",
-    "Diskrete Anzahl",
-    "Durchschnitt",
-    "Varianz",
-    "Standardabweichung",
-  ];
-  await createSelectOptions(aggregationSelect, aggregations);
-
-  const submitButton = document.createElement("button");
-  submitButton.className = "submit-button";
-  submitButton.textContent = "Submit";
-  selectContainer.appendChild(submitButton);
-
-  const chartDiv = document.createElement("div");
-  chartDiv.className = "echarts-chart";
-
-  newChartContainer.appendChild(selectContainer);
-  newChartContainer.appendChild(chartDiv);
-
-  submitButton.addEventListener("click", async (event) => {
-    event.preventDefault();
-
-    const xTable = tableSelectX.value;
-    let xColumn = columnSelectX.value;
-    const yTable = tableSelectY.value;
-    const yColumn = columnSelectY.value;
-    const aggregation = aggregationSelect.value;
-
-    if (xTable !== "none" && xColumn !== "none" && yTable !== "none" && yColumn !== "none") {
-      if (["orderDate", "Launch"].includes(xColumn) && dateGranularitySelectX.value !== "none") {
-        const granularity = dateGranularitySelectX.value;
-        if (granularity === "Days") {
-          xColumn += "-DD";
-        } else if (granularity === "Months") {
-          xColumn += "-MM";
-        } else if (granularity === "Years") {
-          xColumn += "-YYYY";
-        }
-      }
-
-      const requestData = {
-        tables: [xTable, yTable],
-        columns: [xColumn, yColumn],
-        chartType: "line",
-        aggregations: ["", aggregation],
-        filters: [],
-      };
-
-      try {
-        const response = await fetch("/getdata", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(requestData),
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-
-        const responseData = await response.json();
-        const dataX = responseData.x;
-        const dataY = responseData.y0;
-
-        const uniqueXValues = [...new Set(dataX)];
-        const uniqueYValues = [...new Set(dataY)];
-
-        const filterContent = document.createElement("div");
-        filterContent.className = "filter-content";
-        filterContent.style.display = "none";
-        filterContent.style.position = "absolute";
-        filterContent.style.backgroundColor = "#f9f9f9";
-        filterContent.style.minWidth = "160px";
-        filterContent.style.boxShadow = "0px 8px 16px 0px rgba(0,0,0,0.2)";
-        filterContent.style.zIndex = "1";
-        filterContent.style.right = "0";
-        filterContent.style.maxHeight = "400px";
-        filterContent.style.overflowY = "auto";
-        filterContent.style.padding = "10px";
-        filterContent.innerHTML = `
-          <input type="text" class="filter-search" placeholder="Search..." style="width: 100%; padding: 8px; margin-bottom: 10px;">
-          <div>
-            <strong>X-Axis Values</strong>
-            <div class="filter-options" style="display: flex; flex-wrap: wrap;">
-              ${uniqueXValues.map(value => `
-                <label style="flex: 1 0 30%; display: flex; align-items: center;">
-                  <input type="checkbox" value="${value}" class="filter-checkbox-x">
-                  ${value}
-                </label>
-              `).join('')}
-            </div>
-          </div>
-          <div>
-            <strong>Y-Axis Values</strong>
-            <div class="filter-options" style="display: flex; flex-wrap: wrap;">
-              ${uniqueYValues.map(value => `
-                <label style="flex: 1 0 30%; display: flex; align-items: center;">
-                  <input type="checkbox" value="${value}" class="filter-checkbox-y">
-                  ${value}
-                </label>
-              `).join('')}
-            </div>
-          </div>
-        `;
-
-        const closeButton = document.createElement("button");
-        closeButton.textContent = "Close";
-        closeButton.style.display = "block";
-        closeButton.style.margin = "10px auto";
-        closeButton.addEventListener("click", () => {
-          filterContent.style.display = "none";
-        });
-        filterContent.appendChild(closeButton);
-
-        newChartContainer.appendChild(filterContent);
-
-        const searchInput = filterContent.querySelector('.filter-search');
-        searchInput.addEventListener('input', () => {
-          const filter = searchInput.value.toLowerCase();
-          const options = filterContent.querySelectorAll('.filter-options label');
-          options.forEach(option => {
-            const text = option.textContent.toLowerCase();
-            if (text.includes(filter)) {
-              option.style.display = '';
+          tableSelect.addEventListener("change", async () => {
+            const selectedTable = tableSelect.value;
+            if (selectedTable) {
+              const columns = await fetchColumns(selectedTable);
+              await createSelectOptions(columnSelect, columns);
             } else {
-              option.style.display = 'none';
-            }
-          });
-        });
-
-        filterContent.addEventListener("change", () => {
-          const checkedXValues = Array.from(
-            filterContent.querySelectorAll(".filter-checkbox-x:checked")
-          ).map((checkbox) => checkbox.value);
-          
-          const checkedYValues = Array.from(
-            filterContent.querySelectorAll(".filter-checkbox-y:checked")
-          ).map((checkbox) => checkbox.value);
-
-          const filteredDataX = [];
-          const filteredDataY = [];
-
-          dataX.forEach((value, index) => {
-            if ((checkedXValues.length === 0 || checkedXValues.includes(value)) &&
-                (checkedYValues.length === 0 || checkedYValues.includes(dataY[index].toString()))) {
-              filteredDataX.push(value);
-              filteredDataY.push(dataY[index]);
+              columnSelect.innerHTML = '<option value="">None</option>';
             }
           });
 
-          series[0].data = filteredDataY;
-          option.xAxis.data = filteredDataX;
-          chartInstance.setOption(option);
-        });
+          const aggregations = [
+            "Summe",
+            "Max",
+            "Min",
+            "Anzahl",
+            "Diskrete Anzahl",
+            "Durchschnitt",
+            "Varianz",
+            "Standardabweichung",
+          ];
+          await createSelectOptions(aggregationSelect, aggregations);
 
-        const series = [
-          {
-            name: yColumn,
-            type: "line",
-            areaStyle: {
-              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                {
-                  offset: 0,
-                  color: "rgb(255, 158, 68)",
-                },
-                {
-                  offset: 1,
-                  color: "rgb(255, 70, 131)",
-                },
-              ]),
-            },
-            emphasis: {
-              focus: "series",
-            },
-            itemStyle: {
-              color: "rgb(255, 70, 131)",
-            },
-            data: dataY.map(value => ({ value })),
-          },
-        ];
+          const submitButton = document.createElement("button");
+          submitButton.className = "submit-button";
+          submitButton.textContent = "Submit";
+          selectContainer.appendChild(submitButton);
 
-        const option = {
-          title: {
-            left: "center",
-          },
-          tooltip: {
-            trigger: "axis",
-            axisPointer: {
-              type: "cross",
-              label: {
-                backgroundColor: "#6a7985",
-              },
-            },
-          },
-          legend: {
-            data: [yColumn],
-            top: "5%",
-          },
-          xAxis: {
-            type: "category",
-            boundaryGap: false,
-            data: dataX,
-          },
-          yAxis: {
-            type: "value",
-          },
-          series: series,
-          toolbox: {
-            feature: {
-              myFilter: {
-                show: true,
-                title: 'Filter',
-                icon: 'path://M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 13h-3v3h-4v-3H7v-4h3V8h4v3h3v4z',
-                onclick: function () {
-                  filterContent.style.display = filterContent.style.display === "none" ? "block" : "none";
+          const mapContainer = document.createElement("div");
+          mapContainer.className = "map-container";
+
+          const mapDiv = document.createElement("div");
+          mapDiv.id = `map${chartCount}`;
+          mapDiv.className = "map";
+
+          mapContainer.appendChild(mapDiv);
+
+          newChartContainer.appendChild(selectContainer);
+          newChartContainer.appendChild(mapContainer);
+
+          document
+            .getElementById("charts-container")
+            .appendChild(newChartContainer);
+
+          const map = L.map(mapDiv).setView([37.5, -117], 6);
+          L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            attribution: "© OpenStreetMap contributors",
+            maxZoom: 18,
+          }).addTo(map);
+
+          setTimeout(() => {
+            map.invalidateSize();
+          }, 500);
+
+          let markers = L.layerGroup().addTo(map);
+
+          submitButton.addEventListener("click", async (event) => {
+            event.preventDefault();
+
+            const markerTypes = Array.from(
+              markerTypeContainer.querySelectorAll(
+                'input[name="markerType"]:checked'
+              )
+            ).map((checkbox) => checkbox.value);
+            const table = tableSelect.value;
+            const column = columnSelect.value;
+            const aggregation = aggregationSelect.value;
+
+            console.log("Selected Table:", table);
+            console.log("Selected Column:", column);
+            console.log("Selected Aggregation:", aggregation);
+
+            markers.clearLayers();
+
+            const loadMarkers = async (markerType, color) => {
+              const baseTables = [markerType, markerType, markerType];
+              const baseColumns = [
+                markerType === "stores" ? "storeID" : "customerID",
+                "longitude",
+                "latitude",
+              ];
+              const baseAggregations = ["", "X", "X"];
+
+              const tables = baseTables.concat(table ? [table] : []);
+              const columns = baseColumns.concat(column ? [column] : []);
+              const aggregations = baseAggregations.concat(
+                aggregation ? [aggregation] : [""]
+              );
+
+              const requestData = {
+                tables: tables.filter((value) => value !== ""),
+                columns: columns.filter((value) => value !== ""),
+                chartType: "dynamicMarkers",
+                aggregations: aggregations,
+                filters: [],
+              };
+
+              console.log("Request Data:", requestData);
+
+              try {
+                const response = await fetch("/getdata", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify(requestData),
+                });
+
+                if (!response.ok) {
+                  throw new Error(`HTTP error! Status: ${response.status}`);
                 }
-              },
-              saveAsImage: {},
-              restore: {},
-              dataView: { readOnly: false },
-              magicType: { type: ["line", "bar", "stack"] },
+
+                const responseData = await response.json();
+
+                if (
+                  !responseData.hasOwnProperty("x") ||
+                  !responseData.hasOwnProperty("y0") ||
+                  !responseData.hasOwnProperty("y1") ||
+                  (aggregation && !responseData.hasOwnProperty("y2"))
+                ) {
+                  console.error(
+                    "Data does not have the required properties:",
+                    responseData
+                  );
+                  return;
+                }
+
+                const data = responseData.x.map((id, i) => ({
+                  id,
+                  longitude: parseFloat(responseData.y0[i]),
+                  latitude: parseFloat(responseData.y1[i]),
+                  aggregation: aggregation
+                    ? parseFloat(responseData.y2[i])
+                    : null,
+                }));
+
+                const maxAggregation = aggregation
+                  ? Math.max(...data.map((point) => point.aggregation))
+                  : 1;
+
+                data.forEach((point) => {
+                  const scale = aggregation
+                    ? point.aggregation / maxAggregation
+                    : 1;
+                  const markerOptions = {
+                    radius: 3 + scale * 17,
+                    fillColor: color,
+                    color: "#000",
+                    weight: 1,
+                    opacity: 1,
+                    fillOpacity: 0.6,
+                  };
+
+                  const marker = L.circleMarker(
+                    [point.latitude, point.longitude],
+                    markerOptions
+                  );
+                  let popupContent = `<b>ID:</b> ${point.id}<br><b>Longitude:</b> ${point.longitude}<br><b>Latitude:</b> ${point.latitude}`;
+                  if (aggregation) {
+                    popupContent += `<br><b>Aggregation:</b> ${point.aggregation}`;
+                  }
+                  marker.bindPopup(popupContent);
+                  markers.addLayer(marker);
+                });
+              } catch (error) {
+                console.error("Error fetching or processing data:", error);
+              }
+            };
+
+            const loadSequentially = async (markerTypes) => {
+              if (markerTypes.length === 0) {
+                return;
+              }
+
+              const markerType = markerTypes.shift();
+              const color = markerType === "stores" ? "blue" : "pink";
+              await loadMarkers(markerType, color);
+              await loadSequentially(markerTypes);
+            };
+
+            await loadSequentially(markerTypes.slice());
+          });
+
+          chartCount++;
+          updateChartContainerWidth();
+        }
+
+        document
+          .getElementById("add-chart-button")
+          .addEventListener("click", addChartContainer);
+
+        addChartContainer();
+
+        function updateChartContainerWidth() {
+          const chartContainers = document.querySelectorAll(".chart-container");
+          chartContainers.forEach((container, index) => {
+            container.style.width = "48%";
+            if (index % 2 !== 0) {
+              container.style.marginRight = "0";
+            } else {
+              container.style.marginRight = "2%";
             }
-          },
-          dataZoom: [
-            {
-              type: "inside",
-              start: 0,
-              end: 100,
-            },
-            {
-              start: 0,
-              end: 100,
-            },
-          ],
-        };
-
-        const chartInstance = echarts.init(chartDiv);
-        chartInstance.setOption(option);
-
-        // Setup context menu for color picking
-        setupContextMenu(chartInstance, series);
-
-      } catch (error) {
-        console.error("Error fetching or processing data:", error);
-      }
-    } else {
-      console.error(
-        "Missing input values for xTable, xColumn, yTable, or yColumn"
-      );
-    }
-  });
-
-  document
-    .getElementById("charts-container")
-    .appendChild(newChartContainer);
-  chartCount++;
-  updateChartContainerWidth(); // Update width when a new chart is added
-  resizeCharts(); // Resize charts when a new chart is added
-}
-
-document
-  .getElementById("add-chart-button")
-  .addEventListener("click", addChartContainer);
-
-addChartContainer();
+          });
+        }
+      });
     </script>
   </body>
 </html>
