@@ -1,5 +1,5 @@
 let chartCount = 0;
-const maxCharts = 5;
+const maxCharts = 6;
 
 async function fetchTables() {
     const response = await fetch("/tables");
@@ -251,8 +251,6 @@ async function addChartContainer() {
                         },
                     ],
                 };
-                
-                
 
                 chartInstance = echarts.init(chartDiv);
                 chartInstance.setOption(option);
@@ -276,15 +274,41 @@ async function addChartContainer() {
 }
 
 function openPopup(chartInstance, requestData) {
-    const popup = document.getElementById("popup");
-    popup.classList.add("open");
+    const popup = document.createElement("div");
+    popup.className = "popup open";
 
-    const tableSelectY2 = document.getElementById("tableSelectY2");
-    const columnSelectY2 = document.getElementById("columnSelectY2");
-    const aggregationSelect2 = document.getElementById("aggregationSelect2");
-    const tableSelectY3 = document.getElementById("tableSelectY3");
-    const columnSelectY3 = document.getElementById("columnSelectY3");
-    const aggregationSelect3 = document.getElementById("aggregationSelect3");
+    const closeButton = document.createElement("button");
+    closeButton.className = "close-button";
+    closeButton.textContent = "Close";
+    popup.appendChild(closeButton);
+
+    const selectContainer = document.createElement("div");
+    selectContainer.className = "select-container";
+    popup.appendChild(selectContainer);
+
+    const createLabeledSelect = (labelText, id) => {
+        const label = document.createElement("label");
+        label.textContent = labelText;
+        const select = document.createElement("select");
+        select.id = id;
+        selectContainer.appendChild(label);
+        selectContainer.appendChild(select);
+        return select;
+    };
+
+    const tableSelectY2 = createLabeledSelect("Table for Y-Axis 2", "tableSelectY2");
+    const columnSelectY2 = createLabeledSelect("Column for Y-Axis 2", "columnSelectY2");
+    const aggregationSelect2 = createLabeledSelect("Aggregation 2", "aggregationSelect2");
+    const tableSelectY3 = createLabeledSelect("Table for Y-Axis 3", "tableSelectY3");
+    const columnSelectY3 = createLabeledSelect("Column for Y-Axis 3", "columnSelectY3");
+    const aggregationSelect3 = createLabeledSelect("Aggregation 3", "aggregationSelect3");
+
+    const addLinesButton = document.createElement("button");
+    addLinesButton.className = "submit-button";
+    addLinesButton.textContent = "Add Lines";
+    selectContainer.appendChild(addLinesButton);
+
+    document.body.appendChild(popup);
 
     fetchTables().then(tables => {
         createSelectOptions(tableSelectY2, tables);
@@ -329,7 +353,7 @@ function openPopup(chartInstance, requestData) {
         const yTable3 = tableSelectY3.value;
         const yColumn3 = columnSelectY3.value;
         const aggregation3 = aggregationSelect3.value;
-    
+
         let additionalRequestData = {
             tables: [],
             columns: [],
@@ -337,24 +361,24 @@ function openPopup(chartInstance, requestData) {
             aggregations: [],
             filters: []
         };
-    
+
         if (yTable2 !== "none" && yColumn2 !== "none") {
             additionalRequestData.tables.push(yTable2);
             additionalRequestData.columns.push(yColumn2);
             additionalRequestData.aggregations.push(aggregation2);
         }
-    
+
         if (yTable3 !== "none" && yColumn3 !== "none") {
             additionalRequestData.tables.push(yTable3);
             additionalRequestData.columns.push(yColumn3);
             additionalRequestData.aggregations.push(aggregation3);
         }
-    
+
         if (additionalRequestData.tables.length > 0) {
             requestData.tables.push(...additionalRequestData.tables);
             requestData.columns.push(...additionalRequestData.columns);
             requestData.aggregations.push(...additionalRequestData.aggregations);
-    
+
             try {
                 const response = await fetch("/getdata", {
                     method: "POST",
@@ -363,14 +387,14 @@ function openPopup(chartInstance, requestData) {
                     },
                     body: JSON.stringify(requestData),
                 });
-    
+
                 if (!response.ok) {
                     throw new Error(`HTTP error! Status: ${response.status}`);
                 }
-    
+
                 const responseData = await response.json();
                 const newSeries = [];
-    
+
                 if (responseData.y1) {
                     const dataY2 = responseData.y1.map(value => parseFloat(value));
                     newSeries.push({
@@ -385,7 +409,7 @@ function openPopup(chartInstance, requestData) {
                         }
                     });
                 }
-    
+
                 if (responseData.y2) {
                     const dataY3 = responseData.y2.map(value => parseFloat(value));
                     newSeries.push({
@@ -400,7 +424,7 @@ function openPopup(chartInstance, requestData) {
                         }
                     });
                 }
-    
+
                 const updatedOption = chartInstance.getOption();
                 updatedOption.tooltip.formatter = function (params) {
                     let tooltipText = params[0].name;
@@ -412,27 +436,26 @@ function openPopup(chartInstance, requestData) {
                     });
                     return tooltipText;
                 };
-    
+
                 newSeries.forEach((series, index) => {
                     series.name = `Series ${index + 2} (${requestData.columns[index + 1]} - ${requestData.aggregations[index + 1]})`;
                     series.tooltip = {
                         valueFormatter: (value) => `<strong>${value}</strong> (${requestData.columns[index + 1]} - ${requestData.aggregations[index + 1]})`
                     };
                 });
-    
+
                 updatedOption.series = updatedOption.series.concat(newSeries);
                 chartInstance.setOption(updatedOption);
-    
+
             } catch (error) {
                 console.error("Error fetching or processing data:", error);
             }
         }
     });
-    
-    
 
-    document.querySelector(".popup .close-button").addEventListener("click", () => {
+    closeButton.addEventListener("click", () => {
         popup.classList.remove("open");
+        popup.remove();
     });
 }
 
