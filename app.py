@@ -392,7 +392,48 @@ def fetch_data(query, conn):
     finally:
         cursor.close()
 
-def fetch_all_data():
+def apply_filters_to_query(base_query, filters):
+    filter_query = ""
+
+    if filters:
+        chart_filters = {}
+        for filter in filters:
+            chart_id = filter.get('chartId')
+            if chart_id not in chart_filters:
+                chart_filters[chart_id] = []
+            chart_filters[chart_id].append(filter)
+        
+        filter_clauses = []
+        for chart_id, chart_filter_list in chart_filters.items():
+            if len(chart_filter_list) == 1:
+                filter = chart_filter_list[0]
+                filter_table = filter.get('filterTable')
+                filter_column = filter.get('filterColumn')
+                filter_value = filter.get('filterValue')
+                if not filter_table or not filter_column or filter_value is None:
+                    raise ValueError("Each filter must have filterTable, filterColumn, and filterValue")
+                
+                full_column_name = f"{filter_table}.{filter_column}"
+                filter_clauses.append(f"{full_column_name} = '{filter_value}'")
+            else:
+                or_clauses = []
+                for filter in chart_filter_list:
+                    filter_table = filter.get('filterTable')
+                    filter_column = filter.get('filterColumn')
+                    filter_value = filter.get('filterValue')
+                    if not filter_table or not filter_column or filter_value is None:
+                        raise ValueError("Each filter must have filterTable, filterColumn, and filterValue")
+                    
+                    full_column_name = f"{filter_table}.{filter_column}"
+                    or_clauses.append(f"{full_column_name} = '{filter_value}'")
+                filter_clauses.append(f"({' OR '.join(or_clauses)})")
+
+        if filter_clauses:
+            filter_query = " WHERE " + " AND ".join(filter_clauses)
+    
+    return base_query + filter_query
+
+def fetch_all_data(filters):
     conn = connect_to_database()
     
     try:
@@ -400,38 +441,43 @@ def fetch_all_data():
             SELECT orderID, orderDate, storeID, total, customerID, nItems AS quantity
             FROM orders
         """
+        orders_query = apply_filters_to_query(orders_query, filters)
         orders = fetch_data(orders_query, conn)
         
         order_items_query = """
             SELECT orderID, SKU
             FROM orderitems
         """
+        order_items_query = apply_filters_to_query(order_items_query, filters)
         order_items = fetch_data(order_items_query, conn)
         
         products_query = """
             SELECT SKU, category, price, name, size
             FROM products
         """
+        products_query = apply_filters_to_query(products_query, filters)
         products = fetch_data(products_query, conn)
         
         customers_query = """
             SELECT customerID, latitude AS customer_lat, longitude AS customer_lon
             FROM customers
         """
+        customers_query = apply_filters_to_query(customers_query, filters)
         customers = fetch_data(customers_query, conn)
         
         stores_query = """
             SELECT storeID, latitude AS store_lat, longitude AS store_lon, city, state
             FROM stores
         """
+        stores_query = apply_filters_to_query(stores_query, filters)
         stores = fetch_data(stores_query, conn)
         
         return orders, order_items, products, customers, stores
     finally:
         conn.close()
 
-def calculate_sales_performance_kpis():
-    orders, _, _, _, _ = fetch_all_data()
+def calculate_sales_performance_kpis(filters):
+    orders, _, _, _, _ = fetch_all_data(filters)
     
     revenue = orders['total'].sum()
     units_sold = orders['quantity'].sum()
@@ -445,9 +491,9 @@ def calculate_sales_performance_kpis():
         'reorder_rate': float(reorder_rate)
     }
 
-def calculate_customer_kpis():
+def calculate_customer_kpis(filters):
     try:
-        orders, _, _, customers, stores = fetch_all_data()
+        orders, _, _, customers, stores = fetch_all_data(filters)
 
         print("Orders DataFrame:")
         print(orders.head())
@@ -499,8 +545,8 @@ def new_func(orders, calculate_distance):
     average_distance = orders['distance'].mean()
     return average_distance
 
-def calculate_product_performance_kpis():
-    orders, order_items, products, _, _ = fetch_all_data()
+def calculate_product_performance_kpis(filters):
+    orders, order_items, products, _, _ = fetch_all_data(filters)
 
     df = order_items.merge(products, on='SKU', how='outer')
     df = df.merge(orders, on='orderID', how='outer')
@@ -530,8 +576,8 @@ def calculate_product_performance_kpis():
         'bottom_3_revenue': bottom_3_revenue.astype(str).to_dict('records')
     }
 
-def calculate_store_performance_kpis():
-    orders, _, _, _, stores = fetch_all_data()
+def calculate_store_performance_kpis(filters):
+    orders, _, _, _, stores = fetch_all_data(filters)
 
     df = orders.merge(stores, on='storeID', how='inner')
     
@@ -568,24 +614,28 @@ def calculate_store_performance_kpis():
         'bottom_3_revenue_stores': bottom_3_revenue_stores.astype(str).to_dict('records')
     }
 
-@app.route('/kpiforsalesperformancedash', methods=['GET'])
+@app.route('/kpiforsalesperformancedash', methods=['POST'])
 def kpiforsalesperformancedash():
-    kpis = calculate_sales_performance_kpis()
+    filters = request.json.get('filters', [])
+    kpis = calculate_sales_performance_kpis(filters)
     return jsonify(kpis)
 
-@app.route('/kpiforcustomerdash', methods=['GET'])
+@app.route('/kpiforcustomerdash', methods=['POST'])
 def kpiforcustomerdash():
-    kpis = calculate_customer_kpis()
+    filters = request.json.get('filters', [])
+    kpis = calculate_customer_kpis(filters)
     return jsonify(kpis)
 
-@app.route('/kpiforproductdash', methods=['GET'])
+@app.route('/kpiforproductdash', methods=['POST'])
 def kpiforproductdash():
-    kpis = calculate_product_performance_kpis()
+    filters = request.json.get('filters', [])
+    kpis = calculate_product_performance_kpis(filters)
     return jsonify(kpis)
 
-@app.route('/kpiforstoredash', methods=['GET'])
+@app.route('/kpiforstoredash', methods=['POST'])
 def kpiforstoredash():
-    kpis = calculate_store_performance_kpis()
+    filters = request.json.get('filters', [])
+    kpis = calculate_store_performance_kpis(filters)
     return jsonify(kpis)
 
 if __name__ == '__main__':

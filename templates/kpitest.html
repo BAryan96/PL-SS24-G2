@@ -12,9 +12,9 @@
             margin-bottom: 20px;
         }
         #results {
-            background-color: #f9f9f9;
+            background-color: #dfdfdf;
             padding: 10px;
-            border: 1px solid #ddd;
+            border: 1px solid #dfdfdf;
             white-space: pre-wrap; /* Damit das JSON formatiert angezeigt wird */
         }
     </style>
@@ -28,7 +28,6 @@
             <option value="/kpiforcustomerdash">Customer Dashboard</option>
             <option value="/kpiforproductdash">Product Dashboard</option>
             <option value="/kpiforstoredash">Store Performance Dashboard</option>
-            <option value="/kpifororderdash">Order Details Dashboard</option>
         </select>
         <br><br>
         <button type="button" onclick="fetchKpiData()">Abrufen</button>
@@ -44,8 +43,11 @@
         console.log('Requesting data from:', dashboardUrl); // Debugging
         $.ajax({
             url: dashboardUrl,
-            method: 'GET',
-            dataType: 'json',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                filters: []
+            }),
             success: function(data) {
                 console.log('Data received:', data); // Debugging
                 $('#results').text(JSON.stringify(data, null, 2));
