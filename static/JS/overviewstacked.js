@@ -204,7 +204,10 @@ async function addChartContainer() {
                         formatter: function (params) {
                             let tooltipText = params[0].name;
                             params.forEach((item) => {
-                                tooltipText += `<br/>${item.marker}${item.seriesName}: ${item.value} (${requestData.aggregations[item.seriesIndex] || "No Aggregation"})`;
+                                let seriesIndex = item.seriesIndex; // adjust index for correct Y-Axis column and aggregation
+                                let column = requestData.columns[seriesIndex + 1]; // adjust index for correct Y-Axis column
+                                let aggregation = requestData.aggregations[seriesIndex + 1]; // adjust index for correct Y-Axis aggregation
+                                tooltipText += `<strong>${item.value}<br/></strong> <strong>(${column} - ${aggregation}</strong> )`;
                             });
                             return tooltipText;
                         }
@@ -227,12 +230,14 @@ async function addChartContainer() {
                         type: "value",
                     },
                     series: [{
-                        name: "Series 1",
+                        name: `(${requestData.columns[1]} - ${requestData.aggregations[1]})`,
                         type: "line",
                         stack: null,
                         areaStyle: {},
                         emphasis: { focus: "series" },
                         data: dataY,
+                        tooltip: {
+                        }
                     }],
                     dataZoom: [
                         {
@@ -246,6 +251,8 @@ async function addChartContainer() {
                         },
                     ],
                 };
+                
+                
 
                 chartInstance = echarts.init(chartDiv);
                 chartInstance.setOption(option);
@@ -315,14 +322,14 @@ function openPopup(chartInstance, requestData) {
     createSelectOptions(aggregationSelect2, aggregations);
     createSelectOptions(aggregationSelect3, aggregations);
 
-    document.getElementById("addLinesButton").addEventListener("click", async () => {
+    addLinesButton.addEventListener("click", async () => {
         const yTable2 = tableSelectY2.value;
         const yColumn2 = columnSelectY2.value;
         const aggregation2 = aggregationSelect2.value;
         const yTable3 = tableSelectY3.value;
         const yColumn3 = columnSelectY3.value;
         const aggregation3 = aggregationSelect3.value;
-
+    
         let additionalRequestData = {
             tables: [],
             columns: [],
@@ -330,24 +337,24 @@ function openPopup(chartInstance, requestData) {
             aggregations: [],
             filters: []
         };
-
+    
         if (yTable2 !== "none" && yColumn2 !== "none") {
             additionalRequestData.tables.push(yTable2);
             additionalRequestData.columns.push(yColumn2);
             additionalRequestData.aggregations.push(aggregation2);
         }
-
+    
         if (yTable3 !== "none" && yColumn3 !== "none") {
             additionalRequestData.tables.push(yTable3);
             additionalRequestData.columns.push(yColumn3);
             additionalRequestData.aggregations.push(aggregation3);
         }
-
+    
         if (additionalRequestData.tables.length > 0) {
             requestData.tables.push(...additionalRequestData.tables);
             requestData.columns.push(...additionalRequestData.columns);
             requestData.aggregations.push(...additionalRequestData.aggregations);
-
+    
             try {
                 const response = await fetch("/getdata", {
                     method: "POST",
@@ -356,48 +363,73 @@ function openPopup(chartInstance, requestData) {
                     },
                     body: JSON.stringify(requestData),
                 });
-
+    
                 if (!response.ok) {
                     throw new Error(`HTTP error! Status: ${response.status}`);
                 }
-
+    
                 const responseData = await response.json();
                 const newSeries = [];
-
+    
                 if (responseData.y1) {
                     const dataY2 = responseData.y1.map(value => parseFloat(value));
                     newSeries.push({
-                        name: "Series 2",
+                        name: `Series 2 (${requestData.columns[2]} - ${requestData.aggregations[2]})`,
                         type: "line",
                         stack: null,
                         areaStyle: {},
                         emphasis: { focus: "series" },
                         data: dataY2,
+                        tooltip: {
+                            valueFormatter: (value) => `<strong>${value}</strong> (${requestData.columns[2]} - ${requestData.aggregations[2]})`
+                        }
                     });
                 }
-
+    
                 if (responseData.y2) {
                     const dataY3 = responseData.y2.map(value => parseFloat(value));
                     newSeries.push({
-                        name: "Series 3",
+                        name: `Series 3 (${requestData.columns[3]} - ${requestData.aggregations[3]})`,
                         type: "line",
                         stack: null,
                         areaStyle: {},
                         emphasis: { focus: "series" },
                         data: dataY3,
+                        tooltip: {
+                            valueFormatter: (value) => `<strong>${value}</strong> (${requestData.columns[3]} - ${requestData.aggregations[3]})`
+                        }
                     });
                 }
-
+    
                 const updatedOption = chartInstance.getOption();
+                updatedOption.tooltip.formatter = function (params) {
+                    let tooltipText = params[0].name;
+                    params.forEach((item) => {
+                        let seriesIndex = item.seriesIndex; // adjust index for correct Y-Axis column and aggregation
+                        let column = requestData.columns[seriesIndex + 1]; // adjust index for correct Y-Axis column
+                        let aggregation = requestData.aggregations[seriesIndex + 1]; // adjust index for correct Y-Axis aggregation
+                        tooltipText += `<br/>${item.marker}<strong>${item.seriesName}</strong>: <strong>${item.value}</strong> (${column} - ${aggregation})`;
+                    });
+                    return tooltipText;
+                };
+    
+                newSeries.forEach((series, index) => {
+                    series.name = `Series ${index + 2} (${requestData.columns[index + 1]} - ${requestData.aggregations[index + 1]})`;
+                    series.tooltip = {
+                        valueFormatter: (value) => `<strong>${value}</strong> (${requestData.columns[index + 1]} - ${requestData.aggregations[index + 1]})`
+                    };
+                });
+    
                 updatedOption.series = updatedOption.series.concat(newSeries);
                 chartInstance.setOption(updatedOption);
-                popup.classList.remove("open");
-
+    
             } catch (error) {
                 console.error("Error fetching or processing data:", error);
             }
         }
     });
+    
+    
 
     document.querySelector(".popup .close-button").addEventListener("click", () => {
         popup.classList.remove("open");
