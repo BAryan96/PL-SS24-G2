@@ -21,7 +21,21 @@
       </header>
       <div class="side-menu" id="sideMenu">
         <button class="close-button">X</button>
-        <a href="/charts">Chart Overview</a>
+
+        <div class="dropdown">
+          <a href="/charts" class="dropdown-btn">Chart Overview</a>
+          <div class="dropdown-content">
+            <a href="/stackedChart">Stacked Area Chart</a>
+            <a href="/largeScaleChart">Scale Area Chart</a>
+            <a href="/basicScatterChart">Basic Scatter Chart</a>
+            <a href="/donutChart">Donut Chart</a>
+            <a href="/interactiveMap">Interactive Map</a>
+            <a href="/basicBarChart">Bar Chart</a>
+            <a href="/heatmap">Heatmap</a>
+            <a href="/boxplot">Boxplot</a>
+          </div>
+        </div>
+
         <div class="dropdown">
           <a href="#" class="dropdown-btn">Dashboard</a>
           <div class="dropdown-content">
@@ -31,6 +45,7 @@
             <a href="/productdash">Product Performance Dashboard</a>
           </div>
         </div>
+
         <a href="/login">Sign In</a>
         <a href="/">Log Out</a>
       </div>
