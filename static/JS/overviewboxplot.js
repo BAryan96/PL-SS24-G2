@@ -1,5 +1,5 @@
 let chartCount = 0;
-const maxCharts = 5;
+const maxCharts = 6;
 
 async function fetchTables() {
   const response = await fetch("/tables");
