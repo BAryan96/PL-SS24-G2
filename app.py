@@ -39,10 +39,6 @@ def initialize_database():
 def landingpage():
     return render_template('landingpage.html')
 
-@app.route("/test")
-def test():
-    return render_template('test.html')
-
 @app.route("/login")
 def login():
     return render_template('login.html')
@@ -51,33 +47,37 @@ def login():
 def charts():
     return render_template('charts.html')
 
-@app.route("/stackedchart")
-def stackedchart():
-    return render_template('stackedchart.html')
+@app.route("/stackedChart")
+def stackedChart():
+    return render_template('stackedChart.html')
 
-@app.route("/largescalechart")
-def largescalechart():
-    return render_template('largescalechart.html')
+@app.route("/largeScaleChart")
+def largeScaleChart():
+    return render_template('largeScaleChart.html')
 
-@app.route("/donutchart")
-def donutchart():
-    return render_template('donutchart.html')
+@app.route("/donutChart")
+def donutChart():
+    return render_template('donutChart.html')
 
-@app.route("/basicscatterchart")
-def basicscatterchart():
-    return render_template('basicscatterchart.html')
+@app.route("/basicScatterChart")
+def basicScatterChart():
+    return render_template('basicScatterChart.html')
 
-@app.route("/interactivemap")
-def interactivemap():
-    return render_template('interactivemap.html')
+@app.route("/interactiveMap")
+def interactiveMap():
+    return render_template('interactiveMap.html')
 
-@app.route("/basicbarchart")
-def basicbarchart():
-    return render_template('basicbarchart.html')
+@app.route("/basicBarChart")
+def basicBarChart():
+    return render_template('basicBarChart.html')
 
 @app.route("/heatmap")
 def heatmap():
     return render_template('heatmap.html')
+
+@app.route("/boxplot")
+def boxplot():
+    return render_template('boxplot.html')
 
 @app.route("/salesperformancedash")
 def salesperformancedash():
