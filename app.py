@@ -314,14 +314,11 @@ def get_data():
                 if agg != "X":
                     group_by_columns.append(full_column_name)
             else:
-                if agg in ["Diskrete Anzahl", "Median", "Erstes Quartil", "Drittes Quartil"]:
+                if agg in ["Diskrete Anzahl"]:
                     select_columns.append(f"{aggregation_function} {full_column_name})")
                 else:
                     select_columns.append(f"{aggregation_function}({full_column_name})")
 
-    if not all(columns):
-        print("Each table must have at least one column specified")
-        return jsonify({"error": "Each table must have at least one column specified"}), 400
 
     select_query = ", ".join(select_columns)
     group_by_query = ", ".join(group_by_columns)
