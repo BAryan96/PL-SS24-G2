@@ -40,7 +40,7 @@ $(document).ready(async function () {
       type: "pie",
       aggregations: ["", "Anzahl"],
       filters: [],
-    },
+    }, 
     {
       id: "myChart5",
       tables: ["customers", "customers", "stores", "stores"],
@@ -78,9 +78,11 @@ async function fetchData(requestData) {
     });
   });
 }
+
 function formatNumber(num) {
   return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 }
+
 function categorizeCustomers(response) {
   let categories = {
     "Customers without Orders (0)": 0,
@@ -669,6 +671,7 @@ function generateChartOptions(chartType, response, yColumns) {
         textStyle: { color: darkMode ? "#fff" : "#000" },
       };
       break;
+
     case "stacked":
       const years = [...new Set(response.x)];
       const months = response.y0.slice(0, 12);
@@ -833,90 +836,70 @@ async function loadDynamicMarkers(chartId) {
     });
 }
 
-function haversineDistance(lat1, lon1, lat2, lon2) {
-  function toRadians(degrees) {
-    return (degrees * Math.PI) / 180;
-  }
-
-  const R = 6371;
-  const dLat = toRadians(lat2 - lat1);
-  const dLon = toRadians(lon2 - lon1);
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRadians(lat1)) *
-      Math.cos(toRadians(lat2)) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  const distance = R * c;
-  return distance;
-}
-
-function initializeKPI(config, averageDistanceKm, averageDistanceMiles) {
+function initializeKPI(config, distances) {
   const kpiContainer = document.getElementById(config.id);
   kpiContainer.innerHTML = `
-        <div class="kpi-section" style="margin-bottom: 20px;">
-            <h3 style="font-size: 24px;">Durchschnittliche Entfernung</h3>
-            <p style="font-size: 20px; font-weight: bold;">
-                ${averageDistanceKm.toFixed(
-                  2
-                )} km / ${averageDistanceMiles.toFixed(2)} miles
-            </p>
-        </div>
-    `;
+    <div class="kpi-section" style="margin-bottom: 20px;">
+      <h3 style="font-size: 24px;">Average Distance (All Customers)</h3>
+      <p style="font-size: 20px; font-weight: bold;">
+        ${distances["All Customers"].averageDistanceKm.toFixed(2)} km / ${distances["All Customers"].averageDistanceMiles.toFixed(2)} miles
+      </p>
+    </div>
+    <div class="kpi-section" style="margin-bottom: 20px;">
+      <h3 style="font-size: 24px;">Average Distance (Potential Customers/Customer without Orders)</h3>
+      <p style="font-size: 20px; font-weight: bold;">
+        ${distances["Potential Customers"].averageDistanceKm.toFixed(2)} km / ${distances["Potential Customers"].averageDistanceMiles.toFixed(2)} miles
+      </p>
+    </div>
+    <div class="kpi-section" style="margin-bottom: 20px;">
+      <h3 style="font-size: 24px;">Average Distance (One-Time Buyers)</h3>
+      <p style="font-size: 20px; font-weight: bold;">
+        ${distances["One-Time Buyers"].averageDistanceKm.toFixed(2)} km / ${distances["One-Time Buyers"].averageDistanceMiles.toFixed(2)} miles
+      </p>
+    </div>
+    <div class="kpi-section" style="margin-bottom: 20px;">
+      <h3 style="font-size: 24px;">Average Distance (Occasional Buyers)</h3>
+      <p style="font-size: 20px; font-weight: bold;">
+        ${distances["Occasional Buyers"].averageDistanceKm.toFixed(2)} km / ${distances["Occasional Buyers"].averageDistanceMiles.toFixed(2)} miles
+      </p>
+    </div>
+    <div class="kpi-section" style="margin-bottom: 20px;">
+      <h3 style="font-size: 24px;">Average Distance (Frequent Buyers)</h3>
+      <p style="font-size: 20px; font-weight: bold;">
+        ${distances["Frequent Buyers"].averageDistanceKm.toFixed(2)} km / ${distances["Frequent Buyers"].averageDistanceMiles.toFixed(2)} miles
+      </p>
+    </div>
+  `;
 }
+
 
 async function initializeChart(config) {
   if (config.type === "dynamicMarkers") {
     await loadDynamicMarkers(config.id);
   } else if (config.type === "kpi") {
     try {
-      let response = await fetchData({
-        tables: config.tables,
-        columns: config.columns,
-        chartType: config.type,
-        aggregations: config.aggregations,
-        filters: config.filters,
+      const response = await fetch('/calculate_customer_distance_kpi', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          id: config.id,
+          tables: config.tables,
+          columns: config.columns,
+          type: config.type,
+          aggregations: config.aggregations,
+          filters: config.filters,
+        })
       });
 
-      const customerLatitudes = response.x.map(parseFloat);
-      const customerLongitudes = response.y0.map(parseFloat);
-      const storeLatitudes = response.y1.map(parseFloat);
-      const storeLongitudes = response.y2.map(parseFloat);
-
-      let totalDistanceKm = 0;
-      let count = 0;
-
-      customerLatitudes.forEach((custLat, index) => {
-        const custLon = customerLongitudes[index];
-        let minDistanceKm = Infinity;
-
-        storeLatitudes.forEach((storeLat, sIndex) => {
-          const storeLon = storeLongitudes[sIndex];
-          const distanceKm = haversineDistance(
-            custLat,
-            custLon,
-            storeLat,
-            storeLon
-          );
-          if (distanceKm < minDistanceKm) {
-            minDistanceKm = distanceKm;
-          }
-        });
-
-        if (minDistanceKm !== Infinity) {
-          totalDistanceKm += minDistanceKm;
-          count++;
-        }
-      });
-
-      const averageDistanceKm = totalDistanceKm / count;
-      const averageDistanceMiles = averageDistanceKm * 0.621371;
-
-      response.chartId = config.id;
-      originalData[config.id] = response;
-
-      initializeKPI(config, averageDistanceKm, averageDistanceMiles);
+      if (response.ok) {
+        const result = await response.json();
+        console.log("Received distances:", result); // Log received distances
+        initializeKPI(config, result);
+      } else {
+        console.error("Failed to calculate KPI:", response.statusText);
+      }
     } catch (error) {
       console.error("Failed to initialize KPI chart:", error);
     }
@@ -960,35 +943,6 @@ async function initializeChart(config) {
   }
 }
 
-function updateChartAppearance() {
-  charts.forEach(({ chart }) => {
-    const option = chart.getOption();
-    if (darkMode) {
-      option.backgroundColor = "#333";
-      option.textStyle = { color: "#fff" };
-    } else {
-      option.backgroundColor = "#fff";
-      option.textStyle = { color: "#000" };
-    }
-    if (decalPattern) {
-      option.series.forEach((series) => {
-        series.itemStyle = series.itemStyle || {};
-        series.itemStyle.decal = {
-          symbol: "rect",
-          symbolSize: 1,
-          color: "rgba(0, 0, 0, 0.1)",
-        };
-      });
-    } else {
-      option.series.forEach((series) => {
-        if (series.itemStyle) {
-          series.itemStyle.decal = null;
-        }
-      });
-    }
-    chart.setOption(option);
-  });
-}
 
 function updateChartAppearance() {
   charts.forEach(({ chart }) => {
@@ -1084,6 +1038,7 @@ function handleMarkerClick(marker, point) {
     marker.setStyle({ color: "red" });
   }
 }
+
 function updateHighlighting(chartInstance) {
   const series = chartInstance.getOption().series;
   series.forEach((serie, seriesIndex) => {

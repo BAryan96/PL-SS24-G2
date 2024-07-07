@@ -3,6 +3,8 @@ from flask_caching import Cache
 from DB import connect_to_database, get_cursor, check_and_create_tables, check_and_load_data, verify_table_data
 import os
 import sys
+import math
+import json
 
 app = Flask(__name__)
 cache = Cache(app, config={'CACHE_TYPE': 'simple'})  # Einfache Konfiguration für das Caching
@@ -35,6 +37,7 @@ def initialize_database():
         return False
     
     return True
+
 @app.route("/")
 def landingpage():
     return render_template('landingpage.html')
@@ -147,8 +150,8 @@ def get_data():
         ('orderitems', 'orders'): ('orderID', 'orderID'),
         ('orders', 'customers'): ('customerID', 'customerID'),
         ('orders', 'stores'): ('storeID', 'storeID'),
+        ('stores', 'weather'): ('storeID', 'storeID'),
     }
-
     aggregation_functions = {
         "Summe": "SUM",
         "Max": "MAX",
@@ -366,8 +369,201 @@ def get_data():
             else:
                 response[f"y{idx-1}"] = [row[idx] for row in data]
 
-    print(response)
+    #print(response)
     return jsonify(response)
+
+
+@app.route("/calculate_customer_distance_kpi", methods=["POST"])
+@cache.cached(timeout=600, key_prefix=make_cache_key)  # Cache for 600 seconds with dynamic key
+def calculate_customer_distance_kpi():
+    if not request.is_json:
+        return jsonify({"error": "Request data must be JSON"}), 415
+
+    try:
+        data_request = request.get_json()
+        filters = data_request.get('filters', [])
+        print("Received request data:", data_request)  # Print request data
+
+        # Retrieve the necessary data for KPI calculation
+        customer_data = get_customer_data(filters)
+        store_data = get_store_data(filters)
+        
+        if 'error' in customer_data or 'error' in store_data:
+            print("Error in data retrieval")  # Print error message
+            return jsonify({"error": "Error retrieving data"}), 400
+            
+        # Separate customers into categories
+        categorized_customers = categorize_customers(customer_data)
+        
+        # Calculate average distance for each category
+        distances = calculate_distances(categorized_customers, store_data)
+        
+        print("Calculated distances:", distances)  # Print calculated distances
+        return jsonify(distances)
+    except Exception as e:
+        print(f"Error occurred: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+def get_customer_data(filters=[]):
+    print("Fetching customer data...")  # Print message
+    request_data = {
+        "tables": ["customers", "customers", "customers" , "orders-Left", "orders-Left"],
+        "columns": ["customerID", "latitude", "longitude", "total", "orderID"],
+        "chartType": "kpi",
+        "aggregations": ["", "", "", "Summe", "Anzahl"],
+        "filters": filters
+    }
+    response = get_data_from_backend(request_data)
+    if "error" not in response:
+        data = {
+            "customerID": response.get("x", []),
+            "latitude": response.get("y0", []),
+            "longitude": response.get("y1", []),
+            "total_amount": response.get("y2", []),
+            "order_count": response.get("y3", [])
+        }
+        # Combine the data into a list of tuples
+        combined_data = list(zip(
+            data["customerID"],
+            data["latitude"],
+            data["longitude"],
+            data["total_amount"],
+            data["order_count"]
+        ))
+        #print("Customer data fetched:", combined_data)  # Print fetched data
+        return combined_data
+    else:
+        print("Error fetching customer data:", response)
+        return {"error": "Error fetching customer data"}
+
+
+def get_store_data(filters=[]):
+    print("Fetching store data...")  # Print message
+    request_data = {
+        "tables": ["stores", "stores", "stores" ],
+        "columns": ["storeID", "latitude", "longitude"],
+        "chartType": "kpi",
+        "aggregations": ["", "", ""],
+        "filters": filters
+    }
+    response = get_data_from_backend(request_data)
+    if "error" not in response:
+        data = {
+            "storeID": response.get("x", []),
+            "store_lat": response.get("y0", []),
+            "store_lon": response.get("y1", [])
+        }
+        # Combine the data into a list of tuples
+        combined_data = list(zip(
+            data["storeID"],
+            data["store_lat"],
+            data["store_lon"]
+        ))
+        #print("Store data fetched:", combined_data)  # Print fetched data
+        return combined_data
+    else:
+        print("Error fetching store data:", response)
+        return {"error": "Error fetching store data"}
+
+    
+def get_data_from_backend(request_data):
+    print("Sending request to /getdata with data:", request_data)
+    response = app.test_client().post(
+        "/getdata",
+        data=json.dumps(request_data),
+        content_type='application/json'
+    )
+
+    if response.status_code == 200:
+        try:
+            data = response.get_json()
+            #print("Response JSON data:", data)
+            return data
+        except json.JSONDecodeError as e:
+            print("Error decoding JSON:", str(e))
+            return {"error": "Error decoding JSON"}
+    else:
+        print("Error fetching data:", response.status_code, response.data)
+        return {"error": "Error fetching data"}
+
+
+def categorize_customers(customer_data):
+    print("Categorizing customers...")  # Print message
+    categories = {
+        "All Customers": [],
+        "Potential Customers": [],
+        "One-Time Buyers": [],
+        "Occasional Buyers": [],
+        "Frequent Buyers": []
+    }
+    #print("test cx1", customer_data)
+    for customer in customer_data:
+        customerID, latitude, longitude, total_amount, order_count = customer
+        categories["All Customers"].append(customer)
+
+        if order_count == 0:
+            categories["Potential Customers"].append(customer)
+        elif order_count == 1:
+            categories["One-Time Buyers"].append(customer)
+        elif 2 <= order_count <= 20:
+            categories["Occasional Buyers"].append(customer)
+        else:
+            categories["Frequent Buyers"].append(customer)
+
+    #print("Customers categorized:", categories)  # Print categorized customers
+    return categories
+
+
+def calculate_distances(categorized_customers, store_data):
+    print("Calculating distances...")  # Print message
+    distances = {}
+
+    for category, customers in categorized_customers.items():
+        total_distance_km = 0
+        count = 0
+
+        for customer in customers:
+            customerID, cust_lat, cust_lon, total_amount, order_count = customer
+            cust_lat = float(cust_lat)  # Convert decimal.Decimal to float
+            cust_lon = float(cust_lon)  # Convert decimal.Decimal to float
+            min_distance_km = float('inf')
+
+            for store in store_data:
+                storeID, store_lat, store_lon = store
+                store_lat = float(store_lat)  # Convert decimal.Decimal to float
+                store_lon = float(store_lon)  # Convert decimal.Decimal to float
+                distance_km = haversine_distance(cust_lat, cust_lon, store_lat, store_lon)
+                if distance_km < min_distance_km:
+                    min_distance_km = distance_km
+
+            if min_distance_km != float('inf'):
+                total_distance_km += min_distance_km
+                count += 1
+
+        average_distance_km = total_distance_km / count if count > 0 else 0
+        average_distance_miles = average_distance_km * 0.621371
+
+        distances[category] = {
+            "averageDistanceKm": average_distance_km,
+            "averageDistanceMiles": average_distance_miles
+        }
+
+    print("Distances calculated:", distances)  # Print calculated distances
+    return distances
+
+
+def haversine_distance(lat1, lon1, lat2, lon2):
+    def to_radians(degrees):
+        return degrees * math.pi / 180
+
+    R = 6371  # Earth radius in km
+    dLat = to_radians(lat2 - lat1)
+    dLon = to_radians(lon2 - lon1)
+    a = math.sin(dLat / 2) ** 2 + math.cos(to_radians(lat1)) * math.cos(to_radians(lat2)) * math.sin(dLon / 2) ** 2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return R * c
+
 
 if __name__ == "__main__":
     if not initialize_database():
