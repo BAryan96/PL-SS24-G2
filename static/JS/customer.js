@@ -13,7 +13,7 @@ $(document).ready(async function () {
       tables: ["stores", "customers"],
       columns: ["state", "customerID"],
       type: "basicRadar",
-      aggregations: ["", "Anzahl"],
+      aggregations: ["", "Count"],
       filters: [],
     },
     {
@@ -21,7 +21,7 @@ $(document).ready(async function () {
       tables: ["orders", "customers"],
       columns: ["orderDate-MM.YYYY", "customerID"],
       type: "line",
-      aggregations: ["", "Anzahl"],
+      aggregations: ["", "Count"],
       filters: [],
       orderby: ["ASC", ""],
     },
@@ -30,7 +30,7 @@ $(document).ready(async function () {
       tables: ["orders", "customers"],
       columns: ["orderDate-YYYY", "customerID"],
       type: "treemap",
-      aggregations: ["", "Anzahl"],
+      aggregations: ["", "Count"],
       filters: [],
     },
     {
@@ -38,7 +38,7 @@ $(document).ready(async function () {
       tables: ["orders", "customers-Right"],
       columns: ["customerID", "customerID"],
       type: "pie",
-      aggregations: ["", "Anzahl"],
+      aggregations: ["", "Count"],
       filters: [],
     }, 
     {

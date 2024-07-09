@@ -13,7 +13,7 @@ $(document).ready(async function () {
       tables: ["products", "products", "orders"],
       columns: ["name", "size", "total"],
       type: "stackedBar",
-      aggregations: ["", "", "Summe"],
+      aggregations: ["", "", "Sum"],
       filters: [],
     },
     {
@@ -21,7 +21,7 @@ $(document).ready(async function () {
       tables: ["orders", "orders", "products"],
       columns: ["orderDate-YYYY", "total", "name"],
       type: "dynamicBar",
-      aggregations: ["", "Summe", ""],
+      aggregations: ["", "Sum", ""],
       filters: [],
     },
     {
@@ -37,7 +37,7 @@ $(document).ready(async function () {
       tables: ["products", "products", "orders"],
       columns: ["category", "name", "total"],
       type: "treemap",
-      aggregations: ["", "", "Summe"],
+      aggregations: ["", "", "Sum"],
       filters: [],
     },
     {
@@ -45,7 +45,7 @@ $(document).ready(async function () {
       tables: ["products", "orders", "orders", "products"],
       columns: ["name", "nItems", "total", "size"],
       type: "kpi",
-      aggregations: ["", "Summe", "Summe", ""],
+      aggregations: ["", "Sum", "Sum", ""],
       filters: [],
     },
     {
@@ -53,7 +53,7 @@ $(document).ready(async function () {
       tables: ["products", "products"],
       columns: ["launch", "name"],
       type: "bar",
-      aggregations: ["", "Anzahl"],
+      aggregations: ["", "Count"],
       filters: [],
     },
     {

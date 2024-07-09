@@ -411,7 +411,7 @@ def get_customer_data(filters=[]):
         "tables": ["customers", "customers", "customers" , "orders-Left", "orders-Left"],
         "columns": ["customerID", "latitude", "longitude", "total", "orderID"],
         "chartType": "kpi",
-        "aggregations": ["", "", "", "Summe", "Anzahl"],
+        "aggregations": ["", "", "", "Sum", "Count"],
         "filters": filters
     }
     response = get_data_from_backend(request_data)
