@@ -219,14 +219,14 @@ async function addChartContainer() {
   });
 
   const aggregations = [
-    "Summe",
+    "Sum",
     "Max",
     "Min",
-    "Anzahl",
-    "Diskrete Anzahl",
-    "Durchschnitt",
-    "Varianz",
-    "Standardabweichung",
+    "Count",
+    "Distinct Count",
+    "Average",
+    "Variance",
+    "Standard Deviation",
   ];
   await createSelectOptions(aggregationSelect, aggregations);
 

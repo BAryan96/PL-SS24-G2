@@ -128,14 +128,14 @@ async function addChartContainer() {
     });
 
     const aggregations = [
-        "Summe",
+        "Sum",
         "Max",
         "Min",
-        "Anzahl",
-        "Diskrete Anzahl",
-        "Durchschnitt",
-        "Varianz",
-        "Standardabweichung",
+        "Count",
+        "Distinct Count",
+        "Average",
+        "Variance",
+        "Standard Deviation",
     ];
     await createSelectOptions(aggregationSelect, aggregations);
 
@@ -334,14 +334,14 @@ function openPopup(chartInstance, requestData) {
     });
 
     const aggregations = [
-        "Summe",
+        "Sum",
         "Max",
         "Min",
-        "Anzahl",
-        "Diskrete Anzahl",
-        "Durchschnitt",
-        "Varianz",
-        "Standardabweichung",
+        "Count",
+        "Distinct Count",
+        "Average",
+        "Variance",
+        "Standard Deviation",
     ];
     createSelectOptions(aggregationSelect2, aggregations);
     createSelectOptions(aggregationSelect3, aggregations);

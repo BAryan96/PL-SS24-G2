@@ -112,7 +112,7 @@ def get_columns():
     return jsonify({"columns": columns})
 
 @app.route("/getdata", methods=["POST"])
-@cache.cached(timeout=600, key_prefix=make_cache_key)  # Cache für 600 Sekunden mit dynamischem Key
+@cache.cached(timeout=6000, key_prefix=make_cache_key)  # Cache für 6000 Sekunden mit dynamischem Key
 def get_data():
     if not request.is_json:
         return jsonify({"error": "Request data must be JSON"}), 415
@@ -153,14 +153,14 @@ def get_data():
         ('stores', 'weather'): ('storeID', 'storeID'),
     }
     aggregation_functions = {
-        "Summe": "SUM",
+        "Sum": "SUM",
         "Max": "MAX",
         "Min": "MIN",
-        "Anzahl": "COUNT",
-        "Diskrete Anzahl": "COUNT(DISTINCT",
-        "Durchschnitt": "AVG",
-        "Varianz": "VARIANCE",
-        "Standardabweichung": "STDDEV",
+        "Count": "COUNT",
+        "Distinct Count": "COUNT(DISTINCT",
+        "Average": "AVG",
+        "Variance": "VARIANCE",
+        "Standard Deviation": "STDDEV",
     }
 
     date_formats = {
@@ -317,7 +317,7 @@ def get_data():
                 if agg != "X":
                     group_by_columns.append(full_column_name)
             else:
-                if agg in ["Diskrete Anzahl"]:
+                if agg in ["Distinct Count"]:
                     select_columns.append(f"{aggregation_function} {full_column_name})")
                 else:
                     select_columns.append(f"{aggregation_function}({full_column_name})")
@@ -369,12 +369,12 @@ def get_data():
             else:
                 response[f"y{idx-1}"] = [row[idx] for row in data]
 
-    #print(response)
+    print(response)
     return jsonify(response)
 
 
 @app.route("/calculate_customer_distance_kpi", methods=["POST"])
-@cache.cached(timeout=600, key_prefix=make_cache_key)  # Cache for 600 seconds with dynamic key
+@cache.cached(timeout=6000, key_prefix=make_cache_key)  # Cache for 6000 seconds with dynamic key
 def calculate_customer_distance_kpi():
     if not request.is_json:
         return jsonify({"error": "Request data must be JSON"}), 415
