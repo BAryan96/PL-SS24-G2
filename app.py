@@ -369,7 +369,7 @@ def get_data():
             else:
                 response[f"y{idx-1}"] = [row[idx] for row in data]
 
-    print(response)
+    #print(response)
     return jsonify(response)
 
 
