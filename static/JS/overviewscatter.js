@@ -427,7 +427,7 @@ async function addChartContainer() {
                 },
               },
               saveAsImage: {},
-              dataView: { readOnly: false },
+              dataView: { readOnly: true },
             },
           },
           xAxis: {

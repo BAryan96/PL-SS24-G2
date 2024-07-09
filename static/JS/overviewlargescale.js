@@ -465,7 +465,7 @@ async function addChartContainer() {
               },
               saveAsImage: {},
               restore: {},
-              dataView: { readOnly: false },
+              dataView: { readOnly: true },
               magicType: { type: ["line", "bar", "stack"] },
             },
           },
