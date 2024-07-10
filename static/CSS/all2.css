@@ -3,22 +3,33 @@
   flex-wrap: wrap;
   gap: 20px;
 }
-
 .chart-container {
   display: flex;
   height: 480px;
+  border: 1px solid #ccc;
+  margin-top: 20px;
   padding: 10px;
   box-sizing: border-box;
-  width: 100%;
+  width: 48%;
+  position: relative;
   border-radius: 10px;
-  border: 1px solid #ddd;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  background-color: #fff;
-  cursor: grabbing;
+  background-color: #f9f9f9;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  margin-right: 2%;
+  margin-bottom: 20px;
 }
 
-.chart-container.half-width {
-  width: 48%;
+.chart-container:nth-child(2n) {
+  margin-right: 0;
+}
+.chart-container.full-width {
+  width: 100% !important;
+}
+
+@media (max-width: 768px) {
+  .chart-container {
+    width: 100% !important;
+  }
 }
 
 .chart-container.selected {
