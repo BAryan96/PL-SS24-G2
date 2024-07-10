@@ -119,14 +119,12 @@ def get_data():
 
     data = request.get_json()
 
-    #data =  {'tables': ['orders', 'orders'], 'columns': ['orderDate-MM.YYYY', 'total'], 'chartType': 'bar', 'aggregations': ['', 'Summe'], 'filters': [] }
-   #data =  Received JSON data: {'tables': ['stores', 'orders'], 'columns': ['state', 'total'], 'chartType': 'bar', 'aggregations': ['', 'Summe'], 'filters': []}
     print("Received JSON data:", data)
 
     required_fields = ['tables', 'columns', 'chartType', 'aggregations']
     missing_fields = [field for field in required_fields if field not in data]
 
-    if missing_fields:
+    if (missing_fields):
         return jsonify({"error": f"Missing required fields: {', '.join(missing_fields)}"}), 400
 
     tables = data['tables']
@@ -152,6 +150,7 @@ def get_data():
         ('orders', 'stores'): ('storeID', 'storeID'),
         ('stores', 'weather'): ('storeID', 'storeID'),
     }
+
     aggregation_functions = {
         "Sum": "SUM",
         "Max": "MAX",
@@ -179,6 +178,7 @@ def get_data():
         '-HH24': '%H',
         '-MI': '%i',
         '-SS': '%s',
+        '-W.MM.YYYY': '%w.%m.%Y'  # Hinzufügen des neuen Formats
     }
 
     filter_query = ""
@@ -204,7 +204,10 @@ def get_data():
                 for suffix, date_format in date_formats.items():
                     if filter_column.endswith(suffix):
                         filter_column = filter_column[: -len(suffix)]
-                        full_column_name = f"DATE_FORMAT({filter_table}.{filter_column}, '{date_format}')"
+                        if suffix == '-W.MM.YYYY':
+                            full_column_name = f"CONCAT(DAYOFWEEK({filter_table}.{filter_column}), '.', DATE_FORMAT({filter_table}.{filter_column}, '%m.%Y'))"
+                        else:
+                            full_column_name = f"DATE_FORMAT({filter_table}.{filter_column}, '{date_format}')"
                         break
                 if not full_column_name:
                     full_column_name = f"{filter_table}.{filter_column}"
@@ -223,7 +226,10 @@ def get_data():
                     for suffix, date_format in date_formats.items():
                         if filter_column.endswith(suffix):
                             filter_column = filter_column[: -len(suffix)]
-                            full_column_name = f"DATE_FORMAT({filter_table}.{filter_column}, '{date_format}')"
+                            if suffix == '-W.MM.YYYY':
+                                full_column_name = f"CONCAT(DAYOFWEEK({filter_table}.{filter_column}), '.', DATE_FORMAT({filter_table}.{filter_column}, '%m.%Y'))"
+                            else:
+                                full_column_name = f"DATE_FORMAT({filter_table}.{filter_column}, '{date_format}')"
                             break
                     if not full_column_name:
                         full_column_name = f"{filter_table}.{filter_column}"
@@ -306,7 +312,10 @@ def get_data():
             for suffix, date_format in date_formats.items():
                 if col.endswith(suffix):
                     col = col[: -len(suffix)]
-                    full_column_name = f"DATE_FORMAT({table}.{col}, '{date_format}')"
+                    if suffix == '-W.MM.YYYY':
+                        full_column_name = f"CONCAT(DAYOFWEEK({table}.{col}), '.', DATE_FORMAT({table}.{col}, '%m.%Y'))"
+                    else:
+                        full_column_name = f"DATE_FORMAT({table}.{col}, '{date_format}')"
                     break
             if not full_column_name:
                 full_column_name = f"{table}.{col}"
@@ -321,7 +330,6 @@ def get_data():
                     select_columns.append(f"{aggregation_function} {full_column_name})")
                 else:
                     select_columns.append(f"{aggregation_function}({full_column_name})")
-
 
     select_query = ", ".join(select_columns)
     group_by_query = ", ".join(group_by_columns)
@@ -345,7 +353,10 @@ def get_data():
                 for suffix, date_format in date_formats.items():
                     if col.endswith(suffix):
                         col = col[: -len(suffix)]
-                        full_column_name = f"DATE_FORMAT({table}.{col}, '{date_format}')"
+                        if suffix == '-W.MM.YYYY':
+                            full_column_name = f"CONCAT(DAYOFWEEK({table}.{col}), '.', DATE_FORMAT({table}.{col}, '%m.%Y'))"
+                        else:
+                            full_column_name = f"DATE_FORMAT({table}.{col}, '{date_format}')"
                         break
                 if not full_column_name:
                     full_column_name = f"{table}.{col}"
@@ -369,7 +380,6 @@ def get_data():
             else:
                 response[f"y{idx-1}"] = [row[idx] for row in data]
 
-    #print(response)
     return jsonify(response)
 
 

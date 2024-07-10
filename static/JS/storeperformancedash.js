@@ -26,7 +26,7 @@ $(document).ready(async function () {
     {
       id: "myChart3",
       tables: ["orders", "orders"],
-      columns: ["orderDate-DD.MM.YYYY", "orderID"],
+      columns: ["orderDate-W.MM.YYYY", "orderID"],
       type: "dayWiseHeatmap",
       aggregations: ["", "Count"],
       filters: filter,
@@ -56,16 +56,16 @@ function getToolboxFeatures() {
       saveAsImage: {},
       restore: {},
       dataView: { readOnly: false },
-      magicType: { type: ['line', 'bar', 'stack'] }
-    }
+      magicType: { type: ["line", "bar", "stack"] },
+    },
   };
 }
 
 function getDayWiseHeatmapToolboxFeatures() {
   return {
     feature: {
-      saveAsImage: {}
-    }
+      saveAsImage: {},
+    },
   };
 }
 async function fetchData(requestData) {
@@ -171,8 +171,6 @@ function initializeBarChart(config, response) {
   myChart.setOption(option);
   charts.push({ chart: myChart, config: config });
 }
-
-
 
 async function initializeChart(config) {
   console.log("Initializing chart with config:", config);
@@ -473,30 +471,52 @@ async function initializeHeatmap(config) {
 function initializeDayWiseHeatmap(config, response) {
   const myChart = echarts.init(document.getElementById(config.id));
 
-  const daysOfWeek = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
+  const daysOfWeek = [
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+    "Sunday",
+  ];
+  const daysOfWeekShort = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
+
+  const orderCounts = {
+    Monday: 0,
+    Tuesday: 0,
+    Wednesday: 0,
+    Thursday: 0,
+    Friday: 0,
+    Saturday: 0,
+    Sunday: 0,
+  };
 
   const data = response.x.map((date, index) => {
-    const [day, month, year] = date.split(".");
-    const dateObj = new Date(`${year}-${month}-${day}`);
+    const [weekday, month, year] = date.split(".");
+    const dayOfWeekIndex = (parseInt(weekday, 10) - 1 + 6) % 7;
+    const dayOfWeek = daysOfWeek[dayOfWeekIndex];
+
+    orderCounts[dayOfWeek] += response.y0[index];
+
     return [
       `${year}-${month}`,
-      daysOfWeek[dateObj.getDay() - 1],
+      daysOfWeekShort[dayOfWeekIndex],
       response.y0[index],
     ];
   });
 
-  data.sort(
-    (a, b) =>
-      a[0].localeCompare(b[0]) ||
-      daysOfWeek.indexOf(a[1]) - daysOfWeek.indexOf(b[1])
+  const uniqueMonths = [...new Set(data.map((item) => item[0]))].sort(
+    (a, b) => new Date(a) - new Date(b)
   );
 
-  const uniqueMonths = [...new Set(data.map((item) => item[0]))];
-  const formattedData = data.map((item) => [
-    uniqueMonths.indexOf(item[0]),
-    daysOfWeek.indexOf(item[1]),
-    item[2],
-  ]);
+  const formattedData = data.map((item) => {
+    const monthIndex = uniqueMonths.indexOf(item[0]);
+    const dayIndex = daysOfWeekShort.indexOf(item[1]);
+    return [monthIndex, dayIndex, item[2]];
+  });
+
+  console.log("Total orders per weekday:", orderCounts);
 
   const option = {
     title: {
@@ -513,16 +533,14 @@ function initializeDayWiseHeatmap(config, response) {
     },
     xAxis: {
       type: "category",
-      data: uniqueMonths.filter(
-        (_, i) => i % Math.ceil(uniqueMonths.length / 10) === 0
-      ),
+      data: uniqueMonths,
       splitArea: {
         show: true,
       },
     },
     yAxis: {
       type: "category",
-      data: daysOfWeek,
+      data: daysOfWeekShort,
       splitArea: {
         show: true,
       },
@@ -560,7 +578,6 @@ function initializeDayWiseHeatmap(config, response) {
   myChart.setOption(option);
   charts.push({ chart: myChart, config: config });
 }
-
 
 async function initializeStackedBarChart(config) {
   const myChart = echarts.init(document.getElementById(config.id));
