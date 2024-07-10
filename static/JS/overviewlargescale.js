@@ -166,7 +166,6 @@ async function addChartContainer() {
   const columnSelectY = createLabeledSelect("Column for Y-Axis");
   const aggregationSelect = createLabeledSelect("Aggregation");
 
-  
   const dateGranularityLabelX = document.createElement("label");
   dateGranularityLabelX.textContent = "Date Granularity for X-Axis";
   dateGranularityLabelX.style.display = "none";
