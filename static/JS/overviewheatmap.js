@@ -395,13 +395,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function updateChartContainerWidth() {
     const chartContainers = document.querySelectorAll(".chart-container");
-    chartContainers.forEach((container, index) => {
-      container.style.width = "48%";
-      if (index % 2 !== 0) {
-        container.style.marginRight = "0";
-      } else {
-        container.style.marginRight = "2%";
-      }
-    });
+    if (chartContainers.length === 1) {
+      chartContainers[0].classList.add("full-width");
+    } else {
+      chartContainers.forEach((container, index) => {
+        container.classList.remove("full-width");
+        container.style.width = "48%";
+        if (index % 2 !== 0) {
+          container.style.marginRight = "0";
+        } else {
+          container.style.marginRight = "2%";
+        }
+      });
+    }
   }
+
+  window.addEventListener("resize", updateChartContainerWidth);
 });

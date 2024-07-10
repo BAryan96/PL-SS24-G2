@@ -140,9 +140,7 @@ document.addEventListener("DOMContentLoaded", () => {
     newChartContainer.appendChild(selectContainer);
     newChartContainer.appendChild(mapContainer);
 
-    document
-      .getElementById("charts-container")
-      .appendChild(newChartContainer);
+    document.getElementById("charts-container").appendChild(newChartContainer);
 
     const map = L.map(mapDiv).setView([37.5, -117], 6);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -160,9 +158,7 @@ document.addEventListener("DOMContentLoaded", () => {
       event.preventDefault();
 
       const markerTypes = Array.from(
-        markerTypeContainer.querySelectorAll(
-          'input[name="markerType"]:checked'
-        )
+        markerTypeContainer.querySelectorAll('input[name="markerType"]:checked')
       ).map((checkbox) => checkbox.value);
       const table = tableSelect.value;
       const column = columnSelect.value;
@@ -231,9 +227,7 @@ document.addEventListener("DOMContentLoaded", () => {
             id,
             longitude: parseFloat(responseData.y0[i]),
             latitude: parseFloat(responseData.y1[i]),
-            aggregation: aggregation
-              ? parseFloat(responseData.y2[i])
-              : null,
+            aggregation: aggregation ? parseFloat(responseData.y2[i]) : null,
           }));
 
           const maxAggregation = aggregation
@@ -241,9 +235,7 @@ document.addEventListener("DOMContentLoaded", () => {
             : 1;
 
           data.forEach((point) => {
-            const scale = aggregation
-              ? point.aggregation / maxAggregation
-              : 1;
+            const scale = aggregation ? point.aggregation / maxAggregation : 1;
             const markerOptions = {
               radius: 3 + scale * 17,
               fillColor: color,
@@ -295,13 +287,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function updateChartContainerWidth() {
     const chartContainers = document.querySelectorAll(".chart-container");
-    chartContainers.forEach((container, index) => {
-      container.style.width = "48%";
-      if (index % 2 !== 0) {
-        container.style.marginRight = "0";
-      } else {
-        container.style.marginRight = "2%";
-      }
-    });
+    if (chartContainers.length === 1) {
+      chartContainers[0].classList.add("full-width");
+    } else {
+      chartContainers.forEach((container, index) => {
+        container.classList.remove("full-width");
+        container.style.width = "48%";
+        if (index % 2 !== 0) {
+          container.style.marginRight = "0";
+        } else {
+          container.style.marginRight = "2%";
+        }
+      });
+    }
   }
+
+  window.addEventListener("resize", updateChartContainerWidth);
 });
