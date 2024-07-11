@@ -34,7 +34,7 @@ $(document).ready(async function () {
     {
       id: "myChart4",
       tables: ["orders", "orders"],
-      columns: ["orderDate-DD.MM.YYYY HH24:MI", "orderID"],
+      columns: ["orderDate-HH24", "orderID"],
       type: "bar",
       aggregations: ["", "Count"],
       filters: filter,
@@ -47,6 +47,14 @@ $(document).ready(async function () {
       aggregations: ["", "Count", "Sum", "", ""],
       filters: filter,
     },
+    {
+      id: "myChart7",
+      tables: ["stores",'stores','stores'],
+      columns: ["state",'city','city'],
+      type: "stackedBar",
+      aggregations: ["", "",""],
+      filters: filter,
+    },
   ]);
 });
 
@@ -56,7 +64,7 @@ function getToolboxFeatures() {
       saveAsImage: {},
       restore: {},
       dataView: { readOnly: false },
-      magicType: { type: ["line", "bar", "stack"] },
+      magicType: { type: ["line", "bar"] },
     },
   };
 }
@@ -121,14 +129,13 @@ function generateChartOptions(response, storeData) {
 function initializeBarChart(config, response) {
   const myChart = echarts.init(document.getElementById(config.id));
 
-  const timeData = response.x.map((item) => item.split(" ")[1]);
+  const timeData = response.x;
   const orderCounts = response.y0;
 
   const ordersPerHour = Array.from({ length: 24 }, () => 0);
 
-  timeData.forEach((time, index) => {
-    const hour = parseInt(time.split(":")[0], 10);
-    ordersPerHour[hour] += orderCounts[index];
+  timeData.forEach((hour, index) => {
+    ordersPerHour[parseInt(hour, 10)] += orderCounts[index];
   });
 
   const option = {
@@ -160,17 +167,113 @@ function initializeBarChart(config, response) {
       {
         name: "Orders",
         type: "bar",
-        data: ordersPerHour,
-        itemStyle: {
-          color: "#73c0de",
-        },
+        data: ordersPerHour.map((count, index) => ({
+          value: count,
+          itemStyle: { color: "#73c0de" }
+        })),
       },
     ],
   };
 
   myChart.setOption(option);
   charts.push({ chart: myChart, config: config });
+
+  const colorPicker = document.createElement("input");
+  colorPicker.type = "color";
+  colorPicker.style.display = "none";
+  document.body.appendChild(colorPicker);
+
+  myChart.getZr().on('contextmenu', function(params) {
+    const pointInPixel = [params.offsetX, params.offsetY];
+    if (myChart.containPixel('grid', pointInPixel)) {
+      const xIndex = myChart.convertFromPixel({ seriesIndex: 0 }, pointInPixel)[0];
+      colorPicker.style.display = "block";
+      colorPicker.style.position = "absolute";
+      colorPicker.style.left = params.event.pageX + "px";
+      colorPicker.style.top = params.event.pageY + "px";
+      colorPicker.focus();
+      colorPicker.onchange = function() {
+        const color = colorPicker.value;
+        option.series[0].data[xIndex].itemStyle.color = color;
+        myChart.setOption(option);
+        colorPicker.style.display = "none";
+      };
+    }
+    params.event.preventDefault();
+  });
 }
+
+async function initializeStackedBarChart(config) {
+  const myChart = echarts.init(document.getElementById(config.id));
+
+  const requestData = {
+    tables: config.tables,
+    columns: config.columns,
+    chartType: config.type,
+    aggregations: config.aggregations,
+    filters: config.filters,
+  };
+
+  try {
+    let response = await fetchData(requestData);
+    console.log("Received response:", response);
+
+    const stateData = [...new Set(response.x)]; // Unique states
+    const cityData = [...new Set(response.y0)]; // Unique cities from first city column
+
+    // Prepare series data
+    const seriesData = cityData.map((city) => {
+      return {
+        name: city,
+        type: "bar",
+        stack: "total",
+        data: stateData.map((state) => {
+          return response.x.reduce((count, currentState, index) => {
+            if (currentState === state && response.y0[index] === city) {
+              return count + 1;
+            }
+            return count;
+          }, 0);
+        }),
+      };
+    });
+
+    const option = {
+      title: {
+        text: "Total Cities by State",
+        left: "center",
+      },
+      tooltip: {
+        trigger: "axis",
+        axisPointer: {
+          type: "shadow",
+        },
+      },
+      legend: {
+        data: cityData,
+        bottom: 0,
+      },
+      xAxis: {
+        type: "category",
+        data: stateData,
+        axisPointer: {
+          type: "shadow",
+        },
+      },
+      yAxis: {
+        type: "value",
+      },
+      series: seriesData,
+    };
+
+    myChart.setOption(option);
+    charts.push({ chart: myChart, config: config });
+  } catch (error) {
+    console.error("Failed to initialize stacked bar chart:", error);
+  }
+}
+
+
 
 async function initializeChart(config) {
   console.log("Initializing chart with config:", config);
@@ -437,7 +540,8 @@ async function initializeHeatmap(config) {
         marker.bindPopup(
           `<b>ID:</b> ${point.id}<br><b>Longitude:</b> ${point.longitude}<br><b>Latitude:</b> ${point.latitude}<br><b>Total Revenue:</b> ${point.Aggregation}`
         );
-        marker.on("click", () => handleMarkerClick(marker, point));
+        marker.on("mouseover", () => marker.openPopup()); // Ändern von "click" zu "mouseover"
+        marker.on("mouseout", () => marker.closePopup()); // Hinzufügen von "mouseout" zum Schließen des Popups
         map.addLayer(marker);
         bounds.push([point.latitude, point.longitude]);
 
@@ -467,6 +571,7 @@ async function initializeHeatmap(config) {
     }
   });
 }
+
 
 function initializeDayWiseHeatmap(config, response) {
   const myChart = echarts.init(document.getElementById(config.id));
@@ -594,26 +699,29 @@ async function initializeStackedBarChart(config) {
     let response = await fetchData(requestData);
     console.log("Received response:", response);
 
-    const storeIDs = [...new Set(response.x)];
-    const productNames = [...new Set(response.y1)];
+    const stateData = [...new Set(response.x)]; // Unique states
+    const cityData = [...new Set(response.y1)]; // Unique cities
 
-    const seriesData = productNames.map((product) => {
+    // Prepare series data
+    const seriesData = cityData.map((city) => {
       return {
-        name: product,
+        name: city,
         type: "bar",
         stack: "total",
-        data: storeIDs.map((storeID) => {
-          const index = response.x.findIndex(
-            (id, idx) => id === storeID && response.y1[idx] === product
-          );
-          return index !== -1 ? response.y1[index] : 0;
+        data: stateData.map((state) => {
+          return response.x.reduce((count, currentState, index) => {
+            if (currentState === state && response.y1[index] === city) {
+              return count + response.y2[index];
+            }
+            return count;
+          }, 0);
         }),
       };
     });
 
     const option = {
       title: {
-        text: "Total Revenue by Store and Product",
+        text: "Total Store IDs by State and City",
         left: "center",
       },
       tooltip: {
@@ -623,12 +731,12 @@ async function initializeStackedBarChart(config) {
         },
       },
       legend: {
-        data: productNames,
+        data: cityData,
         bottom: 0,
       },
       xAxis: {
         type: "category",
-        data: storeIDs,
+        data: stateData,
         axisPointer: {
           type: "shadow",
         },

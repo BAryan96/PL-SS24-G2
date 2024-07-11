@@ -227,7 +227,7 @@ async function addChartContainer() {
             feature: {
               saveAsImage: {},
               dataView: { readOnly: true },
-              magicType: { type: ["line", "bar"] },
+              magicType: { type: ["line", "bar","stack"] },
             },
           },
           xAxis: {
