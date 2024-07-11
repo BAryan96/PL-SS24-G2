@@ -214,10 +214,10 @@ async function addChartContainer() {
             formatter: function (params) {
               let tooltipText = params[0].name;
               params.forEach((item) => {
-                let seriesIndex = item.seriesIndex; // adjust index for correct Y-Axis column and aggregation
-                let column = requestData.columns[seriesIndex + 1]; // adjust index for correct Y-Axis column
-                let aggregation = requestData.aggregations[seriesIndex + 1]; // adjust index for correct Y-Axis aggregation
-                tooltipText += `<strong>${item.value}<br/></strong> <strong>(${column} - ${aggregation}</strong> )`;
+                let seriesIndex = item.seriesIndex;
+                let column = requestData.columns[seriesIndex + 1];
+                let aggregation = requestData.aggregations[seriesIndex + 1];
+                tooltipText += `<br/>${item.marker}<strong>${item.seriesName}</strong>: <strong>${item.value}</strong>`;
               });
               return tooltipText;
             },
@@ -226,7 +226,6 @@ async function addChartContainer() {
           toolbox: {
             feature: {
               saveAsImage: {},
-              // restore: {},
               dataView: { readOnly: true },
               magicType: { type: ["line", "bar"] },
             },
@@ -247,7 +246,6 @@ async function addChartContainer() {
               areaStyle: {},
               emphasis: { focus: "series" },
               data: dataY,
-              tooltip: {},
             },
           ],
           dataZoom: [
@@ -262,6 +260,10 @@ async function addChartContainer() {
             },
           ],
         };
+
+        if (chartInstance) {
+          chartInstance.dispose();
+        }
 
         chartInstance = echarts.init(chartDiv);
         chartInstance.setOption(option);
@@ -405,6 +407,10 @@ function openPopup(chartInstance, requestData) {
     }
 
     if (additionalRequestData.tables.length > 0) {
+      requestData.tables = requestData.tables.slice(0, 2);
+      requestData.columns = requestData.columns.slice(0, 2);
+      requestData.aggregations = requestData.aggregations.slice(0, 2);
+
       requestData.tables.push(...additionalRequestData.tables);
       requestData.columns.push(...additionalRequestData.columns);
       requestData.aggregations.push(...additionalRequestData.aggregations);
@@ -428,32 +434,24 @@ function openPopup(chartInstance, requestData) {
         if (responseData.y1) {
           const dataY2 = responseData.y1.map((value) => parseFloat(value));
           newSeries.push({
-            name: `Series 2 (${requestData.columns[2]} - ${requestData.aggregations[2]})`,
+            name: `(${requestData.columns[2]} - ${requestData.aggregations[2]})`,
             type: "line",
             stack: null,
             areaStyle: {},
             emphasis: { focus: "series" },
             data: dataY2,
-            tooltip: {
-              valueFormatter: (value) =>
-                `<strong>${value}</strong> (${requestData.columns[2]} - ${requestData.aggregations[2]})`,
-            },
           });
         }
 
         if (responseData.y2) {
           const dataY3 = responseData.y2.map((value) => parseFloat(value));
           newSeries.push({
-            name: `Series 3 (${requestData.columns[3]} - ${requestData.aggregations[3]})`,
+            name: `(${requestData.columns[3]} - ${requestData.aggregations[3]})`,
             type: "line",
             stack: null,
             areaStyle: {},
             emphasis: { focus: "series" },
             data: dataY3,
-            tooltip: {
-              valueFormatter: (value) =>
-                `<strong>${value}</strong> (${requestData.columns[3]} - ${requestData.aggregations[3]})`,
-            },
           });
         }
 
@@ -461,28 +459,19 @@ function openPopup(chartInstance, requestData) {
         updatedOption.tooltip.formatter = function (params) {
           let tooltipText = params[0].name;
           params.forEach((item) => {
-            let seriesIndex = item.seriesIndex; // adjust index for correct Y-Axis column and aggregation
-            let column = requestData.columns[seriesIndex + 1]; // adjust index for correct Y-Axis column
-            let aggregation = requestData.aggregations[seriesIndex + 1]; // adjust index for correct Y-Axis aggregation
-            tooltipText += `<br/>${item.marker}<strong>${item.seriesName}</strong>: <strong>${item.value}</strong> (${column} - ${aggregation})`;
+            let seriesIndex = item.seriesIndex;
+            let column = requestData.columns[seriesIndex + 1];
+            let aggregation = requestData.aggregations[seriesIndex + 1];
+            tooltipText += `<br/>${item.marker}<strong>${item.seriesName}</strong>: <strong>${item.value}</strong>`;
           });
           return tooltipText;
         };
 
-        newSeries.forEach((series, index) => {
-          series.name = `Series ${index + 2} (${
-            requestData.columns[index + 1]
-          } - ${requestData.aggregations[index + 1]})`;
-          series.tooltip = {
-            valueFormatter: (value) =>
-              `<strong>${value}</strong> (${requestData.columns[index + 1]} - ${
-                requestData.aggregations[index + 1]
-              })`,
-          };
-        });
-
         updatedOption.series = updatedOption.series.concat(newSeries);
         chartInstance.setOption(updatedOption);
+
+        popup.classList.remove("open");
+        popup.remove();
       } catch (error) {
         console.error("Error fetching or processing data:", error);
       }

@@ -36,8 +36,8 @@ $(document).ready(async function () {
     },
     {
       id: "myChart4",
-      tables: ["products", "orders"],
-      columns: ["name", "orderID"],
+      tables: ["products", "orderitems"],
+      columns: ["name", "SKU"],
       type: "pie",
       aggregations: ["", "Count"],
       filters: [],
