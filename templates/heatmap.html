@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Interactive Charts</title>
+    <link rel="stylesheet" href="/static/CSS/all.css" />
+    <link rel="stylesheet" href="/static/CSS/heatmap.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style></style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <div class="logo-area">
+          <span class="logo-circle"></span>
+          <span class="logo-text">Data Visualisation - DV</span>
+        </div>
+        <button class="menu-button">☰</button>
+      </header>
+      <div class="side-menu" id="sideMenu">
+        <button class="close-button">X</button>
+
+        <div class="dropdown">
+          <a href="/charts" class="dropdown-btn">Chart Overview</a>
+          <div class="dropdown-content">
+            <a href="/stackedChart">Stacked Area Chart</a>
+            <a href="/largeScaleChart">Scale Area Chart</a>
+            <a href="/basicScatterChart">Basic Scatter Chart</a>
+            <a href="/donutChart">Donut Chart</a>
+            <a href="/interactiveMap">Interactive Map</a>
+            <a href="/basicBarChart">Bar Chart</a>
+            <a href="/heatmap">Heatmap</a>
+            <a href="/boxplot">Boxplot</a>
+          </div>
+        </div>
+
+        <div class="dropdown">
+          <a href="#" class="dropdown-btn">Dashboard</a>
+          <div class="dropdown-content">
+            <a href="/salesperformancedash">Sales Performance Dashboard</a>
+            <a href="/storeperformancedash">Store Performance Dashboard</a>
+            <a href="/customerdash">Customer Insights Dashboard</a>
+            <a href="/productdash">Product Performance Dashboard</a>
+          </div>
+        </div>
+
+        <a href="/login">Sign In</a>
+        <a href="/">Log Out</a>
+      </div>
+    </div>
+    <main>
+      <div class="chart-title">Heatmap</div>
+      <button id="add-chart-button">Add Chart</button>
+      <div id="charts-container"></div>
+    </main>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+    <script src="https://unpkg.com/heatmap.js"></script>
+    <script src="https://unpkg.com/leaflet-heatmap/leaflet-heatmap.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="/static/JS/sidemenu.js"></script>
+    <script src="/static/JS/overviewheatmap.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script></script>
+  </body>
+</html>
