@@ -160,6 +160,7 @@ def get_data():
         "Average": "AVG",
         "Variance": "VARIANCE",
         "Standard Deviation": "STDDEV",
+        "none": "",
     }
 
     date_formats = {
@@ -178,7 +179,11 @@ def get_data():
         '-HH24': '%H',
         '-MI': '%i',
         '-SS': '%s',
-        '-W.MM.YYYY': '%w.%m.%Y'  # Hinzufügen des neuen Formats
+        '-W.MM.YYYY': '%m.%Y',
+        '-W.YYYY.MM': '%Y.%m',
+        '-W': '',
+        '-MM.W.YYYY': '%m.%w.%Y',
+        '-YYYY.W.MM': '%Y.%w.%m'
     }
 
     filter_query = ""
@@ -226,8 +231,15 @@ def get_data():
                     for suffix, date_format in date_formats.items():
                         if filter_column.endswith(suffix):
                             filter_column = filter_column[: -len(suffix)]
-                            if suffix == '-W.MM.YYYY':
-                                full_column_name = f"CONCAT(DAYOFWEEK({filter_table}.{filter_column}), '.', DATE_FORMAT({filter_table}.{filter_column}, '%m.%Y'))"
+                            if 'W' in suffix:
+                                parts = date_format.split('.')
+                                formatted_parts = []
+                                for part in parts:
+                                    if part == '%w':
+                                        formatted_parts.append(f"DAYOFWEEK({filter_table}.{filter_column})")
+                                    else:
+                                        formatted_parts.append(f"DATE_FORMAT({filter_table}.{filter_column}, '{part}')")
+                                full_column_name = 'CONCAT(' + ', \'.\', '.join(formatted_parts) + ')'
                             else:
                                 full_column_name = f"DATE_FORMAT({filter_table}.{filter_column}, '{date_format}')"
                             break
@@ -312,8 +324,15 @@ def get_data():
             for suffix, date_format in date_formats.items():
                 if col.endswith(suffix):
                     col = col[: -len(suffix)]
-                    if suffix == '-W.MM.YYYY':
-                        full_column_name = f"CONCAT(DAYOFWEEK({table}.{col}), '.', DATE_FORMAT({table}.{col}, '%m.%Y'))"
+                    if 'W' in suffix:
+                        parts = date_format.split('.')
+                        formatted_parts = []
+                        for part in parts:
+                            if part == '%w':
+                                formatted_parts.append(f"DAYOFWEEK({table}.{col})")
+                            else:
+                                formatted_parts.append(f"DATE_FORMAT({table}.{col}, '{part}')")
+                        full_column_name = 'CONCAT(' + ', \'.\', '.join(formatted_parts) + ')'
                     else:
                         full_column_name = f"DATE_FORMAT({table}.{col}, '{date_format}')"
                     break
@@ -353,8 +372,15 @@ def get_data():
                 for suffix, date_format in date_formats.items():
                     if col.endswith(suffix):
                         col = col[: -len(suffix)]
-                        if suffix == '-W.MM.YYYY':
-                            full_column_name = f"CONCAT(DAYOFWEEK({table}.{col}), '.', DATE_FORMAT({table}.{col}, '%m.%Y'))"
+                        if 'W' in suffix:
+                            parts = date_format.split('.')
+                            formatted_parts = []
+                            for part in parts:
+                                if part == '%w':
+                                    formatted_parts.append(f"DAYOFWEEK({table}.{col})")
+                                else:
+                                    formatted_parts.append(f"DATE_FORMAT({table}.{col}, '{part}')")
+                            full_column_name = 'CONCAT(' + ', \'.\', '.join(formatted_parts) + ')'
                         else:
                             full_column_name = f"DATE_FORMAT({table}.{col}, '{date_format}')"
                         break
