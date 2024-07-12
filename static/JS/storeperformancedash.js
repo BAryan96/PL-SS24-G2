@@ -260,7 +260,7 @@ async function initializeStackedBarChart(config) {
 
     const option = {
       title: {
-        text: "Total Store by State and City",
+        text: "Total Stores by State and City",
         left: "center",
       },
       tooltip: {
