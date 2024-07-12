@@ -1,4 +1,5 @@
 const container = document.getElementById("charts-container");
+
 new Sortable(container, {
   animation: 150,
   ghostClass: "sortable-ghost",
@@ -13,7 +14,8 @@ new Sortable(container, {
     chartContainers.forEach((container) => {
       container.classList.remove("highlight");
     });
-  },
+    updateChartContainerWidth();
+  }
 });
 
 container.addEventListener("click", function (event) {

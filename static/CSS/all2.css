@@ -19,9 +19,7 @@
   margin-bottom: 20px;
 }
 
-.chart-container:nth-child(2n) {
-  margin-right: 0;
-}
+
 .chart-container.full-width {
   width: 100% !important;
 }

@@ -33,10 +33,10 @@ $(document).ready(async function () {
     },
     {
       id: "myChart4",
-      tables: ["orders", "orders"],
-      columns: ["orderDate-DD.MM.YYYY HH24:MI", "orderID"],
+      tables: ["weather","weather"],
+      columns: ["date_time-HH24", "temperature",""],
       type: "bar",
-      aggregations: ["", "Count"],
+      aggregations: ["", "Average"],
       filters: filter,
     },
     {
@@ -45,6 +45,14 @@ $(document).ready(async function () {
       columns: ["storeID", "orderID", "total", "state", "city"],
       type: "kpi",
       aggregations: ["", "Count", "Sum", "", ""],
+      filters: filter,
+    },
+    {
+      id: "myChart7",
+      tables: ["stores",'stores','stores'],
+      columns: ["state",'storeID','city'],
+      type: "stackedBar",
+      aggregations: ["", "Count",""],
       filters: filter,
     },
   ]);
@@ -56,7 +64,7 @@ function getToolboxFeatures() {
       saveAsImage: {},
       restore: {},
       dataView: { readOnly: false },
-      magicType: { type: ["line", "bar", "stack"] },
+      magicType: { type: ["line", "bar"] },
     },
   };
 }
@@ -121,14 +129,13 @@ function generateChartOptions(response, storeData) {
 function initializeBarChart(config, response) {
   const myChart = echarts.init(document.getElementById(config.id));
 
-  const timeData = response.x.map((item) => item.split(" ")[1]);
+  const timeData = response.x;
   const orderCounts = response.y0;
 
   const ordersPerHour = Array.from({ length: 24 }, () => 0);
 
-  timeData.forEach((time, index) => {
-    const hour = parseInt(time.split(":")[0], 10);
-    ordersPerHour[hour] += orderCounts[index];
+  timeData.forEach((hour, index) => {
+    ordersPerHour[parseInt(hour, 10)] += orderCounts[index];
   });
 
   const option = {
@@ -160,17 +167,150 @@ function initializeBarChart(config, response) {
       {
         name: "Orders",
         type: "bar",
-        data: ordersPerHour,
-        itemStyle: {
-          color: "#73c0de",
-        },
+        data: ordersPerHour.map((count, index) => ({
+          value: count,
+          itemStyle: { color: "#73c0de" }
+        })),
       },
     ],
   };
 
   myChart.setOption(option);
   charts.push({ chart: myChart, config: config });
+
+  const colorPicker = document.createElement("input");
+  colorPicker.type = "color";
+  colorPicker.style.display = "none";
+  document.body.appendChild(colorPicker);
+
+  myChart.getZr().on('contextmenu', function(params) {
+    const pointInPixel = [params.offsetX, params.offsetY];
+    if (myChart.containPixel('grid', pointInPixel)) {
+      const xIndex = myChart.convertFromPixel({ seriesIndex: 0 }, pointInPixel)[0];
+      colorPicker.style.display = "block";
+      colorPicker.style.position = "absolute";
+      colorPicker.style.left = params.event.pageX + "px";
+      colorPicker.style.top = params.event.pageY + "px";
+      colorPicker.focus();
+      colorPicker.onchange = function() {
+        const color = colorPicker.value;
+        option.series[0].data[xIndex].itemStyle.color = color;
+        myChart.setOption(option);
+        colorPicker.style.display = "none";
+      };
+    }
+    params.event.preventDefault();
+  });
 }
+
+async function initializeStackedBarChart(config) {
+  const myChart = echarts.init(document.getElementById(config.id));
+
+  const requestData = {
+    tables: config.tables,
+    columns: config.columns,
+    chartType: config.type,
+    aggregations: config.aggregations,
+    filters: config.filters,
+  };
+
+  try {
+    let response = await fetchData(requestData);
+    console.log("Received response:", response);
+
+    // Debugging: Überprüfen, ob die erwarteten Daten im Response-Objekt vorhanden sind
+    if (!response.x || !response.y0 || !response.y1) {
+      console.error("Response is missing required data fields");
+      return;
+    }
+
+    // Extrahiere eindeutige Staaten und Städte
+    const stateData = [...new Set(response.x)]; // Unique states
+    const cityData = [...new Set(response.y1)]; // Unique cities
+
+    // Debugging: Anzeigen der extrahierten einzigartigen Staaten und Städte
+    console.log("State Data:", stateData);
+    console.log("City Data:", cityData);
+
+    // Erstelle eine Datenstruktur zum Speichern der Counts für jede Stadt und jeden Staat
+    let seriesData = cityData.map((city) => {
+      return {
+        name: city,
+        type: "bar",
+        stack: "total",
+        data: stateData.map(() => 0), // Initialisiere mit 0 für jeden Staat
+      };
+    });
+
+    // Fülle die Datenstruktur mit den tatsächlichen Counts
+    response.x.forEach((state, index) => {
+      let city = response.y1[index];
+      let count = response.y0[index];
+      let cityIndex = cityData.indexOf(city);
+      let stateIndex = stateData.indexOf(state);
+
+      // Debugging: Überprüfen der Zuordnung von State und City Index
+      console.log(`Processing state: ${state}, city: ${city}, count: ${count}`);
+      console.log(`City Index: ${cityIndex}, State Index: ${stateIndex}`);
+
+      if (cityIndex > -1 && stateIndex > -1) {
+        seriesData[cityIndex].data[stateIndex] += count;
+      }
+    });
+
+    const option = {
+      title: {
+        text: "Total Stores by State and City",
+        left: "center",
+      },
+      tooltip: {
+        trigger: "axis",
+        axisPointer: {
+          type: "shadow",
+        },
+        formatter: function (params) {
+          let filteredParams = params.filter(param => param.value !== 0);
+          if (filteredParams.length === 0) {
+            return `${params[0].name}<br/>No data`;
+          }
+          let tooltipText = filteredParams.map(param => {
+            let colorSpan = `<span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;background-color:${param.color};"></span>`;
+            return `${colorSpan}${param.seriesName}: ${param.value}`;
+          }).join('<br/>');
+          return `${params[0].name}<br/>${tooltipText}`;
+        },
+      },
+      legend: {
+        data: cityData,
+        bottom: 0,
+      },
+      xAxis: {
+        type: "category",
+        data: stateData,
+        axisPointer: {
+          type: "shadow",
+        },
+      },
+      yAxis: {
+        type: "value",
+      },
+      series: seriesData,
+      toolbox: getToolboxFeatures(), // Hinzufügen der Toolbox-Funktionen
+    };
+
+    // Debugging: Anzeigen der endgültigen Option für das Diagramm
+    console.log("Chart Option:", option);
+
+    myChart.setOption(option);
+    charts.push({ chart: myChart, config: config });
+  } catch (error) {
+    console.error("Failed to initialize stacked bar chart:", error);
+  }
+}
+
+
+
+
 
 async function initializeChart(config) {
   console.log("Initializing chart with config:", config);
@@ -437,7 +577,8 @@ async function initializeHeatmap(config) {
         marker.bindPopup(
           `<b>ID:</b> ${point.id}<br><b>Longitude:</b> ${point.longitude}<br><b>Latitude:</b> ${point.latitude}<br><b>Total Revenue:</b> ${point.Aggregation}`
         );
-        marker.on("click", () => handleMarkerClick(marker, point));
+        marker.on("mouseover", () => marker.openPopup()); // Ändern von "click" zu "mouseover"
+        marker.on("mouseout", () => marker.closePopup()); // Hinzufügen von "mouseout" zum Schließen des Popups
         map.addLayer(marker);
         bounds.push([point.latitude, point.longitude]);
 
@@ -467,6 +608,7 @@ async function initializeHeatmap(config) {
     }
   });
 }
+
 
 function initializeDayWiseHeatmap(config, response) {
   const myChart = echarts.init(document.getElementById(config.id));
@@ -579,72 +721,7 @@ function initializeDayWiseHeatmap(config, response) {
   charts.push({ chart: myChart, config: config });
 }
 
-async function initializeStackedBarChart(config) {
-  const myChart = echarts.init(document.getElementById(config.id));
 
-  const requestData = {
-    tables: config.tables,
-    columns: config.columns,
-    chartType: config.type,
-    aggregations: config.aggregations,
-    filters: config.filters,
-  };
-
-  try {
-    let response = await fetchData(requestData);
-    console.log("Received response:", response);
-
-    const storeIDs = [...new Set(response.x)];
-    const productNames = [...new Set(response.y1)];
-
-    const seriesData = productNames.map((product) => {
-      return {
-        name: product,
-        type: "bar",
-        stack: "total",
-        data: storeIDs.map((storeID) => {
-          const index = response.x.findIndex(
-            (id, idx) => id === storeID && response.y1[idx] === product
-          );
-          return index !== -1 ? response.y1[index] : 0;
-        }),
-      };
-    });
-
-    const option = {
-      title: {
-        text: "Total Revenue by Store and Product",
-        left: "center",
-      },
-      tooltip: {
-        trigger: "axis",
-        axisPointer: {
-          type: "shadow",
-        },
-      },
-      legend: {
-        data: productNames,
-        bottom: 0,
-      },
-      xAxis: {
-        type: "category",
-        data: storeIDs,
-        axisPointer: {
-          type: "shadow",
-        },
-      },
-      yAxis: {
-        type: "value",
-      },
-      series: seriesData,
-    };
-
-    myChart.setOption(option);
-    charts.push({ chart: myChart, config: config });
-  } catch (error) {
-    console.error("Failed to initialize stacked bar chart:", error);
-  }
-}
 
 function initializeKPI(config, response) {
   const storeData = response.x.map((storeID, index) => ({
