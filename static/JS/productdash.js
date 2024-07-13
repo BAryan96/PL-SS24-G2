@@ -10,10 +10,10 @@ $(document).ready(async function () {
   await loadChartsSequentially([
     {
       id: "myChart1",
-      tables: ["products", "products", "products","orderitems"],
-      columns: ["name", "size", "price","SKU"],
+      tables: ["products", "products", "products", "orderitems"],
+      columns: ["name", "size", "price", "SKU"],
       type: "stackedBar",
-      aggregations: ["", "", "Sum","Count"],
+      aggregations: ["", "", "Sum", "Count"],
       filters: [],
     },
     {
@@ -34,11 +34,11 @@ $(document).ready(async function () {
     },
     {
       id: "myChart4",
-      tables: ["products", "products", "orderitems","products"],
-      columns: ["category", "name", "SKU","price"],
+      tables: ["products", "products", "orderitems", "products"],
+      columns: ["category", "name", "SKU", "price"],
       type: "treemap",
-      aggregations: ["", "","Count","Sum"],
-      filters: []
+      aggregations: ["", "", "Count", "Sum"],
+      filters: [],
     },
     {
       id: "myChart5",
@@ -283,16 +283,12 @@ function processstackedBarData(response) {
   return { names, processedData, sizes };
 }
 
-
-
-
 function processTreemapData(response) {
   const categoryMap = {};
 
   response.x.forEach((category, index) => {
     const product = response.y0[index];
     const total = parseFloat(response.y2[index]);
-
 
     if (!categoryMap[category]) {
       categoryMap[category] = {
@@ -315,7 +311,7 @@ function getToolboxFeatures() {
     saveAsImage: {},
     restore: {},
     dataView: { readOnly: false },
-    magicType: { type: ['line', 'bar', 'stack'] }
+    magicType: { type: ["line", "bar", "stack"] },
   };
 }
 
@@ -326,7 +322,6 @@ function getToolboxFeaturesForRest() {
     dataView: { readOnly: false },
   };
 }
-
 
 function generateChartOptions(chartType, response, chart) {
   let option = {};

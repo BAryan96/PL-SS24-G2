@@ -15,7 +15,7 @@ new Sortable(container, {
       container.classList.remove("highlight");
     });
     updateChartContainerWidth();
-  }
+  },
 });
 
 container.addEventListener("click", function (event) {

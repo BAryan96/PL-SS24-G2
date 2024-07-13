@@ -130,7 +130,6 @@ async function addChartContainer() {
   newChartContainer.className = "chart-container";
   newChartContainer.style.position = "relative";
 
-
   const closeButton = document.createElement("button");
   closeButton.textContent = "X";
   closeButton.style.position = "absolute";

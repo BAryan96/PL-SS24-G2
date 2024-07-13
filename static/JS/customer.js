@@ -40,7 +40,7 @@ $(document).ready(async function () {
       type: "pie",
       aggregations: ["", "Count"],
       filters: [],
-    }, 
+    },
     {
       id: "myChart5",
       tables: ["customers", "customers", "stores", "stores"],
@@ -740,7 +740,7 @@ function getToolboxFeatures() {
     saveAsImage: {},
     restore: {},
     dataView: { readOnly: false },
-    magicType: { type: ['line', 'bar', 'stack'] }
+    magicType: { type: ["line", "bar", "stack"] },
   };
 }
 
@@ -842,46 +842,65 @@ function initializeKPI(config, distances) {
     <div class="kpi-section" style="margin-bottom: 20px;">
       <h3 style="font-size: 24px;">Average Distance (All Customers)</h3>
       <p style="font-size: 20px; font-weight: bold;">
-        ${distances["All Customers"].averageDistanceKm.toFixed(2)} km / ${distances["All Customers"].averageDistanceMiles.toFixed(2)} miles
+        ${distances["All Customers"].averageDistanceKm.toFixed(
+          2
+        )} km / ${distances["All Customers"].averageDistanceMiles.toFixed(
+    2
+  )} miles
       </p>
     </div>
     <div class="kpi-section" style="margin-bottom: 20px;">
       <h3 style="font-size: 24px;">Average Distance (Potential Customers/Customer without Orders)</h3>
       <p style="font-size: 20px; font-weight: bold;">
-        ${distances["Potential Customers"].averageDistanceKm.toFixed(2)} km / ${distances["Potential Customers"].averageDistanceMiles.toFixed(2)} miles
+        ${distances["Potential Customers"].averageDistanceKm.toFixed(
+          2
+        )} km / ${distances["Potential Customers"].averageDistanceMiles.toFixed(
+    2
+  )} miles
       </p>
     </div>
     <div class="kpi-section" style="margin-bottom: 20px;">
       <h3 style="font-size: 24px;">Average Distance (One-Time Buyers)</h3>
       <p style="font-size: 20px; font-weight: bold;">
-        ${distances["One-Time Buyers"].averageDistanceKm.toFixed(2)} km / ${distances["One-Time Buyers"].averageDistanceMiles.toFixed(2)} miles
+        ${distances["One-Time Buyers"].averageDistanceKm.toFixed(
+          2
+        )} km / ${distances["One-Time Buyers"].averageDistanceMiles.toFixed(
+    2
+  )} miles
       </p>
     </div>
     <div class="kpi-section" style="margin-bottom: 20px;">
       <h3 style="font-size: 24px;">Average Distance (Occasional Buyers)</h3>
       <p style="font-size: 20px; font-weight: bold;">
-        ${distances["Occasional Buyers"].averageDistanceKm.toFixed(2)} km / ${distances["Occasional Buyers"].averageDistanceMiles.toFixed(2)} miles
+        ${distances["Occasional Buyers"].averageDistanceKm.toFixed(
+          2
+        )} km / ${distances["Occasional Buyers"].averageDistanceMiles.toFixed(
+    2
+  )} miles
       </p>
     </div>
     <div class="kpi-section" style="margin-bottom: 20px;">
       <h3 style="font-size: 24px;">Average Distance (Frequent Buyers)</h3>
       <p style="font-size: 20px; font-weight: bold;">
-        ${distances["Frequent Buyers"].averageDistanceKm.toFixed(2)} km / ${distances["Frequent Buyers"].averageDistanceMiles.toFixed(2)} miles
+        ${distances["Frequent Buyers"].averageDistanceKm.toFixed(
+          2
+        )} km / ${distances["Frequent Buyers"].averageDistanceMiles.toFixed(
+    2
+  )} miles
       </p>
     </div>
   `;
 }
-
 
 async function initializeChart(config) {
   if (config.type === "dynamicMarkers") {
     await loadDynamicMarkers(config.id);
   } else if (config.type === "kpi") {
     try {
-      const response = await fetch('/calculate_customer_distance_kpi', {
-        method: 'POST',
+      const response = await fetch("/calculate_customer_distance_kpi", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json'
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           id: config.id,
@@ -890,12 +909,12 @@ async function initializeChart(config) {
           type: config.type,
           aggregations: config.aggregations,
           filters: config.filters,
-        })
+        }),
       });
 
       if (response.ok) {
         const result = await response.json();
-        console.log("Received distances:", result); // Log received distances
+        console.log("Received distances:", result);
         initializeKPI(config, result);
       } else {
         console.error("Failed to calculate KPI:", response.statusText);
@@ -942,7 +961,6 @@ async function initializeChart(config) {
     }
   }
 }
-
 
 function updateChartAppearance() {
   charts.forEach(({ chart }) => {

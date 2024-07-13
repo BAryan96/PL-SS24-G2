@@ -7,7 +7,7 @@ let originalData = {};
 
 $(document).ready(async function () {
   await loadChartsSequentially([
-    { 
+    {
       id: "myChart1",
       tables: ["orders", "stores", "orders"],
       columns: ["orderDate-YYYY.MM", "state", "total"],
@@ -652,17 +652,14 @@ function generateChartOptions(chartType, response, yColumns) {
   return option;
 }
 
-
-
 function getToolboxFeatures() {
   return {
     saveAsImage: {},
     restore: {},
     dataView: { readOnly: false },
-    magicType: { type: ['line', 'bar', 'stack'] }
+    magicType: { type: ["line", "bar", "stack"] },
   };
 }
-
 
 async function initializeHeatmap(chartId, table, column, aggregation) {
   return new Promise((resolve, reject) => {
@@ -886,7 +883,6 @@ function initializeKPI(config, response) {
         </div>
     `;
 }
-
 
 async function initializeGeoChart(
   chartId,

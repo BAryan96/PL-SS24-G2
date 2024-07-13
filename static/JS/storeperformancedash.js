@@ -33,7 +33,7 @@ $(document).ready(async function () {
     },
     {
       id: "myChart4",
-      tables: ["orders","orders"],
+      tables: ["orders", "orders"],
       columns: ["orderDate-HH24", "orderID"],
       type: "bar",
       aggregations: ["", "Count"],
@@ -49,10 +49,10 @@ $(document).ready(async function () {
     },
     {
       id: "myChart7",
-      tables: ["stores",'stores','stores'],
-      columns: ["state",'storeID','city'],
+      tables: ["stores", "stores", "stores"],
+      columns: ["state", "storeID", "city"],
       type: "stackedBar",
-      aggregations: ["", "Count",""],
+      aggregations: ["", "Count", ""],
       filters: filter,
     },
   ]);
@@ -169,7 +169,7 @@ function initializeBarChart(config, response) {
         type: "bar",
         data: ordersPerHour.map((count, index) => ({
           value: count,
-          itemStyle: { color: "#73c0de" }
+          itemStyle: { color: "#73c0de" },
         })),
       },
     ],
@@ -183,16 +183,19 @@ function initializeBarChart(config, response) {
   colorPicker.style.display = "none";
   document.body.appendChild(colorPicker);
 
-  myChart.getZr().on('contextmenu', function(params) {
+  myChart.getZr().on("contextmenu", function (params) {
     const pointInPixel = [params.offsetX, params.offsetY];
-    if (myChart.containPixel('grid', pointInPixel)) {
-      const xIndex = myChart.convertFromPixel({ seriesIndex: 0 }, pointInPixel)[0];
+    if (myChart.containPixel("grid", pointInPixel)) {
+      const xIndex = myChart.convertFromPixel(
+        { seriesIndex: 0 },
+        pointInPixel
+      )[0];
       colorPicker.style.display = "block";
       colorPicker.style.position = "absolute";
       colorPicker.style.left = params.event.pageX + "px";
       colorPicker.style.top = params.event.pageY + "px";
       colorPicker.focus();
-      colorPicker.onchange = function() {
+      colorPicker.onchange = function () {
         const color = colorPicker.value;
         option.series[0].data[xIndex].itemStyle.color = color;
         myChart.setOption(option);
@@ -218,38 +221,32 @@ async function initializeStackedBarChart(config) {
     let response = await fetchData(requestData);
     console.log("Received response:", response);
 
-    // Debugging: Überprüfen, ob die erwarteten Daten im Response-Objekt vorhanden sind
     if (!response.x || !response.y0 || !response.y1) {
       console.error("Response is missing required data fields");
       return;
     }
 
-    // Extrahiere eindeutige Staaten und Städte
-    const stateData = [...new Set(response.x)]; // Unique states
-    const cityData = [...new Set(response.y1)]; // Unique cities
+    const stateData = [...new Set(response.x)];
+    const cityData = [...new Set(response.y1)];
 
-    // Debugging: Anzeigen der extrahierten einzigartigen Staaten und Städte
     console.log("State Data:", stateData);
     console.log("City Data:", cityData);
 
-    // Erstelle eine Datenstruktur zum Speichern der Counts für jede Stadt und jeden Staat
     let seriesData = cityData.map((city) => {
       return {
         name: city,
         type: "bar",
         stack: "total",
-        data: stateData.map(() => 0), // Initialisiere mit 0 für jeden Staat
+        data: stateData.map(() => 0),
       };
     });
 
-    // Fülle die Datenstruktur mit den tatsächlichen Counts
     response.x.forEach((state, index) => {
       let city = response.y1[index];
       let count = response.y0[index];
       let cityIndex = cityData.indexOf(city);
       let stateIndex = stateData.indexOf(state);
 
-      // Debugging: Überprüfen der Zuordnung von State und City Index
       console.log(`Processing state: ${state}, city: ${city}, count: ${count}`);
       console.log(`City Index: ${cityIndex}, State Index: ${stateIndex}`);
 
@@ -269,14 +266,16 @@ async function initializeStackedBarChart(config) {
           type: "shadow",
         },
         formatter: function (params) {
-          let filteredParams = params.filter(param => param.value !== 0);
+          let filteredParams = params.filter((param) => param.value !== 0);
           if (filteredParams.length === 0) {
             return `${params[0].name}<br/>No data`;
           }
-          let tooltipText = filteredParams.map(param => {
-            let colorSpan = `<span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;background-color:${param.color};"></span>`;
-            return `${colorSpan}${param.seriesName}: ${param.value}`;
-          }).join('<br/>');
+          let tooltipText = filteredParams
+            .map((param) => {
+              let colorSpan = `<span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;background-color:${param.color};"></span>`;
+              return `${colorSpan}${param.seriesName}: ${param.value}`;
+            })
+            .join("<br/>");
           return `${params[0].name}<br/>${tooltipText}`;
         },
       },
@@ -295,10 +294,9 @@ async function initializeStackedBarChart(config) {
         type: "value",
       },
       series: seriesData,
-      toolbox: getToolboxFeatures(), // Hinzufügen der Toolbox-Funktionen
+      toolbox: getToolboxFeatures(),
     };
 
-    // Debugging: Anzeigen der endgültigen Option für das Diagramm
     console.log("Chart Option:", option);
 
     myChart.setOption(option);
@@ -307,10 +305,6 @@ async function initializeStackedBarChart(config) {
     console.error("Failed to initialize stacked bar chart:", error);
   }
 }
-
-
-
-
 
 async function initializeChart(config) {
   console.log("Initializing chart with config:", config);
@@ -577,8 +571,8 @@ async function initializeHeatmap(config) {
         marker.bindPopup(
           `<b>ID:</b> ${point.id}<br><b>Longitude:</b> ${point.longitude}<br><b>Latitude:</b> ${point.latitude}<br><b>Total Revenue:</b> ${point.Aggregation}`
         );
-        marker.on("mouseover", () => marker.openPopup()); // Ändern von "click" zu "mouseover"
-        marker.on("mouseout", () => marker.closePopup()); // Hinzufügen von "mouseout" zum Schließen des Popups
+        marker.on("mouseover", () => marker.openPopup());
+        marker.on("mouseout", () => marker.closePopup());
         map.addLayer(marker);
         bounds.push([point.latitude, point.longitude]);
 
@@ -608,7 +602,6 @@ async function initializeHeatmap(config) {
     }
   });
 }
-
 
 function initializeDayWiseHeatmap(config, response) {
   const myChart = echarts.init(document.getElementById(config.id));
@@ -720,8 +713,6 @@ function initializeDayWiseHeatmap(config, response) {
   myChart.setOption(option);
   charts.push({ chart: myChart, config: config });
 }
-
-
 
 function initializeKPI(config, response) {
   const storeData = response.x.map((storeID, index) => ({

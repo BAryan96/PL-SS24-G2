@@ -10,28 +10,28 @@
   margin: 10px;
   flex-basis: calc(33% - 20px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  transition: none !important; /* Entfernen von Übergängen */
-  transform: none !important;  /* Entfernen von Transformationen */
-  border: 1px solid black;     /* Standardborder */
+  transition: none !important;
+  transform: none !important;
+  border: 1px solid black;
 }
 
 .chart:hover {
-  border: 3px solid black;     /* Dicke schwarze Linie bei Hover */
+  border: 3px solid black;
 }
 
 .chart:hover .overlay {
-  display: block;              /* Overlay anzeigen bei Hover */
+  display: block;
 }
 
 .overlay {
-  display: none;               /* Overlay standardmäßig versteckt */
+  display: none;
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  border: 3px solid black;     /* Dicke schwarze Linie als Overlay */
-  pointer-events: none;        /* Keine Beeinträchtigung durch Overlay */
+  border: 3px solid black;
+  pointer-events: none;
 }
 
 .chart img {

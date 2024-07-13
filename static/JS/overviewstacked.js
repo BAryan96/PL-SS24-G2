@@ -227,31 +227,31 @@ async function addChartContainer() {
             feature: {
               saveAsImage: {},
               dataView: {
-                readOnly: false, // allows editing
-                optionToContent: function(opt) {
-                  var axisData = opt.xAxis[0].data; // Get X axis data
-                  var series = opt.series; // Get series data
-                  var table = '<table style="width:100%;text-align:center"><tbody><tr>'
-                            + '<td>Time</td>'; // Assuming the X axis is time
-                  
+                readOnly: false,
+                optionToContent: function (opt) {
+                  var axisData = opt.xAxis[0].data;
+                  var series = opt.series;
+                  var table =
+                    '<table style="width:100%;text-align:center"><tbody><tr>' +
+                    "<td>Time</td>";
+
                   series.forEach(function (s) {
-                    table += '<td>' + s.name + '</td>'; // Add series name to header
+                    table += "<td>" + s.name + "</td>";
                   });
-        
-                  table += '</tr>';
-        
+
+                  table += "</tr>";
+
                   for (var i = 0, l = axisData.length; i < l; i++) {
-                    table += '<tr>'
-                           + '<td>' + axisData[i] + '</td>'; // Add X axis data
+                    table += "<tr>" + "<td>" + axisData[i] + "</td>";
                     series.forEach(function (s) {
-                      table += '<td>' + s.data[i] + '</td>'; // Add series data
+                      table += "<td>" + s.data[i] + "</td>";
                     });
-                    table += '</tr>';
+                    table += "</tr>";
                   }
-        
-                  table += '</tbody></table>';
+
+                  table += "</tbody></table>";
                   return table;
-                }
+                },
               },
               magicType: { type: ["line", "bar", "stack"] },
             },
@@ -286,7 +286,6 @@ async function addChartContainer() {
             },
           ],
         };
-        
 
         if (chartInstance) {
           chartInstance.dispose();
