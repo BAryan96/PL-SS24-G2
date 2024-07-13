@@ -83,7 +83,7 @@ def boxplot():
     return render_template('boxplot.html')
 
 @app.route("/test")
-def salesperformancedash():
+def test():
     return render_template('test.html')
 
 
@@ -98,6 +98,10 @@ def productdash():
 @app.route("/storeperformancedash")
 def storeperformancedash():
     return render_template('storeperformancedash.html')
+
+@app.route("/salesperformancedash")
+def salesperformancedash():
+    return render_template('salesperformancedash.html')
 
 @app.route("/tables")
 def get_tables():
