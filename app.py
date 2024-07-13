@@ -82,9 +82,10 @@ def heatmap():
 def boxplot():
     return render_template('boxplot.html')
 
-@app.route("/salesperformancedash")
-def salesperformancedash():
-    return render_template('salesperformancedash.html')
+@app.route("/test")
+def test():
+    return render_template('test.html')
+
 
 @app.route("/customerdash")
 def customerdash():
@@ -97,6 +98,10 @@ def productdash():
 @app.route("/storeperformancedash")
 def storeperformancedash():
     return render_template('storeperformancedash.html')
+
+@app.route("/salesperformancedash")
+def salesperformancedash():
+    return render_template('salesperformancedash.html')
 
 @app.route("/tables")
 def get_tables():
@@ -111,6 +116,20 @@ def get_columns():
     columns = [row[0] for row in cur.fetchall()]
     return jsonify({"columns": columns})
 
+
+@app.route("/columntype", methods=["POST"])
+def get_column_type():
+    data = request.get_json()
+    table = data['table']
+    column = data['column']
+    cur.execute(f"SHOW COLUMNS FROM {table} LIKE '{column}'")
+    row = cur.fetchone()
+    if row:
+        column_type = row[1]  # Der Datentyp ist das zweite Element im Ergebnis der SHOW COLUMNS-Abfrage
+        return jsonify({"type": column_type})
+    else:
+        return jsonify({"error": "Column not found"}), 404
+
 @app.route("/getdata", methods=["POST"])
 @cache.cached(timeout=6000, key_prefix=make_cache_key)  # Cache für 6000 Sekunden mit dynamischem Key
 def get_data():
@@ -124,7 +143,7 @@ def get_data():
     required_fields = ['tables', 'columns', 'chartType', 'aggregations']
     missing_fields = [field for field in required_fields if field not in data]
 
-    if (missing_fields):
+    if missing_fields:
         return jsonify({"error": f"Missing required fields: {', '.join(missing_fields)}"}), 400
 
     tables = data['tables']
@@ -178,7 +197,9 @@ def get_data():
         '-HH24': '%H',
         '-MI': '%i',
         '-SS': '%s',
-        '-W.MM.YYYY': '%w.%m.%Y'  # Hinzufügen des neuen Formats
+        '-W.MM.YYYY': '%m.%Y',
+        '-W.YYYY.MM': '%Y.%m',
+        '-W': '',
     }
 
     filter_query = ""
@@ -204,8 +225,10 @@ def get_data():
                 for suffix, date_format in date_formats.items():
                     if filter_column.endswith(suffix):
                         filter_column = filter_column[: -len(suffix)]
-                        if suffix == '-W.MM.YYYY':
-                            full_column_name = f"CONCAT(DAYOFWEEK({filter_table}.{filter_column}), '.', DATE_FORMAT({filter_table}.{filter_column}, '%m.%Y'))"
+                        if suffix in ['-W.MM.YYYY', '-W.YYYY.MM']:
+                            full_column_name = f"CONCAT(DAYOFWEEK({filter_table}.{filter_column}), '.', DATE_FORMAT({filter_table}.{filter_column}, '{date_format}'))"
+                        elif suffix == '-W':
+                            full_column_name = f"WEEKDAYNAME({filter_table}.{filter_column})"
                         else:
                             full_column_name = f"DATE_FORMAT({filter_table}.{filter_column}, '{date_format}')"
                         break
@@ -226,8 +249,10 @@ def get_data():
                     for suffix, date_format in date_formats.items():
                         if filter_column.endswith(suffix):
                             filter_column = filter_column[: -len(suffix)]
-                            if suffix == '-W.MM.YYYY':
-                                full_column_name = f"CONCAT(DAYOFWEEK({filter_table}.{filter_column}), '.', DATE_FORMAT({filter_table}.{filter_column}, '%m.%Y'))"
+                            if suffix in ['-W.MM.YYYY', '-W.YYYY.MM']:
+                                full_column_name = f"CONCAT(DAYOFWEEK({filter_table}.{filter_column}), '.', DATE_FORMAT({filter_table}.{filter_column}, '{date_format}'))"
+                            elif suffix == '-W':
+                                full_column_name = f"WEEKDAYNAME({filter_table}.{filter_column})"
                             else:
                                 full_column_name = f"DATE_FORMAT({filter_table}.{filter_column}, '{date_format}')"
                             break
@@ -312,8 +337,10 @@ def get_data():
             for suffix, date_format in date_formats.items():
                 if col.endswith(suffix):
                     col = col[: -len(suffix)]
-                    if suffix == '-W.MM.YYYY':
-                        full_column_name = f"CONCAT(DAYOFWEEK({table}.{col}), '.', DATE_FORMAT({table}.{col}, '%m.%Y'))"
+                    if suffix in ['-W.MM.YYYY', '-W.YYYY.MM']:
+                        full_column_name = f"CONCAT(DAYOFWEEK({table}.{col}), '.', DATE_FORMAT({table}.{col}, '{date_format}'))"
+                    elif suffix == '-W':
+                        full_column_name = f"WEEKDAYNAME({table}.{col})"
                     else:
                         full_column_name = f"DATE_FORMAT({table}.{col}, '{date_format}')"
                     break
@@ -353,8 +380,10 @@ def get_data():
                 for suffix, date_format in date_formats.items():
                     if col.endswith(suffix):
                         col = col[: -len(suffix)]
-                        if suffix == '-W.MM.YYYY':
-                            full_column_name = f"CONCAT(DAYOFWEEK({table}.{col}), '.', DATE_FORMAT({table}.{col}, '%m.%Y'))"
+                        if suffix in ['-W.MM.YYYY', '-W.YYYY.MM']:
+                            full_column_name = f"CONCAT(DAYOFWEEK({table}.{col}), '.', DATE_FORMAT({table}.{col}, '{date_format}'))"
+                        elif suffix == '-W':
+                            full_column_name = f"WEEKDAYNAME({table}.{col})"
                         else:
                             full_column_name = f"DATE_FORMAT({table}.{col}, '{date_format}')"
                         break

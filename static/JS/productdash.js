@@ -13,13 +13,13 @@ $(document).ready(async function () {
       tables: ["products", "products", "products","orderitems"],
       columns: ["name", "size", "price","SKU"],
       type: "stackedBar",
-      aggregations: ["", "", "","Count"],
+      aggregations: ["", "", "Sum","Count"],
       filters: [],
     },
     {
       id: "myChart2",
-      tables: ["orders", "orders", "products"],
-      columns: ["orderDate-YYYY", "total", "name"],
+      tables: ["orders", "products", "products"],
+      columns: ["orderDate-YYYY", "price", "name"],
       type: "dynamicBar",
       aggregations: ["", "Sum", ""],
       filters: [],
@@ -42,10 +42,10 @@ $(document).ready(async function () {
     },
     {
       id: "myChart5",
-      tables: ["products", "orders", "orders", "products"],
-      columns: ["name", "nItems", "total", "size"],
+      tables: ["products", "orderitems", "products", "products"],
+      columns: ["name", "SKU", "price", "size"],
       type: "kpi",
-      aggregations: ["", "Sum", "Sum", ""],
+      aggregations: ["", "Count", "Sum", ""],
       filters: [],
     },
     {
@@ -250,34 +250,11 @@ function generateColorMap(data) {
 }
 
 function processstackedBarData(response) {
-  if (
-    !response ||
-    !response.x ||
-    !response.y0 ||
-    !response.y1 ||
-    !response.y2
-  ) {
-    console.error("Ungültiges Datenformat:", response);
-    return { names: [], processedData: [], sizes: [] };
-  }
-
-  console.log("Eingehende Daten:", response);
-
   const nameSizeMap = {};
 
   response.x.forEach((name, index) => {
     const size = response.y0[index];
-    const price = parseFloat(response.y1[index]);
-    const skuCount = parseInt(response.y2[index], 10);
-
-    if (isNaN(price) || isNaN(skuCount)) {
-      console.error("Ungültiger Preis oder SKU-Anzahl bei Index:", index, "Preis:", price, "SKU-Anzahl:", skuCount);
-      return;
-    }
-
-    const total = price * skuCount;
-
-    console.log(`Berechnung bei Index ${index}: Name=${name}, Größe=${size}, Preis=${price}, SKU-Anzahl=${skuCount}, Total=${total}`);
+    const total = parseFloat(response.y1[index]);
 
     if (!nameSizeMap[name]) {
       nameSizeMap[name] = {};
@@ -293,8 +270,6 @@ function processstackedBarData(response) {
   const names = Object.keys(nameSizeMap);
   const sizes = Array.from(new Set(response.y0));
 
-  console.log("Verarbeitete Daten:", { names, nameSizeMap, sizes });
-
   const processedData = sizes.map((size) => ({
     name: size,
     type: "bar",
@@ -304,8 +279,6 @@ function processstackedBarData(response) {
       color: sizeColors[size],
     },
   }));
-
-  console.log("ProcessedData:", processedData);
 
   return { names, processedData, sizes };
 }

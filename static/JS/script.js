@@ -1,0 +1,559 @@
+let chartCount = 0;
+const maxCharts = 16;
+let draggedElement = null;
+let offsetX, offsetY;
+let charts = [];
+let filter = []; // Aktualisieren Sie den Filter als Array
+let highlightedPoints = {};  // Globale Datenstruktur zum Speichern der hervorgehobenen Datenpunkte
+let updateQueue = [];  // Warteschlange für die Diagrammaktualisierungen
+let updating = false;  // Flag, um anzuzeigen, ob eine Aktualisierung gerade durchgeführt wird
+let colorMapping = {};  // Globale Datenstruktur zum Speichern der Farben
+
+function getRandomColor() {
+    return '#' + Math.floor(Math.random() * 16777215).toString(16);
+}
+
+$(document).ready(function() {
+    // Lädt die verfügbaren Tabellen vom Backend beim Laden der Seite
+    $.get("/tables", function(data) {
+        window.availableTables = data.tables;
+    });
+});
+
+document.getElementById('chartTypeSelect').addEventListener('change', function() {
+    // Fügt ein neues Diagramm hinzu, wenn ein Diagrammtyp ausgewählt wird
+    const chartType = this.value;
+    if (chartType) {
+        if (chartCount < maxCharts) {
+            addChart(chartType);
+            this.value = ""; // Setzt das Auswahlfeld zurück
+        } else {
+            alert('Maximum number of charts reached.');
+        }
+    }
+});
+
+function addChart(chartType) {
+    // Erstellt ein neues Diagramm und fügt es zur Seite hinzu
+    const chartContainer = document.getElementById('chartContainer');
+    
+    const chartDiv = document.createElement('div');
+    chartDiv.className = 'chart';
+    chartDiv.style.width = '600px';
+    chartDiv.style.height = '400px';
+    chartDiv.style.position = 'absolute';
+    chartDiv.style.top = '100px';
+    chartDiv.style.left = '100px';
+
+    const overlay = document.createElement('div');
+    overlay.className = 'overlay';
+    chartDiv.appendChild(overlay);
+
+    chartContainer.appendChild(chartDiv);
+    chartDiv.id = 'chart-' + chartCount;
+    chartCount++;
+
+    const chartInstance = echarts.init(chartDiv);
+    charts.push(chartInstance);
+
+    const closeButton = document.createElement('button');
+    closeButton.className = 'close-btn';
+    closeButton.innerText = 'X';
+    closeButton.addEventListener('click', function() {
+        // Entfernt das Diagramm und verringert die Anzahl der Diagramme
+        chartContainer.removeChild(chartDiv);
+        chartInstance.dispose();
+        charts = charts.filter(chart => chart !== chartInstance);
+        chartCount--;
+    });
+    chartDiv.appendChild(closeButton);
+
+    const tableSelect1 = document.createElement('select');
+    tableSelect1.className = 'table-select';
+    tableSelect1.innerHTML = `<option value="">Select Table for X Axis</option>`;
+    availableTables.forEach(table => {
+        tableSelect1.innerHTML += `<option value="${table}">${table}</option>`;
+    });
+    chartDiv.appendChild(tableSelect1);
+
+    const xAxisSelect = document.createElement('select');
+    xAxisSelect.className = 'chart-select';
+    xAxisSelect.innerHTML = `<option value="">Select X Axis</option>`;
+    chartDiv.appendChild(xAxisSelect);
+
+    const tableSelect2 = document.createElement('select');
+    tableSelect2.className = 'table-select';
+    tableSelect2.innerHTML = `<option value="">Select Table for Y Axis</option>`;
+    availableTables.forEach(table => {
+        tableSelect2.innerHTML += `<option value="${table}">${table}</option>`;
+    });
+    chartDiv.appendChild(tableSelect2);
+
+    const yAxisSelect = document.createElement('select');
+    yAxisSelect.className = 'chart-select';
+    yAxisSelect.innerHTML = `<option value="">Select Y Axis</option>`;
+    chartDiv.appendChild(yAxisSelect);
+
+    const aggregationSelect = document.createElement('select');
+    aggregationSelect.className = 'aggregation-select';
+    aggregationSelect.innerHTML = `
+        <option value="">No Aggregation</option>
+        <option value="Sum">Sum</option>
+        <option value="Max">Max</option>
+        <option value="Min">Min</option>
+        <option value="Count">Count</option>
+        <option value="Distinct Count">Distinct Count</option>
+        <option value="Average">Average</option>
+        <option value="Standard Deviation">Standard deviation</option>
+        <option value="Variance">Variance</option>
+    `;
+    chartDiv.appendChild(aggregationSelect);
+
+    const xAxisDateFormatSelect = document.createElement('select');
+    xAxisDateFormatSelect.className = 'date-format-select';
+    xAxisDateFormatSelect.style.display = 'none';  // Initially hidden
+    chartDiv.appendChild(xAxisDateFormatSelect);
+
+    const yAxisDateFormatSelect = document.createElement('select');
+    yAxisDateFormatSelect.className = 'date-format-select';
+    yAxisDateFormatSelect.style.display = 'none';  // Initially hidden
+    chartDiv.appendChild(yAxisDateFormatSelect);
+
+    const submitButton = document.createElement('button');
+    submitButton.className = 'submit-btn';
+    submitButton.innerText = 'Submit';
+    chartDiv.appendChild(submitButton);
+
+    function updateDateFormatSelect(selectElement, isDateTime) {
+        selectElement.innerHTML = `
+            <option value="DD.MM.YYYY">DD.MM.YYYY</option>
+            <option value="MM.YYYY">MM.YYYY</option>
+            <option value="YYYY.MM">YYYY.MM</option>
+            <option value="YYYY">YYYY</option>
+            <option value="MM">MM</option>
+            <option value="DD">DD</option>
+            <option value="W">Weekday Name</option>
+        `;
+        if (isDateTime) {
+            selectElement.innerHTML += `
+                <option value="HH24">Hours</option>
+                <option value="MI">Minutes</option>
+                <option value="SS">Seconds</option>
+                <option value="HH24:MI">HH:MM</option>
+                <option value="DD.MM.YYYY HH24:MI:SS">Full Date with Time</option>
+            `;
+        }
+        selectElement.style.display = 'block';  // Show the date format select
+    }
+
+    function updateChart(chartInstance) {
+        // Aktualisiert die Daten des Diagramms basierend auf den gewählten Einstellungen und Filter
+        let xAxisType = chartInstance.xAxisType;
+        let yAxisType = chartInstance.yAxisType;
+        const aggregationType = chartInstance.aggregationType;
+        const xAxisDateFormat = chartInstance.xAxisDateFormat;
+        const yAxisDateFormat = chartInstance.yAxisDateFormat;
+
+        if (xAxisDateFormat) {
+            xAxisType = `${xAxisType}-${xAxisDateFormat}`;
+        }
+
+        if (yAxisDateFormat) {
+            yAxisType = `${yAxisType}-${yAxisDateFormat}`;
+        }
+
+        if (xAxisType && yAxisType) {
+            let requestData = { 
+                tables: [chartInstance.table1, chartInstance.table2], 
+                columns: [xAxisType, yAxisType],
+                chartType: chartInstance.chartType,
+                aggregations: ["", aggregationType], // X-Achse keine Aggregation
+                filters: filter.filter(f => f.chartId !== chartInstance.id)
+            };
+            $.ajax({
+                url: "/getdata",
+                type: "POST",
+                contentType: "application/json",
+                data: JSON.stringify(requestData),
+                success: function(response) {
+                    const option = {
+                        tooltip: {
+                            trigger: 'item'
+                        },
+                        xAxis: {
+                            type: chartInstance.chartType === "scatter" ? 'value' : 'category',
+                            data: chartInstance.chartType === "scatter" ? null : response.x
+                        },
+                        yAxis: {
+                            type: 'value'
+                        },
+                        series: [
+                            {
+                                data: response.y0.map((y, index) => {
+                                    const xValue = chartInstance.chartType === "scatter" ? response.x[index] : index;
+                                    const key = `${response.x[index]}-${y}`;
+                                    if (!colorMapping[key]) {
+                                        colorMapping[key] = getRandomColor();
+                                    }
+                                    const isHighlighted = highlightedPoints[key];
+                                    return {
+                                        value: chartInstance.chartType === "scatter" ? [response.x[index], y] : y,
+                                        itemStyle: {
+                                            borderColor: isHighlighted ? 'black' : null,
+                                            borderWidth: isHighlighted ? 2 : 0,
+                                            color: colorMapping[key]
+                                        }
+                                    };
+                                }),
+                                type: response.chartType,
+                                symbolSize: chartInstance.chartType === "scatter" ? 20 : null
+                            }
+                        ]
+                    };
+    
+                    if (chartInstance.chartType === "pie") {
+                        option.legend = {
+                            top: '5%',
+                            left: 'center'
+                        };
+                        option.series = [
+                            {
+                                name: 'Access From',
+                                type: 'pie',
+                                radius: ['40%', '70%'],
+                                avoidLabelOverlap: false,
+                                label: {
+                                    show: false,
+                                    position: 'center'
+                                },
+                                emphasis: {
+                                    label: {
+                                        show: true,
+                                        fontSize: 40,
+                                        fontWeight: 'bold'
+                                    }
+                                },
+                                labelLine: {
+                                    show: false
+                                },
+                                data: response.x.map((x, index) => {
+                                    const key = `${x}-${response.y0[index]}`;
+                                    if (!colorMapping[key]) {
+                                        colorMapping[key] = getRandomColor();
+                                    }
+                                    return {
+                                        value: response.y0[index],
+                                        name: x,
+                                        itemStyle: {
+                                            borderColor: highlightedPoints[`${chartInstance.id}-${index}`] ? 'black' : null,
+                                            borderWidth: highlightedPoints[`${chartInstance.id}-${index}`] ? 2 : 0,
+                                            color: colorMapping[key]
+                                        }
+                                    };
+                                })
+                            }
+                        ];
+                    }
+                    
+                    chartInstance.setOption(option);
+                    // Farben nach dem Laden erneut anwenden
+                    updateChartColors(chartInstance);
+                    // Nächste Aktualisierung aus der Warteschlange durchführen
+                    processQueue();
+                },
+                error: function(xhr, status, error) {
+                    console.error("Error: ", status, error);
+                    // Nächste Aktualisierung aus der Warteschlange durchführen, auch wenn ein Fehler auftritt
+                    processQueue();
+                }
+            });
+        } else {
+            // Nächste Aktualisierung aus der Warteschlange durchführen, wenn die Achsentypen nicht gesetzt sind
+            processQueue();
+        }
+    }
+
+    function processQueue() {
+        if (updateQueue.length > 0) {
+            const nextChart = updateQueue.shift();
+            updateChart(nextChart);
+        } else {
+            updating = false;
+        }
+    }
+
+    function queueUpdateChart(chartInstance) {
+        updateQueue.push(chartInstance);
+        if (!updating) {
+            updating = true;
+            processQueue();
+        }
+    }
+
+    function updateAllCharts(excludeChartId) {
+        charts.forEach(chart => {
+            if (chart.id !== excludeChartId) {
+                queueUpdateChart(chart);
+            }
+        });
+    }
+
+    tableSelect1.addEventListener('change', function() {
+        // Lädt die Spalten für die X-Achse basierend auf der ausgewählten Tabelle
+        xAxisDateFormatSelect.style.display = 'none'; // Hide date format select on table change
+        if (this.value) {
+            $.post("/columns", { table: this.value }, function(data) {
+                xAxisSelect.innerHTML = `<option value="">Select X Axis</option>`;
+                data.columns.forEach(column => {
+                    xAxisSelect.innerHTML += `<option value="${column}">${column}</option>`;
+                });
+            });
+        }
+    });
+
+    tableSelect2.addEventListener('change', function() {
+        // Lädt die Spalten für die Y-Achse basierend auf der ausgewählten Tabelle
+        yAxisDateFormatSelect.style.display = 'none'; // Hide date format select on table change
+        if (this.value) {
+            $.post("/columns", { table: this.value }, function(data) {
+                yAxisSelect.innerHTML = `<option value="">Select Y Axis</option>`;
+                data.columns.forEach(column => {
+                    yAxisSelect.innerHTML += `<option value="${column}">${column}</option>`;
+                });
+            });
+        }
+    });
+
+    // Aktualisiert das Diagramm, wenn sich die X-Achse oder das Datumformat ändert
+    xAxisSelect.addEventListener('change', function() {
+        chartInstance.xAxisType = xAxisSelect.value;
+        updateDateFormatForAxis(chartInstance, xAxisSelect.value, xAxisDateFormatSelect);
+    });
+    yAxisSelect.addEventListener('change', function() {
+        chartInstance.yAxisType = yAxisSelect.value;
+        updateDateFormatForAxis(chartInstance, yAxisSelect.value, yAxisDateFormatSelect);
+    });
+    xAxisDateFormatSelect.addEventListener('change', function() {
+        chartInstance.xAxisDateFormat = xAxisDateFormatSelect.value;
+    });
+    yAxisDateFormatSelect.addEventListener('change', function() {
+        chartInstance.yAxisDateFormat = yAxisDateFormatSelect.value;
+    });
+
+    // Aktualisiert das Diagramm, wenn der Submit-Button geklickt wird
+    submitButton.addEventListener('click', function() {
+        queueUpdateChart(chartInstance);
+    });
+
+    // Aktualisiert die Aggregation, wenn sie geändert wird
+    aggregationSelect.addEventListener('change', function() {
+        chartInstance.aggregationType = aggregationSelect.value;
+    });
+
+    // Setzt die Tabellenwerte für das Diagramm-Instanz
+    tableSelect1.addEventListener('change', function() {
+        chartInstance.table1 = tableSelect1.value;
+    });
+
+    tableSelect2.addEventListener('change', function() {
+        chartInstance.table2 = tableSelect2.value;
+    });
+
+    // Setzt die Achsenwerte für das Diagramm-Instanz
+    chartInstance.table1 = tableSelect1.value;
+    chartInstance.table2 = tableSelect2.value;
+    chartInstance.xAxisType = xAxisSelect.value;
+    chartInstance.yAxisType = yAxisSelect.value;
+    chartInstance.aggregationType = aggregationSelect.value;
+    chartInstance.xAxisDateFormat = xAxisDateFormatSelect.value;
+    chartInstance.yAxisDateFormat = yAxisDateFormatSelect.value;
+    chartInstance.chartType = chartType;
+
+    chartDiv.addEventListener('contextmenu', function(event) {
+        // Verhindert das Standard-Kontextmenü
+        event.preventDefault();
+    });
+
+    chartInstance.on('contextmenu', function(params) {
+        // Zeigt den Farbwähler für das angeklickte Diagramm an
+        if (params.componentType === 'series') {
+            showColorPicker(params.event.event, chartInstance, params.dataIndex, params.value);
+        }
+    });
+
+    chartDiv.addEventListener('mousedown', function(event) {
+        // Ermöglicht das Ziehen des Diagramms
+        draggedElement = chartDiv;
+        offsetX = event.clientX - chartDiv.getBoundingClientRect().left;
+        offsetY = event.clientY - chartDiv.getBoundingClientRect().top;
+    });
+
+    document.addEventListener('mousemove', function(event) {
+        // Bewegt das Diagramm, wenn es gezogen wird
+        if (draggedElement) {
+            draggedElement.style.left = `${event.clientX - offsetX}px`;
+            draggedElement.style.top = `${event.clientY - offsetY}px`;
+        }
+    });
+
+    document.addEventListener('mouseup', function() {
+        // Setzt das Ziehen zurück
+        draggedElement = null;
+    });
+
+    chartInstance.on('click', function(params) {
+        // Handhabung des Linksklicks, um die Hervorhebung des Datenpunkts zu ändern und Filter anzuwenden
+        if (params.componentType === 'series') {
+            const key = `${chartInstance.id}-${params.dataIndex}`;
+            let value;
+    
+            // Bestimmen Sie den X-Wert basierend auf dem Diagrammtyp
+            if (chartInstance.chartType === "scatter") {
+                value = params.value[0]; // X-Wert für Scatter-Plot
+            } else {
+                value = params.name; // X-Wert für andere Diagrammtypen
+            }
+    
+            if (highlightedPoints[key]) {
+                delete highlightedPoints[key];
+                // Entfernen Sie den Wert aus dem Filter
+                filter = filter.filter(item => item.filterValue !== value);
+            } else {
+                highlightedPoints[key] = true;
+                // Fügen Sie den Wert dem Filter hinzu
+                filter.push({
+                    chartId: chartInstance.id,
+                    filterTable: chartInstance.table1,
+                    filterColumn: chartInstance.xAxisType,
+                    filterValue: value
+                });
+            }
+            console.log(filter);
+
+            // Aktualisieren Sie das Diagramm, um die Hervorhebung anzuzeigen
+            updateHighlighting(chartInstance);
+    
+            // Aktualisieren Sie alle anderen Diagramme
+            updateAllCharts(chartInstance.id);
+        }
+    });
+
+    function updateHighlighting(chartInstance) {
+        // Aktualisieren Sie die Hervorhebung im Diagramm
+        const series = chartInstance.getOption().series;
+        series.forEach(serie => {
+            serie.data.forEach((dataPoint, index) => {
+                const key = `${chartInstance.id}-${index}`;
+                if (highlightedPoints[key]) {
+                    dataPoint.itemStyle = dataPoint.itemStyle || {};
+                    dataPoint.itemStyle.borderColor = 'black';
+                    dataPoint.itemStyle.borderWidth = 2;
+                } else {
+                    if (dataPoint.itemStyle) {
+                        delete dataPoint.itemStyle.borderColor;
+                        delete dataPoint.itemStyle.borderWidth;
+                    }
+                }
+            });
+        });
+
+        chartInstance.setOption({
+            series: series
+        });
+    }
+
+    function updateDateFormatForAxis(chartInstance, columnName, dateFormatSelect) {
+        $.ajax({
+            url: "/columntype",
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify({ table: chartInstance.table1, column: columnName }),
+            success: function(data) {
+                if (data.type) {
+                    console.log(`Column type for ${columnName}: ${data.type}`); // Debugging
+                    // Prüfen, ob der Spaltentyp Date oder DateTime ist
+                    const columnType = data.type.toLowerCase();
+                    if (columnType.includes("datetime")) {
+                        updateDateFormatSelect(dateFormatSelect, true);
+                    } else if (columnType.includes("date")) {
+                        updateDateFormatSelect(dateFormatSelect, false);
+                    } else {
+                        dateFormatSelect.style.display = 'none';  // Hide the date format select if not a date type
+                    }
+                } else {
+                    dateFormatSelect.style.display = 'none';  // Hide the date format select if no type returned
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error("Error fetching column type: ", status, error); // Debugging
+                dateFormatSelect.style.display = 'none';  // Hide the date format select on error
+            }
+        });
+    }
+}
+
+function showColorPicker(event, chartInstance, dataIndex, value) {
+    // Zeigt einen Farbwähler an, um die Farbe eines Datenpunkts im Diagramm zu ändern
+    const optionsMenu = document.createElement('div');
+    optionsMenu.className = 'options-menu';
+
+    const colorPicker = document.createElement('input');
+    colorPicker.type = 'color';
+    colorPicker.className = 'color-picker';
+    colorPicker.addEventListener('input', function () {
+        const valueKey = value.toString();
+        colorMapping[valueKey] = colorPicker.value;
+        charts.forEach(chart => updateChartColors(chart));
+    });
+
+    colorPicker.addEventListener('change', function () {
+        document.body.removeChild(optionsMenu);
+    });
+
+    optionsMenu.appendChild(colorPicker);
+    document.body.appendChild(optionsMenu);
+    optionsMenu.style.position = 'absolute';
+    optionsMenu.style.left = `${event.pageX}px`;
+    optionsMenu.style.top = `${event.pageY}px`;
+    optionsMenu.style.zIndex = 1000; // Stellt sicher, dass es im Vordergrund ist
+
+    document.addEventListener('click', function removeOptionsMenu(event) {
+        // Entfernt das Farbwählermenü, wenn außerhalb geklickt wird
+        if (!optionsMenu.contains(event.target)) {
+            document.body.removeChild(optionsMenu);
+            document.removeEventListener('click', removeOptionsMenu);
+        }
+    }, { once: true });
+}
+
+function updateChartColors(chartInstance) {
+    const series = chartInstance.getOption().series;
+    series.forEach(serie => {
+        serie.data.forEach(dataPoint => {
+            const valueKey = dataPoint.value.toString();
+            if (colorMapping[valueKey]) {
+                dataPoint.itemStyle = dataPoint.itemStyle || {};
+                dataPoint.itemStyle.color = colorMapping[valueKey];
+            }
+        });
+    });
+
+    chartInstance.setOption({
+        series: series
+    });
+}
+
+// Hover-Event, um den Container zu umrahmen
+document.addEventListener('mouseover', function(event) {
+    if (event.target.closest('.chart')) {
+        const chartDiv = event.target.closest('.chart');
+        chartDiv.querySelector('.overlay').style.display = 'block';
+    }
+});
+
+document.addEventListener('mouseout', function(event) {
+    if (event.target.closest('.chart')) {
+        const chartDiv = event.target.closest('.chart');
+        chartDiv.querySelector('.overlay').style.display = 'none';
+    }
+});
