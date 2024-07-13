@@ -82,9 +82,10 @@ def heatmap():
 def boxplot():
     return render_template('boxplot.html')
 
-@app.route("/salesperformancedash")
+@app.route("/test")
 def salesperformancedash():
-    return render_template('salesperformancedash.html')
+    return render_template('test.html')
+
 
 @app.route("/customerdash")
 def customerdash():
@@ -110,6 +111,20 @@ def get_columns():
     cur.execute(f"SHOW COLUMNS FROM {table}")
     columns = [row[0] for row in cur.fetchall()]
     return jsonify({"columns": columns})
+
+
+@app.route("/columntype", methods=["POST"])
+def get_column_type():
+    data = request.get_json()
+    table = data['table']
+    column = data['column']
+    cur.execute(f"SHOW COLUMNS FROM {table} LIKE '{column}'")
+    row = cur.fetchone()
+    if row:
+        column_type = row[1]  # Der Datentyp ist das zweite Element im Ergebnis der SHOW COLUMNS-Abfrage
+        return jsonify({"type": column_type})
+    else:
+        return jsonify({"error": "Column not found"}), 404
 
 @app.route("/getdata", methods=["POST"])
 @cache.cached(timeout=6000, key_prefix=make_cache_key)  # Cache für 6000 Sekunden mit dynamischem Key
