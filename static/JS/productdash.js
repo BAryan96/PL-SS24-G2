@@ -10,10 +10,10 @@ $(document).ready(async function () {
   await loadChartsSequentially([
     {
       id: "myChart1",
-      tables: ["products", "products", "orders"],
-      columns: ["name", "size", "total"],
+      tables: ["products", "products", "products","orderitems"],
+      columns: ["name", "size", "price","SKU"],
       type: "stackedBar",
-      aggregations: ["", "", "Sum"],
+      aggregations: ["", "", "","Count"],
       filters: [],
     },
     {
@@ -34,11 +34,11 @@ $(document).ready(async function () {
     },
     {
       id: "myChart4",
-      tables: ["products", "products", "orders"],
-      columns: ["category", "name", "total"],
+      tables: ["products", "products", "orderitems","products"],
+      columns: ["category", "name", "SKU","price"],
       type: "treemap",
-      aggregations: ["", "", "Sum"],
-      filters: [],
+      aggregations: ["", "","Count","Sum"],
+      filters: []
     },
     {
       id: "myChart5",
@@ -250,11 +250,34 @@ function generateColorMap(data) {
 }
 
 function processstackedBarData(response) {
+  if (
+    !response ||
+    !response.x ||
+    !response.y0 ||
+    !response.y1 ||
+    !response.y2
+  ) {
+    console.error("Ungültiges Datenformat:", response);
+    return { names: [], processedData: [], sizes: [] };
+  }
+
+  console.log("Eingehende Daten:", response);
+
   const nameSizeMap = {};
 
   response.x.forEach((name, index) => {
     const size = response.y0[index];
-    const total = parseFloat(response.y1[index]);
+    const price = parseFloat(response.y1[index]);
+    const skuCount = parseInt(response.y2[index], 10);
+
+    if (isNaN(price) || isNaN(skuCount)) {
+      console.error("Ungültiger Preis oder SKU-Anzahl bei Index:", index, "Preis:", price, "SKU-Anzahl:", skuCount);
+      return;
+    }
+
+    const total = price * skuCount;
+
+    console.log(`Berechnung bei Index ${index}: Name=${name}, Größe=${size}, Preis=${price}, SKU-Anzahl=${skuCount}, Total=${total}`);
 
     if (!nameSizeMap[name]) {
       nameSizeMap[name] = {};
@@ -270,6 +293,8 @@ function processstackedBarData(response) {
   const names = Object.keys(nameSizeMap);
   const sizes = Array.from(new Set(response.y0));
 
+  console.log("Verarbeitete Daten:", { names, nameSizeMap, sizes });
+
   const processedData = sizes.map((size) => ({
     name: size,
     type: "bar",
@@ -280,15 +305,21 @@ function processstackedBarData(response) {
     },
   }));
 
+  console.log("ProcessedData:", processedData);
+
   return { names, processedData, sizes };
 }
+
+
+
 
 function processTreemapData(response) {
   const categoryMap = {};
 
   response.x.forEach((category, index) => {
     const product = response.y0[index];
-    const total = parseFloat(response.y1[index]);
+    const total = parseFloat(response.y2[index]);
+
 
     if (!categoryMap[category]) {
       categoryMap[category] = {

@@ -33,7 +33,7 @@ $(document).ready(async function () {
     },
     {
       id: "myChart4",
-      tables: ["orders", "orders"],
+      tables: ["orders","orders"],
       columns: ["orderDate-HH24", "orderID"],
       type: "bar",
       aggregations: ["", "Count"],
@@ -50,9 +50,9 @@ $(document).ready(async function () {
     {
       id: "myChart7",
       tables: ["stores",'stores','stores'],
-      columns: ["state",'city','city'],
+      columns: ["state",'storeID','city'],
       type: "stackedBar",
-      aggregations: ["", "",""],
+      aggregations: ["", "Count",""],
       filters: filter,
     },
   ]);
@@ -218,35 +218,66 @@ async function initializeStackedBarChart(config) {
     let response = await fetchData(requestData);
     console.log("Received response:", response);
 
-    const stateData = [...new Set(response.x)]; // Unique states
-    const cityData = [...new Set(response.y0)]; // Unique cities from first city column
+    // Debugging: Überprüfen, ob die erwarteten Daten im Response-Objekt vorhanden sind
+    if (!response.x || !response.y0 || !response.y1) {
+      console.error("Response is missing required data fields");
+      return;
+    }
 
-    // Prepare series data
-    const seriesData = cityData.map((city) => {
+    // Extrahiere eindeutige Staaten und Städte
+    const stateData = [...new Set(response.x)]; // Unique states
+    const cityData = [...new Set(response.y1)]; // Unique cities
+
+    // Debugging: Anzeigen der extrahierten einzigartigen Staaten und Städte
+    console.log("State Data:", stateData);
+    console.log("City Data:", cityData);
+
+    // Erstelle eine Datenstruktur zum Speichern der Counts für jede Stadt und jeden Staat
+    let seriesData = cityData.map((city) => {
       return {
         name: city,
         type: "bar",
         stack: "total",
-        data: stateData.map((state) => {
-          return response.x.reduce((count, currentState, index) => {
-            if (currentState === state && response.y0[index] === city) {
-              return count + 1;
-            }
-            return count;
-          }, 0);
-        }),
+        data: stateData.map(() => 0), // Initialisiere mit 0 für jeden Staat
       };
+    });
+
+    // Fülle die Datenstruktur mit den tatsächlichen Counts
+    response.x.forEach((state, index) => {
+      let city = response.y1[index];
+      let count = response.y0[index];
+      let cityIndex = cityData.indexOf(city);
+      let stateIndex = stateData.indexOf(state);
+
+      // Debugging: Überprüfen der Zuordnung von State und City Index
+      console.log(`Processing state: ${state}, city: ${city}, count: ${count}`);
+      console.log(`City Index: ${cityIndex}, State Index: ${stateIndex}`);
+
+      if (cityIndex > -1 && stateIndex > -1) {
+        seriesData[cityIndex].data[stateIndex] += count;
+      }
     });
 
     const option = {
       title: {
-        text: "Total Cities by State",
+        text: "Total Stores by State and City",
         left: "center",
       },
       tooltip: {
         trigger: "axis",
         axisPointer: {
           type: "shadow",
+        },
+        formatter: function (params) {
+          let filteredParams = params.filter(param => param.value !== 0);
+          if (filteredParams.length === 0) {
+            return `${params[0].name}<br/>No data`;
+          }
+          let tooltipText = filteredParams.map(param => {
+            let colorSpan = `<span style="display:inline-block;margin-right:5px;border-radius:10px;width:10px;height:10px;background-color:${param.color};"></span>`;
+            return `${colorSpan}${param.seriesName}: ${param.value}`;
+          }).join('<br/>');
+          return `${params[0].name}<br/>${tooltipText}`;
         },
       },
       legend: {
@@ -264,7 +295,11 @@ async function initializeStackedBarChart(config) {
         type: "value",
       },
       series: seriesData,
+      toolbox: getToolboxFeatures(), // Hinzufügen der Toolbox-Funktionen
     };
+
+    // Debugging: Anzeigen der endgültigen Option für das Diagramm
+    console.log("Chart Option:", option);
 
     myChart.setOption(option);
     charts.push({ chart: myChart, config: config });
@@ -272,6 +307,8 @@ async function initializeStackedBarChart(config) {
     console.error("Failed to initialize stacked bar chart:", error);
   }
 }
+
+
 
 
 
@@ -684,75 +721,7 @@ function initializeDayWiseHeatmap(config, response) {
   charts.push({ chart: myChart, config: config });
 }
 
-async function initializeStackedBarChart(config) {
-  const myChart = echarts.init(document.getElementById(config.id));
 
-  const requestData = {
-    tables: config.tables,
-    columns: config.columns,
-    chartType: config.type,
-    aggregations: config.aggregations,
-    filters: config.filters,
-  };
-
-  try {
-    let response = await fetchData(requestData);
-    console.log("Received response:", response);
-
-    const stateData = [...new Set(response.x)]; // Unique states
-    const cityData = [...new Set(response.y1)]; // Unique cities
-
-    // Prepare series data
-    const seriesData = cityData.map((city) => {
-      return {
-        name: city,
-        type: "bar",
-        stack: "total",
-        data: stateData.map((state) => {
-          return response.x.reduce((count, currentState, index) => {
-            if (currentState === state && response.y1[index] === city) {
-              return count + response.y2[index];
-            }
-            return count;
-          }, 0);
-        }),
-      };
-    });
-
-    const option = {
-      title: {
-        text: "Total Store IDs by State and City",
-        left: "center",
-      },
-      tooltip: {
-        trigger: "axis",
-        axisPointer: {
-          type: "shadow",
-        },
-      },
-      legend: {
-        data: cityData,
-        bottom: 0,
-      },
-      xAxis: {
-        type: "category",
-        data: stateData,
-        axisPointer: {
-          type: "shadow",
-        },
-      },
-      yAxis: {
-        type: "value",
-      },
-      series: seriesData,
-    };
-
-    myChart.setOption(option);
-    charts.push({ chart: myChart, config: config });
-  } catch (error) {
-    console.error("Failed to initialize stacked bar chart:", error);
-  }
-}
 
 function initializeKPI(config, response) {
   const storeData = response.x.map((storeID, index) => ({

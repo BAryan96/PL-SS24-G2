@@ -8,15 +8,10 @@
     <link rel="stylesheet" href="/static/CSS/customerdash.css" />
     <style></style>
 
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-    <link
-      rel="stylesheet"
-      href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css"
-    />
-    <link
-      rel="stylesheet"
-      href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css"
-    />
+    <link rel="stylesheet" href="/static/CSS/offline.bibliotheken.css/leaflet.css" />
+    <link rel="stylesheet" href="/static/CSS/offline.bibliotheken.css/MarkerCluster.css" />
+    <link rel="stylesheet" href="/static/CSS/offline.bibliotheken.css/MarkerCluster.Default.css" />
+
   </head>
   <body>
     <div class="container">
@@ -51,6 +46,7 @@
             <a href="/storeperformancedash">Store Performance Dashboard</a>
             <a href="/customerdash">Customer Insights Dashboard</a>
             <a href="/productdash">Product Performance Dashboard</a>
+            <a href="/test">Customizable Dashboard (Beta)</a>
           </div>
         </div>
 
@@ -106,16 +102,15 @@
         </div>
       </section>
     </main>
-    <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+    <script src="/static/JS/offline.bibliotheken.js/echarts.js"></script>
     <script src="/static/JS/sidemenu.js"></script>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
-    <script src="https://unpkg.com/heatmap.js"></script>
-    <script src="https://unpkg.com/leaflet-heatmap/leaflet-heatmap.js"></script>
+    <script src="/static/JS/offline.bibliotheken.js/jQuery-3.6.0.js"></script>
+    <script src="/static/JS/offline.bibliotheken.js/leaflet.js"></script>
+    <script src="/static/JS/offline.bibliotheken.js/leaflet.markercluster.js"></script>
+    <script src="/static/JS/offline.bibliotheken.js/heatmap.js"></script>
+    <script src="/static/JS/offline.bibliotheken.js/leaflet.heatmap.js"></script>
     <script src="/static/JS/customer.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/plugins/Swap/SortableSwap.min.js"></script>
+    <script src="/static/JS/offline.bibliotheken.js/sortable.js"></script>
     <script>
       document.addEventListener("DOMContentLoaded", function () {
         var sortable = new Sortable(

@@ -7,7 +7,7 @@ let originalData = {};
 
 $(document).ready(async function () {
   await loadChartsSequentially([
-    {
+    { 
       id: "myChart1",
       tables: ["orders", "stores", "orders"],
       columns: ["orderDate-YYYY.MM", "state", "total"],
