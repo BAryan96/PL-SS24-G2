@@ -33,10 +33,10 @@ $(document).ready(async function () {
     },
     {
       id: "myChart4",
-      tables: ["weather","weather"],
-      columns: ["date_time-HH24", "temperature",""],
+      tables: ["orders","orders"],
+      columns: ["orderDate-HH24", "orderID"],
       type: "bar",
-      aggregations: ["", "Average"],
+      aggregations: ["", "Count"],
       filters: filter,
     },
     {
