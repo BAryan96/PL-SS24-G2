@@ -152,134 +152,163 @@ function addChart(chartType) {
     const yAxisDateFormat = chartInstance.yAxisDateFormat;
 
     if (chartInstance.xAxisIsDate && xAxisDateFormat) {
-      xAxisType = `${xAxisType}-${xAxisDateFormat}`;
+        xAxisType = `${xAxisType}-${xAxisDateFormat}`;
     }
 
     if (chartInstance.yAxisIsDate && yAxisDateFormat) {
-      yAxisType = `${yAxisType}-${yAxisDateFormat}`;
+        yAxisType = `${yAxisType}-${yAxisDateFormat}`;
     }
 
     if (xAxisType && yAxisType) {
-      let requestData = {
-        tables: [chartInstance.table1, chartInstance.table2],
-        columns: [xAxisType, yAxisType],
-        chartType: chartInstance.chartType,
-        aggregations: ["", aggregationType],
-        filters: filter.filter((f) => f.chartId !== chartInstance.id),
-      };
-      $.ajax({
-        url: "/getdata",
-        type: "POST",
-        contentType: "application/json",
-        data: JSON.stringify(requestData),
-        success: function (response) {
-          const option = {
-            tooltip: {
-              trigger: "item",
-            },
-            xAxis: {
-              type:
-                chartInstance.chartType === "scatter" ? "value" : "category",
-              data: chartInstance.chartType === "scatter" ? null : response.x,
-            },
-            yAxis: {
-              type: "value",
-            },
-            series: [
-              {
-                data: response.y0.map((y, index) => {
-                  const xValue =
-                    chartInstance.chartType === "scatter"
-                      ? response.x[index]
-                      : index;
-                  const key = `${response.x[index]}-${y}`;
-                  if (!colorMapping[response.x[index]]) {
-                    colorMapping[response.x[index]] = getRandomColor();
-                  }
-                  const isHighlighted = highlightedPoints[key];
-                  return {
-                    value:
-                      chartInstance.chartType === "scatter"
-                        ? [response.x[index], y]
-                        : y,
-                    itemStyle: {
-                      borderColor: isHighlighted ? "black" : null,
-                      borderWidth: isHighlighted ? 2 : 0,
-                      color: colorMapping[response.x[index]],
-                    },
-                  };
-                }),
-                type: response.chartType,
-                symbolSize: chartInstance.chartType === "scatter" ? 20 : null,
-              },
-            ],
-          };
+        let requestData = {
+            tables: [chartInstance.table1, chartInstance.table2],
+            columns: [xAxisType, yAxisType],
+            chartType: chartInstance.chartType,
+            aggregations: ["", aggregationType],
+            filters: filter.filter((f) => f.chartId !== chartInstance.id),
+        };
+        $.ajax({
+            url: "/getdata",
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify(requestData),
+            success: function (response) {
+                const option = {
+                    toolbox: {
+                        feature: {
+                            saveAsImage: {},
+                            dataView: {
+                                readOnly: true,
+                                optionToContent: function (opt) {
+                                    var axisData = opt.xAxis[0].data;
+                                    var series = opt.series;
+                                    var table =
+                                        '<table style="width:100%;text-align:center"><tbody><tr>' +
+                                        "<td>X Axis</td>";
 
-          if (chartInstance.chartType === "pie") {
-            option.legend = {
-              top: "5%",
-              left: "center",
-            };
-            option.series = [
-              {
-                name: "Access From",
-                type: "pie",
-                radius: ["40%", "70%"],
-                avoidLabelOverlap: false,
-                label: {
-                  show: false,
-                  position: "center",
-                },
-                emphasis: {
-                  label: {
-                    show: true,
-                    fontSize: 40,
-                    fontWeight: "bold",
-                  },
-                },
-                labelLine: {
-                  show: false,
-                },
-                data: response.x.map((x, index) => {
-                  const key = `${x}-${response.y0[index]}`;
-                  if (!colorMapping[x]) {
-                    colorMapping[x] = getRandomColor();
-                  }
-                  return {
-                    value: response.y0[index],
-                    name: x,
-                    itemStyle: {
-                      borderColor: highlightedPoints[
-                        `${chartInstance.id}-${index}`
-                      ]
-                        ? "black"
-                        : null,
-                      borderWidth: highlightedPoints[
-                        `${chartInstance.id}-${index}`
-                      ]
-                        ? 2
-                        : 0,
-                      color: colorMapping[x],
-                    },
-                  };
-                }),
-              },
-            ];
-          }
+                                    series.forEach(function (s) {
+                                        table += "<td>" + s.name + "</td>";
+                                    });
 
-          chartInstance.setOption(option);
-          updateChartColors(chartInstance);
-          processQueue();
-        },
-        error: function (xhr, status, error) {
-          console.error("Error: ", status, error);
-          processQueue();
-        },
-      });
+                                    table += "</tr>";
+
+                                    for (var i = 0, l = axisData.length; i < l; i++) {
+                                        table += "<tr>" + "<td>" + axisData[i] + "</td>";
+                                        series.forEach(function (s) {
+                                            table += "<td>" + s.data[i].value + "</td>"; // Hier wird der primitive Wert abgerufen
+                                        });
+                                        table += "</tr>";
+                                    }
+
+                                    table += "</tbody></table>";
+                                    return table;
+                                }
+                            },
+                            magicType: { type: ["line", "bar"] }
+                        }
+                    },
+                    tooltip: {
+                        trigger: "item",
+                    },
+                    xAxis: {
+                        type: chartInstance.chartType === "scatter" ? "value" : "category",
+                        data: chartInstance.chartType === "scatter" ? null : response.x,
+                    },
+                    yAxis: {
+                        type: "value",
+                    },
+                    series: [
+                        {
+                            name: "Y Axis", // Passe den Namen an die tatsächliche Serie an
+                            data: response.y0.map((y, index) => {
+                                const xValue = chartInstance.chartType === "scatter" ? response.x[index] : index;
+                                const key = `${response.x[index]}-${y}`;
+                                if (!colorMapping[response.x[index]]) {
+                                    colorMapping[response.x[index]] = getRandomColor();
+                                }
+                                const isHighlighted = highlightedPoints[key];
+                                return {
+                                    value: chartInstance.chartType === "scatter" ? [response.x[index], y] : y,
+                                    itemStyle: {
+                                        borderColor: isHighlighted ? "black" : null,
+                                        borderWidth: isHighlighted ? 2 : 0,
+                                        color: colorMapping[response.x[index]],
+                                    },
+                                };
+                            }),
+                            type: chartInstance.chartType,
+                            stack: chartInstance.chartType === 'stacked' ? 'stack' : null, // Hinzufügen der Stack-Option
+                            symbolSize: chartInstance.chartType === "scatter" ? 20 : null,
+                        },
+                    ],
+                };
+
+                if (chartInstance.chartType === "pie" || chartInstance.chartType === "doughnut") {
+                    option.legend = {
+                        top: "5%",
+                        left: "center",
+                    };
+                    option.series = [
+                        {
+                            name: "Access From",
+                            type: "pie",
+                            radius: chartInstance.chartType === "doughnut" ? ["40%", "70%"] : "70%",
+                            avoidLabelOverlap: false,
+                            label: {
+                                show: false,
+                                position: "center",
+                            },
+                            emphasis: {
+                                label: {
+                                    show: true,
+                                    fontSize: 40,
+                                    fontWeight: "bold",
+                                },
+                            },
+                            labelLine: {
+                                show: false,
+                            },
+                            data: response.x.map((x, index) => {
+                                const key = `${x}-${response.y0[index]}`;
+                                if (!colorMapping[x]) {
+                                    colorMapping[x] = getRandomColor();
+                                }
+                                return {
+                                    value: response.y0[index],
+                                    name: x,
+                                    itemStyle: {
+                                        borderColor: highlightedPoints[
+                                            `${chartInstance.id}-${index}`
+                                            ]
+                                            ? "black"
+                                            : null,
+                                        borderWidth: highlightedPoints[
+                                            `${chartInstance.id}-${index}`
+                                            ]
+                                            ? 2
+                                            : 0,
+                                        color: colorMapping[x],
+                                    },
+                                };
+                            }),
+                        },
+                    ];
+                }
+
+                chartInstance.setOption(option);
+                updateChartColors(chartInstance);
+                processQueue();
+            },
+            error: function (xhr, status, error) {
+                console.error("Error: ", status, error);
+                processQueue();
+            },
+        });
     } else {
-      processQueue();
+        processQueue();
     }
-  }
+}
+
 
   function processQueue() {
     if (updateQueue.length > 0) {
