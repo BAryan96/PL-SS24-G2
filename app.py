@@ -124,6 +124,9 @@ def get_column_type():
     column = data['column']
     cur.execute(f"SHOW COLUMNS FROM {table} LIKE '{column}'")
     row = cur.fetchone()
+    print(row)
+    print(column)
+    print(table)
     if row:
         column_type = row[1] 
         return jsonify({"type": column_type})

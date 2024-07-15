@@ -151,11 +151,11 @@ function addChart(chartType) {
     const xAxisDateFormat = chartInstance.xAxisDateFormat;
     const yAxisDateFormat = chartInstance.yAxisDateFormat;
 
-    if (xAxisDateFormat) {
+    if (chartInstance.xAxisIsDate && xAxisDateFormat) {
       xAxisType = `${xAxisType}-${xAxisDateFormat}`;
     }
 
-    if (yAxisDateFormat) {
+    if (chartInstance.yAxisIsDate && yAxisDateFormat) {
       yAxisType = `${yAxisType}-${yAxisDateFormat}`;
     }
 
@@ -193,8 +193,8 @@ function addChart(chartType) {
                       ? response.x[index]
                       : index;
                   const key = `${response.x[index]}-${y}`;
-                  if (!colorMapping[key]) {
-                    colorMapping[key] = getRandomColor();
+                  if (!colorMapping[response.x[index]]) {
+                    colorMapping[response.x[index]] = getRandomColor();
                   }
                   const isHighlighted = highlightedPoints[key];
                   return {
@@ -205,7 +205,7 @@ function addChart(chartType) {
                     itemStyle: {
                       borderColor: isHighlighted ? "black" : null,
                       borderWidth: isHighlighted ? 2 : 0,
-                      color: colorMapping[key],
+                      color: colorMapping[response.x[index]],
                     },
                   };
                 }),
@@ -242,8 +242,8 @@ function addChart(chartType) {
                 },
                 data: response.x.map((x, index) => {
                   const key = `${x}-${response.y0[index]}`;
-                  if (!colorMapping[key]) {
-                    colorMapping[key] = getRandomColor();
+                  if (!colorMapping[x]) {
+                    colorMapping[x] = getRandomColor();
                   }
                   return {
                     value: response.y0[index],
@@ -259,7 +259,7 @@ function addChart(chartType) {
                       ]
                         ? 2
                         : 0,
-                      color: colorMapping[key],
+                      color: colorMapping[x],
                     },
                   };
                 }),
@@ -335,7 +335,9 @@ function addChart(chartType) {
     updateDateFormatForAxis(
       chartInstance,
       xAxisSelect.value,
-      xAxisDateFormatSelect
+      xAxisDateFormatSelect,
+      tableSelect1.value,
+      'x'
     );
   });
   yAxisSelect.addEventListener("change", function () {
@@ -343,7 +345,9 @@ function addChart(chartType) {
     updateDateFormatForAxis(
       chartInstance,
       yAxisSelect.value,
-      yAxisDateFormatSelect
+      yAxisDateFormatSelect,
+      tableSelect2.value,
+      'y'
     );
   });
   xAxisDateFormatSelect.addEventListener("change", function () {
@@ -467,31 +471,51 @@ function addChart(chartType) {
   function updateDateFormatForAxis(
     chartInstance,
     columnName,
-    dateFormatSelect
+    dateFormatSelect,
+    tableName,
+    axis
   ) {
     $.ajax({
       url: "/columntype",
       type: "POST",
       contentType: "application/json",
-      data: JSON.stringify({ table: chartInstance.table1, column: columnName }),
+      data: JSON.stringify({ table: tableName, column: columnName }),
       success: function (data) {
         if (data.type) {
           console.log(`Column type for ${columnName}: ${data.type}`);
           const columnType = data.type.toLowerCase();
-          if (columnType.includes("datetime")) {
-            updateDateFormatSelect(dateFormatSelect, true);
-          } else if (columnType.includes("date")) {
-            updateDateFormatSelect(dateFormatSelect, false);
+          if (columnType.includes("datetime") || columnType.includes("date")) {
+            updateDateFormatSelect(dateFormatSelect, columnType.includes("datetime"));
+            if (axis === 'x') {
+              chartInstance.xAxisIsDate = true;
+            } else {
+              chartInstance.yAxisIsDate = true;
+            }
           } else {
             dateFormatSelect.style.display = "none";
+            if (axis === 'x') {
+              chartInstance.xAxisIsDate = false;
+            } else {
+              chartInstance.yAxisIsDate = false;
+            }
           }
         } else {
           dateFormatSelect.style.display = "none";
+          if (axis === 'x') {
+            chartInstance.xAxisIsDate = false;
+          } else {
+            chartInstance.yAxisIsDate = false;
+          }
         }
       },
       error: function (xhr, status, error) {
         console.error("Error fetching column type: ", status, error);
         dateFormatSelect.style.display = "none";
+        if (axis === 'x') {
+          chartInstance.xAxisIsDate = false;
+        } else {
+          chartInstance.yAxisIsDate = false;
+        }
       },
     });
   }
@@ -505,7 +529,7 @@ function showColorPicker(event, chartInstance, dataIndex, value) {
   colorPicker.type = "color";
   colorPicker.className = "color-picker";
   colorPicker.addEventListener("input", function () {
-    const valueKey = value.toString();
+    const valueKey = chartInstance.getOption().xAxis[0].data[dataIndex];
     colorMapping[valueKey] = colorPicker.value;
     charts.forEach((chart) => updateChartColors(chart));
   });
@@ -535,9 +559,10 @@ function showColorPicker(event, chartInstance, dataIndex, value) {
 
 function updateChartColors(chartInstance) {
   const series = chartInstance.getOption().series;
+  const xAxisData = chartInstance.getOption().xAxis[0].data;
   series.forEach((serie) => {
-    serie.data.forEach((dataPoint) => {
-      const valueKey = dataPoint.value.toString();
+    serie.data.forEach((dataPoint, index) => {
+      const valueKey = xAxisData[index];
       if (colorMapping[valueKey]) {
         dataPoint.itemStyle = dataPoint.itemStyle || {};
         dataPoint.itemStyle.color = colorMapping[valueKey];
@@ -549,17 +574,3 @@ function updateChartColors(chartInstance) {
     series: series,
   });
 }
-
-document.addEventListener("mouseover", function (event) {
-  if (event.target.closest(".chart")) {
-    const chartDiv = event.target.closest(".chart");
-    chartDiv.querySelector(".overlay").style.display = "block";
-  }
-});
-
-document.addEventListener("mouseout", function (event) {
-  if (event.target.closest(".chart")) {
-    const chartDiv = event.target.closest(".chart");
-    chartDiv.querySelector(".overlay").style.display = "none";
-  }
-});
