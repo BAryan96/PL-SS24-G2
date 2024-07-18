@@ -73,15 +73,7 @@ def check_and_create_tables(cur):
                 PRIMARY KEY (date_time, storeID)
             )
         """, 
-        "orderitems": """
-            CREATE TABLE IF NOT EXISTS orderitems (
-                SKU CHAR(5),
-                orderID BIGINT(20),
-                FOREIGN KEY (SKU) REFERENCES products(SKU),
-                FOREIGN KEY (orderID) REFERENCES orders(orderID)
-            )
-        """,
-            "orders": """
+        "orders": """
             CREATE TABLE IF NOT EXISTS orders (
                 orderID BIGINT(20) PRIMARY KEY,
                 customerID CHAR(7),
@@ -92,6 +84,14 @@ def check_and_create_tables(cur):
                 FOREIGN KEY (customerID) REFERENCES customers(customerID),
                 FOREIGN KEY (storeID) REFERENCES stores(storeID)
             )
+        """, 
+        "orderitems": """
+            CREATE TABLE IF NOT EXISTS orderitems (
+                SKU CHAR(5),
+                orderID BIGINT(20),
+                FOREIGN KEY (SKU) REFERENCES products(SKU),
+                FOREIGN KEY (orderID) REFERENCES orders(orderID)
+            )
         """
     }
 
@@ -100,11 +100,13 @@ def check_and_create_tables(cur):
         print(f"Checked and created table {table} if not exists")
 
 def convert_datetime(datetime_str):
-    try:
-        dt = datetime.fromisoformat(datetime_str.replace('Z', '+00:00'))
-        return dt.strftime('%Y-%m-%d %H:%M:%S')
-    except ValueError:
-        return None
+    if datetime_str:
+        try:
+            dt = datetime.fromisoformat(datetime_str.replace('Z', '+00:00'))
+            return dt.strftime('%Y-%m-%d %H:%M:%S')
+        except ValueError:
+            return None
+    return None
 
 def load_data_from_csv(cur, conn, table_name, csv_file_path):
     if not os.path.isfile(csv_file_path):
@@ -119,7 +121,7 @@ def load_data_from_csv(cur, conn, table_name, csv_file_path):
         for row in reader:
             # Replace empty strings with None
             row = [None if col == '' else col for col in row]
-            if table_name == 'orders':
+            if table_name == 'orders' and row[3]:
                 row[3] = convert_datetime(row[3])  # Convert the datetime string
             try:
                 cur.execute(query, row)
@@ -163,9 +165,9 @@ check_and_create_tables(cur)
 csv_files = {
     "stores": "CSV/stores.csv",
     "products": "CSV/products.csv",
+    "customers": "CSV/customers.csv",  # Load customers before orders
     "orders": "CSV/orders.csv",
     "orderitems": "CSV/orderitems.csv",
-    "customers": "CSV/customers.csv",
     "weather": "CSV/weather.csv"
 }
 
