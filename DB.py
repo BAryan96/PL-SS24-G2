@@ -2,6 +2,7 @@ import mariadb
 import sys
 import csv
 import os
+from datetime import datetime
 
 def connect_to_database():
     try:
@@ -12,6 +13,7 @@ def connect_to_database():
             port=3306,
             database="pizzag2"
         )
+        conn.cursor().execute("SET time_zone = '+00:00';")
         print("Database connection successful.")
         return conn
     except mariadb.Error as e:
@@ -46,26 +48,6 @@ def check_and_create_tables(cur):
                 Launch DATE
             )
         """,
-        "orders": """
-            CREATE TABLE IF NOT EXISTS orders (
-                orderID BIGINT(20) PRIMARY KEY,
-                customerID CHAR(7),
-                storeID CHAR(7),
-                orderDate DATETIME,
-                nItems BIGINT(20),
-                total DECIMAL(20,2),
-                FOREIGN KEY (customerID) REFERENCES customers(customerID),
-                FOREIGN KEY (storeID) REFERENCES stores(storeID)
-            )
-        """,
-        "orderitems": """
-            CREATE TABLE IF NOT EXISTS orderitems (
-                SKU CHAR(5),
-                orderID BIGINT(20),
-                FOREIGN KEY (SKU) REFERENCES products(SKU),
-                FOREIGN KEY (orderID) REFERENCES orders(orderID)
-            )
-        """,
         "customers": """
             CREATE TABLE IF NOT EXISTS customers (
                 customerID CHAR(7) PRIMARY KEY,
@@ -90,12 +72,39 @@ def check_and_create_tables(cur):
                 storeID CHAR(7),
                 PRIMARY KEY (date_time, storeID)
             )
+        """, 
+        "orderitems": """
+            CREATE TABLE IF NOT EXISTS orderitems (
+                SKU CHAR(5),
+                orderID BIGINT(20),
+                FOREIGN KEY (SKU) REFERENCES products(SKU),
+                FOREIGN KEY (orderID) REFERENCES orders(orderID)
+            )
+        """,
+            "orders": """
+            CREATE TABLE IF NOT EXISTS orders (
+                orderID BIGINT(20) PRIMARY KEY,
+                customerID CHAR(7),
+                storeID CHAR(7),
+                orderDate DATETIME,
+                nItems BIGINT(20),
+                total DECIMAL(20,2),
+                FOREIGN KEY (customerID) REFERENCES customers(customerID),
+                FOREIGN KEY (storeID) REFERENCES stores(storeID)
+            )
         """
     }
 
     for table, create_statement in create_table_statements.items():
         cur.execute(create_statement)
         print(f"Checked and created table {table} if not exists")
+
+def convert_datetime(datetime_str):
+    try:
+        dt = datetime.fromisoformat(datetime_str.replace('Z', '+00:00'))
+        return dt.strftime('%Y-%m-%d %H:%M:%S')
+    except ValueError:
+        return None
 
 def load_data_from_csv(cur, conn, table_name, csv_file_path):
     if not os.path.isfile(csv_file_path):
@@ -110,6 +119,8 @@ def load_data_from_csv(cur, conn, table_name, csv_file_path):
         for row in reader:
             # Replace empty strings with None
             row = [None if col == '' else col for col in row]
+            if table_name == 'orders':
+                row[3] = convert_datetime(row[3])  # Convert the datetime string
             try:
                 cur.execute(query, row)
             except mariadb.Error as e:
@@ -118,7 +129,6 @@ def load_data_from_csv(cur, conn, table_name, csv_file_path):
         conn.commit()
         print(f"Loaded data into {table_name} from {csv_file_path}")
     return True
-
 
 def check_and_load_data(cur, conn, table_name, csv_file_path):
     cur.execute(f"SELECT COUNT(*) FROM {table_name}")
@@ -143,3 +153,31 @@ def verify_table_data(cur):
         else:
             print(f"Table {table} has {count} rows.")
     return all_tables_have_data
+
+# Example usage
+conn = connect_to_database()
+cur = get_cursor(conn)
+check_and_create_tables(cur)
+
+# Replace the path with the correct paths to your CSV files
+csv_files = {
+    "stores": "CSV/stores.csv",
+    "products": "CSV/products.csv",
+    "orders": "CSV/orders.csv",
+    "orderitems": "CSV/orderitems.csv",
+    "customers": "CSV/customers.csv",
+    "weather": "CSV/weather.csv"
+}
+
+for table, csv_file in csv_files.items():
+    if not check_and_load_data(cur, conn, table, csv_file):
+        print(f"Initialization failed: {table} table could not load data from {csv_file}.")
+        sys.exit(1)
+
+if verify_table_data(cur):
+    print("All tables have data.")
+else:
+    print("Some tables are missing data.")
+
+cur.close()
+conn.close()
